@@ -6,7 +6,7 @@ class accounts:
 
     accounts={}
 
-    members=[ 'Ardinges', 'berkes', 'Bix', 'bjornl', 'bossa', 'Brenno', 'BugBlue', 'CookieMonster', 'Cooper', 'credo', 'Deckardt', 'denz', 'DoubleU', 'duracell', 'duur', 'dvanzuijlekom', 'egeltje', 'Eightdot', 'gmc', 'JanBee', 'Jasper', 'Jaybee', 'jimius', 'Jos', 'Kristel', 'Lurwah', 'macGyver', 'Mack', 'MacSimski', 'Mahjestic', 'Moem', 'ObiToo', 'oliebol', 'OokPeter', 'Redhead', 'relocker', 'Rho', 'ritger', 'SA007', 'Scrat', 'Sjors', 'soepkip', 'spider', 'stitch', 'Stoneshop', 'Texas', 'uMatic', 'witchDoc', 'Yeti', 'Ytrog', 'bestuur', 'hielke', 'eightdot', 'mahjestic', ]
+    members=[]
     def __init__(self,SID,master):
         self.master=master
         self.SID=SID
@@ -65,6 +65,9 @@ class accounts:
         self.readaccounts()
         for name in self.accounts:
             self.master.send_message(True,'accounts/'+name,json.dumps(self.accounts[name]))
+        with open('data/revbank.members') as f:
+            self.members = f.readlines()
+        self.members=[m.rstrip() for m in self.members]
         self.master.send_message(True,'members',json.dumps(self.members))
 
     def hook_pre_checkout(self,text):

@@ -5,6 +5,7 @@ class products:
     products={}
     aliases={}
     groups={}
+    times=1
 
     def help(self):
         return {"aliasproduct": "Add alias to product"}
@@ -85,13 +86,30 @@ class products:
     def input(self,text):
         prod=self.lookupprod(text)
         if prod:
-            self.master.receipt.add(True,self.products[prod]['price'],self.products[prod]['description'],1,None,prod)
+            self.master.receipt.add(True,self.products[prod]['price'],self.products[prod]['description'],self.times,None,prod)
+            self.times=1
             return True
-        if text=="aliasproduct":
+        elif text=="aliasproduct":
             self.master.donext(self,'addalias')
             self.master.send_message(True,'message','What product do you want to alias?')
             self.master.send_message(True,'buttons',json.dumps({'special':'products'}))
             return True
+        elif text=="addproduct":
+            self.master.donext(self,'addproduct')
+            self.master.send_message(True,'message','What is the name of the product you want to alias?')
+            self.master.send_message(True,'buttons',json.dumps({'special':'keyboard'}))
+            return True
+        elif text.endswith('*'):
+            try:
+                value=float(text[:-1])
+                if value>0 and value<100:
+                    self.times=value
+                    self.master.send_message(True,'message',"What are you buying %d from?" % self.times)
+                    self.master.send_message(True,'buttons',json.dumps({'special':'products'}))
+                return True
+            except:
+                pass
+
            
 
     def hook_abort(self,void):
@@ -101,3 +119,4 @@ class products:
         self.readproducts()
         for prod in self.products:
             self.master.send_message(True,'products/'+prod,json.dumps(self.products[prod]))
+        self.times=1
