@@ -103,34 +103,22 @@ class Session:
                 print traceback.format_exc()
 
         self.prompt=""
-        if self.nextcall!={} and self.nextcall==None:
+        if self.nextcall!={}:
             try:
+                print(text)
+                print(self.nextcall)
                 plug=self.nextcall['plug']
                 func=self.nextcall['function']
                 self.nextcall={}
+                print(getattr(plug,func))
                 if getattr(plug,func)(text):
                     done=1
             except:
                 import traceback
-                print traceback.format_exc()
-
-        if done==0:
-            if self.nextcall!={}:
-                try:
-                    print(text)
-                    print(self.nextcall)
-                    plug=self.nextcall['plug']
-                    func=self.nextcall['function']
-                    self.nextcall={}
-                    print(getattr(plug,func))
-                    if getattr(plug,func)(text):
-                        done=1
-                except:
-                    import traceback
-                    print(traceback.format_exc())
+                print(traceback.format_exc())
         if done==1:
             print("Call done with self.nextcall")
-        if done==0:
+        elif done==0:
             for part in text.split():
               if part!='':
                 done=0
