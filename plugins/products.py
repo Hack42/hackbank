@@ -1,4 +1,5 @@
 import json
+import re
 
 class products:
 
@@ -59,6 +60,11 @@ class products:
         if prod:
             self.master.donext(self,'addalias')
             self.master.send_message(True,'message','Already known alias '+text+' for '+prod+'! Try again.')
+            self.master.send_message(True,'buttons',json.dumps({'special':'keyboard'}))
+            return True
+        elif len(text)<6 or not re.compile('^[A-z0-9]+$').match(text):
+            self.master.donext(self,'addalias')
+            self.master.send_message(True,'message','only [A-z0-9] is allowed in any alias and it should be at least 4 chars long')
             self.master.send_message(True,'buttons',json.dumps({'special':'keyboard'}))
             return True
         else:
