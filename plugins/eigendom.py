@@ -53,7 +53,7 @@ class eigendom:
         os.system("convert -density 300 -units pixelsperinch data/output.png data/output.jpg")
         conn=cups.Connection()
         printer=conn.getPrinters()[self.printer]
-        conn.printFile(printer,"data/output.png",'Eigendom',{'copies': self.copies > 0 and str(self.copies) or '1','page-ranges':'1'})
+        conn.printFile(printer,"data/output.jpg",'Eigendom',{'copies': self.copies > 0 and str(self.copies) or '1','page-ranges':'1'})
 
         #os.system("convert -density 300 -units pixelsperinch data/output.png data/output.jpg ; lpr -o page-ranges=1 -P QL-710W -#"+str(aantal)+" data/output.jpg");
     def messageandbuttons(self,donext,buttons,msg):
