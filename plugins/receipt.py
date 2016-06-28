@@ -79,20 +79,21 @@ class receipt:
            
     def input(self,text):
         if text=="remove":
-            custom=[]
-            for r in range(0,len(self.receipt)):
-                custom.append({'text':r,'display':self.receipt[r]['description']})
+            custom= [ {'text':r,'display':self.receipt[r]['description']} for r in range(0,len(self.receipt)) ]
             self.master.send_message(True,'buttons',json.dumps({'special':'custom','custom':custom}))
             self.master.donext(self,'remove')
             return True
 
     def remove(self,text):
-        num=int(text)
-        self.receipt.pop(num)
-        self.master.send_message(True,'receipt',json.dumps(self.receipt))
-        self.updatetotals()
-        self.master.callhook('addremove',())
-        return True
+        try:
+            num=int(text)
+            self.receipt.pop(num)
+            self.master.send_message(True,'receipt',json.dumps(self.receipt))
+            self.updatetotals()
+            self.master.callhook('addremove',())
+            return True
+        except:
+            return True
 
     def startup(self):
         self.updatetotals()
