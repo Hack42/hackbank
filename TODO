@@ -1,0 +1,14 @@
+=== javascript ===
+show user overview when selecting a user
+
+=== python ===
+POS: show display
+
+plugins: 
+ - market
+
+extra: 
+ - card reader
+ - ibutton reader
+ - muntgeld reader
+ - bankbiljetreader
