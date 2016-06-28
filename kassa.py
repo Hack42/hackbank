@@ -82,6 +82,7 @@ class Session:
         self.realcallhook('pre_'+hook,arg);
         self.realcallhook(hook,arg);
         self.realcallhook('post_'+hook,arg);
+        return True
 
     def donext(self,plug,function):
         self.nextcall={'plug': plug, 'function': function}
