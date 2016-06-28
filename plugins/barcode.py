@@ -14,7 +14,7 @@ class barcode:
     LOGOFILE="images/hack42.png"
     FONT="images/arialbd.ttf"
     printer='QL-710W'
-    SPACE=4
+    SPACE=0 # spacing around qrcode, should be 4 but our printer prints on white labels
 
     def __init__(self,SID,master):
         self.master=master
@@ -48,7 +48,7 @@ class barcode:
         os.system("convert -density 300 -units pixelsperinch data/barcode.png data/barcode.jpg")
         conn=cups.Connection()
         printer=conn.getPrinters()[self.printer]
-        conn.printFile(printer,"data/barcode.jpg",'Eigendom',{'copies': self.copies > 0 and str(self.copies) or '1','page-ranges':'1'})
+        conn.printFile(self.printer,"data/barcode.jpg",'Eigendom',{'copies': self.copies > 0 and str(self.copies) or '1','page-ranges':'1'})
 
     def messageandbuttons(self,donext,buttons,msg):
         self.master.donext(self,donext)
