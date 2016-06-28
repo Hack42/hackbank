@@ -2,6 +2,7 @@
 import gd
 import os
 import cups
+import json
 
 class eigendom:
     SMALL=(690,271)
