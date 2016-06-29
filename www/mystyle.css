@@ -294,7 +294,7 @@ body {
   margin-left: 5px;
   margin-right: 5px;
   margin-top: 5px;
-  min-width: 11vw;
+  min-width: 12.4vw;
   padding-top: 1px;
 }
 
@@ -302,6 +302,9 @@ body {
   background-color: #B90000;
 }
 .back {
+  background-color: #00B900;
+}
+.ok {
   background-color: #00B900;
 }
 .knopjes {
@@ -349,7 +352,7 @@ body {
   margin-left: 5px;
   margin-right: 5px;
   margin-top: 5px;
-  min-width: 18%;
+  min-width: 12.4vw;
   padding-top: 1px;
   position: relative;
 }
