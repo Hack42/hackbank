@@ -52,6 +52,11 @@ class receipt:
     def hook_endsession(self,text):
         self.receipt=[]
 
+    def hook_ok(self,void):
+        self.receipt=[]
+        self.master.send_message(True,'receipt',json.dumps(self.receipt))
+        self.updatetotals()
+
     def hook_abort(self,void):
         self.receipt=[]
         self.master.send_message(True,'receipt',json.dumps(self.receipt))
