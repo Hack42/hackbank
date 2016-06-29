@@ -12,7 +12,7 @@ class undo:
         self.SID=SID
 
     def help(self):
-        return {"undo": "Undo a transaction", "restore": "Restore a transaction"}
+        return {"undo": "Undo last transaction","undolist": "Undo a transaction", "restore": "Restore a transaction"}
 
     def hook_checkout(self,text):
         self.loadundo()
@@ -110,11 +110,15 @@ class undo:
             self.master.donext(self,'doundo')
 
     def input(self,text):
-        if text=="undo":
+        if text=="undolist":
              self.listundo(0)
              return True
         elif text=="restore":
              self.listundo(1)
+             return True
+        elif text=="undo":
+             # whatever, works if you just did a transaction
+             self.doundo(self.master.transID)
              return True
 
     def hook_abort(self,void):
