@@ -51,9 +51,7 @@ class eigendom:
         img.string_ttf(self.FONT,25,0,(651, 205),"☐",BLACK)
         img.writePng("data/output.png")
         os.system("convert -density 300 -units pixelsperinch data/output.png data/output.jpg")
-        conn=cups.Connection()
-        printer=conn.getPrinters()[self.printer]
-        conn.printFile(self.printer,"data/output.jpg",title="Eigendom",options={'copies': self.copies > 0 and str(self.copies) or '1','page-ranges':'1'})
+        cups.Connection().printFile(self.printer,"data/output.jpg",title="Eigendom",options={'copies': self.copies > 0 and str(self.copies) or '1','page-ranges':'1'})
 
         #os.system("convert -density 300 -units pixelsperinch data/output.png data/output.jpg ; lpr -o page-ranges=1 -P QL-710W -#"+str(aantal)+" data/output.jpg");
     def messageandbuttons(self,donext,buttons,msg):

@@ -46,9 +46,7 @@ class barcode:
         img.string_ttf(self.FONT,12,0,(self.SMALL[1]+10,self.SMALL[1]-2),"meer informatie.",BLACK)
         img.writePng("data/barcode.png")
         os.system("convert -density 300 -units pixelsperinch data/barcode.png data/barcode.jpg")
-        conn=cups.Connection()
-        printer=conn.getPrinters()[self.printer]
-        conn.printFile(self.printer,"data/barcode.jpg",'Eigendom',{'copies': self.copies > 0 and str(self.copies) or '1','page-ranges':'1'})
+        cups.Connection().printFile(self.printer,"data/barcode.jpg",'Eigendom',{'copies': self.copies > 0 and str(self.copies) or '1','page-ranges':'1'})
 
     def messageandbuttons(self,donext,buttons,msg):
         self.master.donext(self,donext)
