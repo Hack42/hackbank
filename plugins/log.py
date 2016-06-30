@@ -21,11 +21,7 @@ class log:
 
     def hook_post_checkout(self,text):
         for rr in self.master.receipt.receipt:
-          if rr['Lose']:
-             gol="LOSE"
-          else:
-             gol="GAIN"
-          self.log("CHECKOUT","%-10d %s %d * %10.2f %s EUR %10.2f # %s" % ( self.master.transID,rr['beni'],rr['count'],rr['value'],gol,rr['count']*rr['value'],rr['description']) )
+          self.log("CHECKOUT","%-10d %s %d * %10.2f %s EUR %10.2f # %s" % ( self.master.transID,rr['beni'],rr['count'],rr['value'],("LOSE" if rr['Lose'] else "GAIN"),rr['count']*rr['value'],rr['description']) )
 
     def input(self,text):
         pass

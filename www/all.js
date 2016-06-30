@@ -70,6 +70,9 @@ $( document ).ready(function() {
     $('#Receipt2').empty();
     $('.Itemline').clone().appendTo('#Receipt2');
     $('#Receipt2').scrollTop($('#Receipt2')[0].scrollHeight);
+    if ($('#Receipt2').is(':empty')){
+       $('#Receipt2').append($('<img>',{src: 'images/Hack42.png', width: '100%'}).css({'top': '12vh','position': 'absolute'}))
+    }
   }
   function build_totals(msg) {
     var parts=JSON.parse(msg);
@@ -219,6 +222,7 @@ $( document ).ready(function() {
     $('#TopButtons').empty();
     $('#MainButtons').append($('<div>',{class: "infoboxes", id: "infoboxes"}));
     $('.Userline').clone().appendTo('#infoboxes');
+    $('#TopButtons').append($('<div>',{class: "Knopje Button normal ok",id: 'ok'}).append($('<span>',{class: "Knopjetext",text: "OK"})));
     $('#TopButtons').append($('<div>',{class: "Knopje Button normal undo",id: 'undo'}).append($('<span>',{class: "Knopjetext",text: "Undo"})));
     $('#TopButtons').append($('<div>',{class: "Knopje Button normal restore",id: 'restore'}).append($('<span>',{class: "Knopjetext",text: "Undo + Restore"})));
     $('#TopButtons').append($('<div>',{class: "Knopje Button normal bon",id: 'bon'}).append($('<span>',{class: "Knopjetext",text: "Bon"})));
@@ -553,7 +557,7 @@ $( document ).ready(function() {
   $('#LeftButtons').append($('<div>',{class: "Knopje Button special",id: 'commands'}).append($('<span>',{class: "Knopjetext",text: "Commands"})));
   $('#LeftButtons').append($('<div>',{class: "Knopje Button sounds",id: 'sounds'}).append($('<span>',{class: "Knopjetext",text: "Sounds"})));
   $('#LeftButtons').append($('<div>',{class: "Knopje Button irc",id: 'irc'}).append($('<span>',{class: "Knopjetext",text: "IRC"})));
-  $('#LeftButtons').append($('<div>',{class: "Knopje Button back",id: 'back'}).append($('<span>',{class: "Knopjetext",text: "Back"})));
+  //$('#LeftButtons').append($('<div>',{class: "Knopje Button back",id: 'back'}).append($('<span>',{class: "Knopjetext",text: "Back"})));
   $('#Buttons').append($('<div>',{class: "Knopje abort",id: 'abort'}).append($('<span>',{class: "Knopjetext",text: "Abort"})));
   $('#Buttons').append($('<div>',{class: "Knopje bon",id: 'bon'}).append($('<span>',{class: "Knopjetext",text: "Bon"})));
   $('#Buttons').append($('<div>',{class: "Knopje remove",id: 'remove'}).append($('<span>',{class: "Knopjetext",text: " Remove Item"})));
@@ -651,6 +655,7 @@ $( document ).ready(function() {
   });
   $("body" ).on( "click", 'div.productgroups' ,function() {
      makepages('normal',productgrouptobuttons(this.id).sort(compare_display))
+     focus();
   });
   $('.Knopje').click(function() {
     switch(this.id) {
