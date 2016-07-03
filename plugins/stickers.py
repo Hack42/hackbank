@@ -48,8 +48,7 @@ class stickers:
         img.string_ttf(self.FONT,12,0,(self.SMALL[1]+10,self.SMALL[1]-2),"meer informatie.",BLACK)
         img.writePng("data/barcode.png")
         os.system("convert -density 300 -units pixelsperinch data/barcode.png data/barcode.jpg")
-        for i in range(0,self.copies):
-            cups.Connection().printFile(self.printer,"data/barcode.jpg",'Eigendom',{'copies': 1,'page-ranges':'1'})
+        cups.Connection().printFile(self.printer,"data/barcode.jpg",'Eigendom',{'copies': str(self.copies),'page-ranges':'1'})
 
     def foodprint(self):
         img=gd.image(self.SMALL)
@@ -62,8 +61,7 @@ class stickers:
         img.string_ttf(self.FONT,50,0,(320,  120),time.strftime('%Y-%m-%d'),BLACK)
         img.writePng("data/foodout.png")
         os.system("convert -density 300 -units pixelsperinch data/foodout.png data/foodout.jpg")
-        for i in range(0,self.copies):
-            cups.Connection().printFile(self.printer,"data/foodout.jpg",title="Voedsel",options={'page-ranges':'1'})
+        cups.Connection().printFile(self.printer,"data/foodout.jpg",title="Voedsel",options={'copies': str(self.copies),'page-ranges':'1'})
 
     def eigendomprint(self):
         img=gd.image(self.SMALL)
@@ -96,8 +94,7 @@ class stickers:
         img.string_ttf(self.FONT,25,0,(651, 205),"☐",BLACK)
         img.writePng("data/output.png")
         os.system("convert -density 300 -units pixelsperinch data/output.png data/output.jpg")
-        for i in range(0,self.copies):
-            cups.Connection().printFile(self.printer,"data/output.jpg",title="Eigendom",options={'page-ranges':'1'})
+        cups.Connection().printFile(self.printer,"data/output.jpg",title="Eigendom",options={'copies':str(self.copies),'page-ranges':'1'})
 
     def barcodenum(self,text):
         if text=="abort": return self.master.callhook('abort',None)
