@@ -18,7 +18,7 @@ var cachetop={};
             textHeight = this.height();
             textWidth = this.width();
             cachepixels[this.text()]=fontSize;
-            fontSize = fontSize - 0.5;
+            fontSize = fontSize - 0.9;
         } while ((textHeight > maxHeight || textWidth > maxWidth) && fontSize > 0.5);
         textHeight = this.height();
         var mytop=(maxHeight-textHeight)/2
