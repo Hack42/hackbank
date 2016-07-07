@@ -652,6 +652,7 @@ $( document ).ready(function() {
     $( ".Buttontext:visible" ).each(function( index, element ) {
        $(this).textfill({maxFontPixels: 5});
     });
+    focus();
   });
   $("body" ).on( "click", 'div.productgroups' ,function() {
      makepages('normal',productgrouptobuttons(this.id).sort(compare_display))
