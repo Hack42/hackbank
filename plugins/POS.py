@@ -55,6 +55,10 @@ class POS:
         self.open()
         self.ser.write(DISPLAY+"%-14s% 6.2f%-12s% 8.2f" % ( desc[0:14], amount, "Total", som))
 
+    def hook_checkout(self,user):
+        if user is 'cash':
+            self.drawer()
+
     def hook_addremove(self,args):
         # Update display
         pass
@@ -63,6 +67,7 @@ class POS:
     def drawer(self):
         self.open()
         self.ser.write(PRINTER+DRAWER)
+
 
     def hook_undo(self,(transID,void1,void2,void3)):
         self.loadbons()
@@ -126,6 +131,13 @@ class POS:
         self.bonnetjes[self.master.transID]={"totals":self.master.receipt.totals,"bon":BON}
         self.lastbonID=self.master.transID
         self.writebons()
+        if user is 'cash':
+            self.drawer()
+        else:
+            for r in self.master.receipt.receipt:
+                if r['product']=='deposit':
+                    self.drawer()
+                    break;
 
     def bon(self,bonID):
         if bonID in self.bonnetjes:
