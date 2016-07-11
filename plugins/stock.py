@@ -59,13 +59,13 @@ class stock:
         try:
              aantal=int(text)
              if aantal<1 or aantal>1000:
-                 self.master.donext(self,'inkoop_amount')
+                 self.master.donext(self,'voorraad_amount')
                  self.master.send_message(True,'message','Please enter a number between 1 and 999, how much '+self.prod+' is in stock?')
                  self.master.send_message(True,'buttons',json.dumps({'special':'numbers'}))
                  return True
              else:
                  self.setstock(self.prod,aantal)
-                 self.master.donext(self,'inkoop')
+                 self.master.donext(self,'voorraad')
                  self.master.send_message(True,'message','What product to set the stock?')
                  self.master.send_message(True,'buttons',json.dumps({'special':'products'}))
                  return True
@@ -74,7 +74,7 @@ class stock:
                  self.master.callhook('abort',None)
                  return True
              else:
-                 self.master.donext(self,'inkoop_amount')
+                 self.master.donext(self,'voorraad_amount')
                  self.master.send_message(True,'message','Not a number, how much '+self.prod+' is in stock')
                  self.master.send_message(True,'buttons',json.dumps({'special':'numbers'}))
                  return True

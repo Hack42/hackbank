@@ -18,7 +18,7 @@ var cachetop={};
             textHeight = this.height();
             textWidth = this.width();
             cachepixels[this.text()]=fontSize;
-            fontSize = fontSize - 0.5;
+            fontSize = fontSize - 0.9;
         } while ((textHeight > maxHeight || textWidth > maxWidth) && fontSize > 0.5);
         textHeight = this.height();
         var mytop=(maxHeight-textHeight)/2
@@ -379,6 +379,7 @@ $( document ).ready(function() {
   function dobuttons(msg) {
     buttons=JSON.parse(msg);
     if(msg=='{}' && locked==0) {
+      $('.topknop').removeClass('activetop'); $('#members').addClass('activetop');
       $('#Secondscreen').show();
       makepages('normal',accountstobuttons(accounts,'m'));
       $('#TopButtons').prepend($('<div>',{class: "Knopje Button normal cash",id: 'cash'}).append($('<span>',{class: "Paginatext",text: "cash"})));
@@ -388,6 +389,7 @@ $( document ).ready(function() {
       focus();
       tabenable=1;
     } else if (buttons['special']=='custom') {
+      $('.topknop').removeClass('activetop'); $('#commands').addClass('activetop');
       $('#Secondscreen').show();
       if(buttons['sort']=="text") {
         buttons['custom'].sort(compare_text_rev);
@@ -398,6 +400,7 @@ $( document ).ready(function() {
       focus();
       tabenable=0;
     } else if (buttons['special']=='accounts') {
+      $('.topknop').removeClass('activetop'); $('#members').addClass('activetop');
       $('#Secondscreen').show();
       makepages('normal',accountstobuttons(accounts,'m'));
       $('#TopButtons').prepend($('<div>',{class: "Knopje Button normal cash",id: 'cash'}).append($('<span>',{class: "Paginatext",text: "cash"})));
@@ -407,6 +410,7 @@ $( document ).ready(function() {
       focus();
       tabenable=2;
     } else if (buttons['special']=='accountsamount') {
+      $('.topknop').removeClass('activetop'); $('#members').addClass('activetop');
       $('#Secondscreen').show();
       makepages('normal',accountstobuttons(accounts,'m'));
       $('#TopButtons').prepend($('<div>',{class: "Knopje Button shownumbers",id: 'shownumbers'}).append($('<span>',{class: "Paginatext",text: "Enter amount"})));
@@ -418,26 +422,35 @@ $( document ).ready(function() {
       tabenable=2;
 
     } else if (buttons['special']=='numbers') {
+      $('.topknop').removeClass('activetop'); 
       $('#Secondscreen').show();
       makepage_numbers();
       focus();
       tabenable=0;
     } else if (buttons['special']=='keyboard') {
+      $('.topknop').removeClass('activetop'); 
+      $('#Secondscreen').show();
       $('#Secondscreen').show();
       makepage_keyboard();
       focus();
       tabenable=0;
     } else if (buttons['special']=='infobox') {
+      $('.topknop').removeClass('activetop'); 
+      $('#Secondscreen').show();
       $('#Secondscreen').show();
       makepage_infobox();
       focus();
       tabenable=0;
     } else if (buttons['special']=='history') {
+      $('.topknop').removeClass('activetop'); $('#commands').addClass('activetop');
+      $('#Secondscreen').show();
       $('#Secondscreen').show();
       makepage_history();
       focus();
       tabenable=0;
     } else if (buttons['special']=='products') {
+      $('.topknop').removeClass('activetop'); $('#products').addClass('activetop');
+      $('#Secondscreen').show();
       $('#Secondscreen').show();
       makepages('productgroups',productstobuttons(groups).sort(compare_display));
       focus();
@@ -550,13 +563,13 @@ $( document ).ready(function() {
   $('#Secondscreen').append(  $('<div>',{id: 'MainButtons', class: 'MainButtons'}) );
   $('#Secondscreen').append(  $('<div>',{id: 'TopButtons', class: 'RightButtons'}) );
   $('#Secondscreen').append(  $('<div>',{id: 'Receipt2'}) );
-  $('#LeftButtons').append($('<div>',{class: "Knopje Button normal abort",id: 'abort'}).append($('<span>',{class: "Knopjetext",text: "Abort"})));
-  $('#LeftButtons').append($('<div>',{class: "Knopje Button special",id: 'members'}).append($('<span>',{class: "Knopjetext",text: "Members"})));
-  $('#LeftButtons').append($('<div>',{class: "Knopje Button special",id: 'otherusers'}).append($('<span>',{class: "Knopjetext",text: "Other Users"})));
-  $('#LeftButtons').append($('<div>',{class: "Knopje Button special",id: 'products'}).append($('<span>',{class: "Knopjetext",text: "Products"})));
-  $('#LeftButtons').append($('<div>',{class: "Knopje Button special",id: 'commands'}).append($('<span>',{class: "Knopjetext",text: "Commands"})));
-  $('#LeftButtons').append($('<div>',{class: "Knopje Button sounds",id: 'sounds'}).append($('<span>',{class: "Knopjetext",text: "Sounds"})));
-  $('#LeftButtons').append($('<div>',{class: "Knopje Button irc",id: 'irc'}).append($('<span>',{class: "Knopjetext",text: "IRC"})));
+  $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop normal abort",id: 'abort'}).append($('<span>',{class: "Knopjetext",text: "Abort"})));
+  $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop special",id: 'members'}).append($('<span>',{class: "Knopjetext",text: "Members"})));
+  $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop special",id: 'otherusers'}).append($('<span>',{class: "Knopjetext",text: "Other Users"})));
+  $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop special",id: 'products'}).append($('<span>',{class: "Knopjetext",text: "Products"})));
+  $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop special",id: 'commands'}).append($('<span>',{class: "Knopjetext",text: "Commands"})));
+  $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop sounds",id: 'sounds'}).append($('<span>',{class: "Knopjetext",text: "Sounds"})));
+  $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop irc",id: 'irc'}).append($('<span>',{class: "Knopjetext",text: "IRC"})));
   //$('#LeftButtons').append($('<div>',{class: "Knopje Button back",id: 'back'}).append($('<span>',{class: "Knopjetext",text: "Back"})));
   $('#Buttons').append($('<div>',{class: "Knopje abort",id: 'abort'}).append($('<span>',{class: "Knopjetext",text: "Abort"})));
   $('#Buttons').append($('<div>',{class: "Knopje bon",id: 'bon'}).append($('<span>',{class: "Knopjetext",text: "Bon"})));
@@ -629,7 +642,10 @@ $( document ).ready(function() {
     tabenable=0;
   });
   $("body" ).on( "click",'div.normal', function() {
-    postmsg('input',this.id);
+    var dingen=$('#Zoek')[0].value.split(" ");
+    dingen[dingen.length-1]=this.id;
+    postmsg('input',dingen.join(" "));
+    $('#Zoek')[0].value="";
     focus();
   });
   $("body" ).on( "click",'div.invoer', function() {
@@ -652,6 +668,7 @@ $( document ).ready(function() {
     $( ".Buttontext:visible" ).each(function( index, element ) {
        $(this).textfill({maxFontPixels: 5});
     });
+    focus();
   });
   $("body" ).on( "click", 'div.productgroups' ,function() {
      makepages('normal',productgrouptobuttons(this.id).sort(compare_display))
@@ -660,6 +677,7 @@ $( document ).ready(function() {
   $('.Knopje').click(function() {
     switch(this.id) {
       case 'members':
+         $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
          locked=0
          makepages('normal',accountstobuttons(accounts,'m'));
          $('#TopButtons').prepend($('<div>',{class: "Knopje Button normal cash",id: 'cash'}).append($('<span>',{class: "Paginatext",text: "cash"})));
@@ -669,6 +687,7 @@ $( document ).ready(function() {
          focus();
          break;
       case 'otherusers':
+         $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
          locked=0
          makepages('normal',accountstobuttons(accounts,'o'));
          $('#TopButtons').prepend($('<div>',{class: "Knopje Button normal cash",id: 'cash'}).append($('<span>',{class: "Paginatext",text: "cash"})));
@@ -678,27 +697,32 @@ $( document ).ready(function() {
          focus();
          break;
       case 'products':
+         $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
          locked=1;
          makepages('productgroups',productstobuttons(groups).sort(compare_display));
          focus();
          break;
       case 'commands':
+         $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
          locked=0;
          makepages('normal',commandstobuttons().sort(compare_display));
          focus();
          break;
       case 'back':
+         $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
          locked=0;
          $('#Secondscreen').hide();
          focus();
          break;
       case 'irc':
+         $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
          locked=0;
          $('#Secondscreen').show();
          makepage_infobox();
          focus();
          break;
       case 'knopjes':
+         $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
          locked=0;
          $('#Secondscreen').show();
          focus();

@@ -118,7 +118,7 @@ body {
   outline: medium none;
   width: 8vw;
   position: relative;
-  left: 26vw;
+  left: 24vw;
   text-align: right;
   overflow: hidden;
 }
@@ -431,3 +431,6 @@ font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   width: 9.75vw;
 }
 
+.activetop {
+  background-color: #161650;
+}

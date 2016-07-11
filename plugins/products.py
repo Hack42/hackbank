@@ -68,6 +68,7 @@ class products:
         else:
             self.products[self.aliasprod]['aliases'].append(text)
             self.writeproducts()
+            self.readproducts()
             return True
 
     def addalias(self,text):
