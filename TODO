@@ -6,6 +6,8 @@ POS: show display
 
 plugins: 
  - market
+ - stock warnings after a set level
+ - multiple products discount (20x mate = add pfand = 21 euro )
 
 extra: 
  - card reader
