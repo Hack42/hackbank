@@ -180,10 +180,11 @@ class POS:
         self.loadbons()
         custom=[]
         count=0
-        for bonID in self.bonnetjes.keys():
+        for bonID in sorted(self.bonnetjes.keys(),reverse=True):
             txt=""
             for usr in self.bonnetjes[bonID]['totals'].keys():
                 txt+=usr+" €"+ "%.2f" % self.bonnetjes[bonID]['totals'][usr]+" "
+            txt+=time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(bonID+1300000000))
             custom.append({'text': bonID, 'display': txt})
             count+=1
             if count>49:

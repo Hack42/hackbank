@@ -192,6 +192,7 @@ class stickers:
             custom=[]
             custom.append({'text': 'barcode','display': 'Barcode label'})
             custom.append({'text': 'eigendom','display': 'Property label'})
+            custom.append({'text': 'foodlabel','display': 'Food label'})
             self.master.send_message(True,'buttons',json.dumps({'special':'custom','custom':custom}))
             self.master.send_message(True,'message','Please select a command')
             return True

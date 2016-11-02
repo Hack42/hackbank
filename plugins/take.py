@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 import json
 import math
@@ -26,7 +27,7 @@ class take:
                     self.value=value
                     self.peruser=math.ceil((self.value/len(self.totakefrom))*100)/100
                     self.master.donext(self,'reason')
-                    self.master.send_message(True,'message','Why are you taking €'+str(self.value)+' from '+str(len(self.totakefrom))+' users? ( €'+str(self.peruser)+' per user)')
+                    self.master.send_message(True,'message','Why are you taking E'+str(self.value)+' from '+str(len(self.totakefrom))+' users? ( E'+str(self.peruser)+' per user)')
                     self.master.send_message(True,'buttons',json.dumps({'special':'keyboard'}))
                 else:
                     self.master.donext(self,'who')

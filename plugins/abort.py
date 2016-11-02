@@ -10,7 +10,8 @@ class abort:
 
     def input(self,text):
         if text=="abort": 
-            self.master.callhook('abort',None)
+            if self.master.iets==0:
+                self.master.callhook('abort',None)
             return True
         if text=="ok": 
             self.master.callhook('ok',None)
