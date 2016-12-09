@@ -34,6 +34,8 @@ class sounds:
         custom.append({'text': 'kassaoff','display': 'Kassa off'})
         custom.append({'text': 'killsounds','display': 'Kill Music'})
         custom.append({'text': 'groovesalad','display': 'Groove Salad'})
+        custom.append({'text': 'quieter','display': 'Quieter'})
+        custom.append({'text': 'louder','display': 'Louder'})
         self.master.send_message(True,'buttons',json.dumps({'special':'custom','custom':custom}))
         self.master.send_message(True,'message','Please select a command')
 
@@ -57,6 +59,12 @@ class sounds:
             return True
         elif text=='groovesalad':
             self.master.send_message(False,'groove','on')
+            return True
+        elif text=='louder':
+            self.master.send_message(False,'vol','up')
+            return True
+        elif text=='quieter':
+            self.master.send_message(False,'vol','down')
             return True
         elif text=='abort':
             self.master.callhook('abort',None)
