@@ -11,6 +11,9 @@ class accounts:
         self.master=master
         self.SID=SID
 
+    def help(self):
+        return {"adduseralias": "Add user key alias"}
+
     # Internal functions
     def readaccounts(self):
         with codecs.open('data/revbank.accounts','r','utf-8') as f:
@@ -18,6 +21,13 @@ class accounts:
         for line in lines:
             parts=line.split()
             self.accounts[parts[0]]={'amount': float(parts[1]), 'lastupdate': parts[2]}
+        with codecs.open('data/revbank.aliases','r','utf-8') as f:
+          y = f.readlines()
+          self.aliases={}
+          for x in y:
+            s=x.split(" ")
+            if len(s)==2:
+                self.aliases[s[0]]=s[1].rstrip()
 
     def updateaccount(self,usr,value):
            print "Updating account",usr
@@ -32,6 +42,9 @@ class accounts:
         with open('data/revbank.accounts','w') as f:
             for usr in self.accounts:
                f.write("%-18s %+7.2f %s\n" % (usr,round(self.accounts[usr]['amount'],2),self.accounts[usr]['lastupdate']))
+        with open('data/revbank.aliases','w') as f:
+            for usr in self.aliases:
+               f.write("%s %s\n" % ( usr , self.aliases[usr]))
 
     # Hooks
     def hook_balance(self,(usr,had,has,transID)):
@@ -79,16 +92,39 @@ class accounts:
         for usr in self.master.receipt.totals:
             self.updateaccount(usr,self.master.receipt.totals[usr])
 
+    def messageandbuttons(self,donext,buttons,msg):
+        self.master.donext(self,donext)
+        self.master.send_message(True,'message',msg)
+        self.master.send_message(True,'buttons',json.dumps({'special':buttons}))
+        return True
+
+    def addalias(self,text):
+        if text=="abort": return self.master.callhook('abort',None)
+        if len(text)>4 and not text in self.accounts and not text in self.aliases:
+          self.aliases[text]=self.adduseralias
+          self.writeaccount()
+          return True
+
+    def askalias(self,text):
+        self.adduseralias=text
+        if text=="abort": return self.master.callhook('abort',None)
+        if text in self.accounts:
+            return self.messageandbuttons('addalias','keyboard','What alias to add?')
+
     # This handles the input
     def input(self,text):
-        if self.master.receipt.is_empty() and text in self.accounts:
+        if self.master.receipt.is_empty() and ( text in self.accounts or text in self.aliases):
+           if text in self.aliases: text=self.aliases[text]
            self.master.send_message(False,'infobox/account',json.dumps(self.accounts[text]))
            self.master.send_message(True,'buttons',json.dumps({'special':'infobox'}))
            return True
-        elif text in self.accounts:
+        elif text in self.accounts or text in self.aliases:
+           if text in self.aliases: text=self.aliases[text]
            self.master.callhook('checkout',text)
            self.master.callhook('endsession',text)
            return True
+        elif text == "adduseralias":
+           return self.messageandbuttons('askalias','accounts','What user do you want to alias?')
 
     def newuser(self,text):
         for rid in self.master.receipt.receipt:

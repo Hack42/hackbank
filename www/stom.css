@@ -95,30 +95,30 @@ body {
   height: 4vh;
 }
 .Times {
-  width: 4vw;
+  width: 3vw;
   position: absolute;
   overflow: hidden;
   left: 15.5vw;
   text-align: right;
 }
 .LoseOrGain {
-  width: 4vw;
+  width: 2.5vw;
   position: absolute;
-  left: 20vw;
+  left: 18.5vw;
   overflow: hidden;
   text-align: left;
   font-size: 2vh;
 }
 .Itemeuro:after {
-  left: 25vw;
+  left: 21.5vw;
   position: absolute;
   content: "€";
 }
 .ItemAmount {
   outline: medium none;
-  width: 8vw;
+  width: 7vw;
   position: relative;
-  left: 24vw;
+  left: 21.5vw;
   text-align: right;
   overflow: hidden;
 }
@@ -321,6 +321,15 @@ body {
   z-index: 300;
  }    
 
+#IRCwindow {
+  left: 0.5vw;
+  top: 13vh;
+  width: 99%;
+  background-color: #ffffff;
+  position: absolute;
+  height: 83vh;
+  z-index: 542;
+}
 #LeftButtons {
   left: 2vh;
   top: 2.5vh;

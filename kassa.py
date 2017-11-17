@@ -56,6 +56,7 @@ class Session:
         self.receipt=self.plugins['receipt']
         self.accounts=self.plugins['accounts']
         self.products=self.plugins['products']
+        self.stock=self.plugins['stock']
         self.log=self.plugins['log']
         self.POS=self.plugins['POS']
         self.counter+=1

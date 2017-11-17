@@ -20,11 +20,11 @@ BARCODE_T="\x1DH\x00" # text around the barcode
 BARCODE_H="\x1Dh\x60" # 40 height
 BARCODE_W="\x1Dw\x60" # 2 Width
 
-BARCODE="\x1Dk\x47%cA%8dA\n"
+BARCODE="\x1Dk\x47%cA%dA\n"
 
 CUT="\x1Bm\n"
 
-DRAWER="\n\x1B\x700AA"
+DRAWER="\x1B\x700AA"
 
 
 
@@ -48,8 +48,16 @@ class POS:
         print "Serial open"
  
     def help(self):
-        return {"bon": "Print Receipt","bons": "Receipts to print","kassala": "Open cash drawer"}
+        return {"bon": "Print Receipt","bons": "Receipts to print","kassala": "Open cash drawer", "printstock": "Print stock overview"}
 
+    def printstock(self):
+        BON = PRINTER+LARGE+CENTER+LOGO+NORMAL+LEFT
+        for name in sorted(self.master.stock.stock.keys()):
+           num=self.master.stock.stock[name]
+	   BON += "%20s %5d\n" % (name,num)
+        BON += LEFT + FEED + CUT
+        self.open()
+        self.slowwrite(BON)
 
     def printdisplay(self,desc,amount,som):
         self.open()
@@ -80,7 +88,7 @@ class POS:
         if (self.master.accounts.accounts[user]['amount']+self.master.receipt.totals[user])<-13.37:
             BON += "SALDO TE LAAG\n"
         BON += NORMAL+"Bon transactie %d\n" % self.master.transID
-        BON += BARCODE_T+BARCODE_H+BARCODE_W+BARCODE % (len(str(self.master.transID)),self.master.transID)
+        BON += BARCODE_T+BARCODE_H+BARCODE_W+BARCODE % (len(str(self.master.transID))+2,self.master.transID)
         BON += RIGHT+"%s  -  Arnhem\n" % time.strftime('%Y-%m-%d %H:%M:%S')
         BON += LEFT+"\n"+" %-26s%12s\n " % ("Product","Aantal   EUR")
         BON += "-" * 38 +"\n";
@@ -102,7 +110,7 @@ class POS:
         BON += " %-26s% 12.2f\n" % ("Totaal",self.master.receipt.totals[user])
         BON += "\nU bent geholpen door: %s\n" % user
         if user != 'cash':
-            BON += "\n         Nieuw saldo: %5.2f\n" % (self.master.accounts.accounts[user]['amount']+self.master.receipt.totals[user])
+            BON += "\n         Nieuw saldo: %5.2f\n" % (self.master.accounts.accounts[user]['amount'])
         BON += "\n"+CENTER+SMALL+"De kleine lettertjes: Deze bon kan niet in de       \n"+"hack42 adminstratie gebruikt worden voor declaraties\n"
         BON += LEFT + FEED + CUT
         return BON
@@ -118,9 +126,9 @@ class POS:
         BON += "Cash Geld:   %.2f\n" % Cash
         BON += "Via Bank:    %.2f\n" % Bank
         BON += "Handtekening:\n\n\n\n------------------------------------\n"+CENTER+SMALL+"De kleine lettertjes: Deze bon kan juist wel in de  \nhack42 adminstratie gebruikt worden voor declaraties\n"
-        BON += LEFT+FEED+CUT
+        BON += LEFT + FEED + CUT
         self.open()
-        self.ser.write(BON)
+        self.slowwrite(BON)
 
 
     def hook_post_checkout(self,user):
@@ -139,10 +147,14 @@ class POS:
                     self.drawer()
                     break;
 
+    def slowwrite(self,y):
+        for bla in [y[i:i+32] for i in range(0, len(y), 32)]:
+            self.ser.write(bla);time.sleep(0.05);
+
     def bon(self,bonID):
         if bonID in self.bonnetjes:
             self.open()
-            self.ser.write(self.bonnetjes[bonID]['bon'])
+            self.slowwrite(self.bonnetjes[bonID]['bon'])
         return True
 
     def selectbon(self,text):
@@ -164,6 +176,10 @@ class POS:
             return True
 
     def writebons(self):
+        while len(self.bonnetjes)>50:
+            fk=sorted(self.bonnetjes.keys())
+            del self.bonnetjes[fk[0]]
+
         output = open('data/revbank.POS', 'wb')
         pickle.dump(self.bonnetjes,output)
         output.close()
@@ -202,6 +218,9 @@ class POS:
             return True
         if text=="kassala":
             self.drawer()
+            return True
+        if text=="printstock":
+            self.printstock()
             return True
 
     def startup(self):

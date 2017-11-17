@@ -21,6 +21,15 @@ class stock:
             if len(parts)==2:
                 name=parts[0]
                 self.stock[name]=int(parts[1])
+        f.close()
+        self.stockalias={}
+        with open('data/revbank.stockalias','r') as f:
+            lines=f.readlines()
+        for line in lines:
+            parts=' '.join(line.split()).split(" ",3)
+            if len(parts)==3:
+                name=parts[0]
+                self.stockalias[name]={'prod': parts[1],'multi': int(parts[2])}
 
     def setstock(self,prod,count):
         self.readstock()
@@ -41,11 +50,17 @@ class stock:
     def hook_checkout(self,text):
         self.readstock()
         for rid in self.master.receipt.receipt:
-           if rid['product'] in self.master.products.products:
+           if rid['product'] in self.stockalias:
+               rp=rid['product']
+               prod=self.stockalias[rp]['prod']
+               multiplier=self.stockalias[rp]['multi']
+           else:
                prod=rid['product']
+               multiplier=1
+           if prod in self.master.products.products:
                if prod not in self.stock:
                    self.stock[prod]=0
-               self.stock[prod]-=rid['count']
+               self.stock[prod]-=rid['count']*multiplier
                self.master.send_message(True,'stock/'+prod,json.dumps(self.stock[prod]))
         self.writestock()
 
@@ -58,7 +73,7 @@ class stock:
     def voorraad_amount(self,text):
         try:
              aantal=int(text)
-             if aantal<1 or aantal>1000:
+             if aantal<0 or aantal>1000:
                  self.master.donext(self,'voorraad_amount')
                  self.master.send_message(True,'message','Please enter a number between 1 and 999, how much '+self.prod+' is in stock?')
                  self.master.send_message(True,'buttons',json.dumps({'special':'numbers'}))
@@ -99,7 +114,7 @@ class stock:
     def inkoop_amount(self,text):
         try:
              aantal=int(text)
-             if aantal<1 or aantal>1000:
+             if aantal<0 or aantal>1000:
                  self.master.donext(self,'inkoop_amount')
                  self.master.send_message(True,'message','Please enter a number between 1 and 999, how much '+self.prod+' did you buy?')
                  self.master.send_message(True,'buttons',json.dumps({'special':'numbers'}))

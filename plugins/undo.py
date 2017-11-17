@@ -33,6 +33,10 @@ class undo:
         self.master.callhook('endsession',beni)
 
     def writeundo(self):
+        while len(self.undo)>50: 
+            fk=sorted(self.undo.keys())
+            del self.undo[fk[0]]
+
         output = open('data/revbank.UNDO', 'wb')
         pickle.dump(self.undo,output)
         output.close()

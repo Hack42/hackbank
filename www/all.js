@@ -553,6 +553,7 @@ $( document ).ready(function() {
 
   $('#body').append($('<div>',{id: 'Firstscreen'}));
   $('#body').append($('<div>',{id: 'Secondscreen'}));
+  $('#body').append($('<div>',{id: 'IRCwindow'}));
 
   $('#Firstscreen').append(  $('<div>',{id: 'Receipt', class: 'Receipt'}) );
   $('#Firstscreen').append(  $('<div>',{id: 'Totals', class: 'Totals'}) );
@@ -628,6 +629,7 @@ $( document ).ready(function() {
   }
 
   function focus() {
+    $('#IRCwindow').hide();
     $('#Zoek')[0].focus();
   }
   function verwerkinput() {
@@ -717,14 +719,16 @@ $( document ).ready(function() {
       case 'irc':
          $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
          locked=0;
-         $('#Secondscreen').show();
-         makepage_infobox();
-         focus();
+         $('#IRCwindow').show();
+         if($('#IRCwindow').html()=="") {
+           $("#IRCwindow").append($('<iframe>',{src: 'http://kleintje:4200/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
+         }
          break;
       case 'knopjes':
          $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
          locked=0;
          $('#Secondscreen').show();
+         $('#IRC').hide();
          focus();
          break;
       default:

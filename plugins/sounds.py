@@ -34,6 +34,7 @@ class sounds:
         custom.append({'text': 'kassaoff','display': 'Kassa off'})
         custom.append({'text': 'killsounds','display': 'Kill Music'})
         custom.append({'text': 'groovesalad','display': 'Groove Salad'})
+        custom.append({'text': 'blues','display': 'Jazz Radio Blues'})
         custom.append({'text': 'quieter','display': 'Quieter'})
         custom.append({'text': 'louder','display': 'Louder'})
         self.master.send_message(True,'buttons',json.dumps({'special':'custom','custom':custom}))
@@ -59,6 +60,9 @@ class sounds:
             return True
         elif text=='groovesalad':
             self.master.send_message(False,'groove','on')
+            return True
+        elif text=='blues':
+            self.master.send_message(False,'blues','on')
             return True
         elif text=='louder':
             self.master.send_message(False,'vol','up')
