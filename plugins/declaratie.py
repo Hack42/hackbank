@@ -34,9 +34,12 @@ class declaratie:
             return True
 
     def amount(self,text):
+        if text=="abort":
+            self.master.callhook('abort',None)
+            return True
         try:
             value=float(text)
-            if value>0 and value<1000:
+            if value>=0 and value<5000:
                 self.value=value
                 if self.soort=="verkoop":
                     self.master.send_message(True,'message','Why do you give us E %.2f?' % self.value)
@@ -51,7 +54,7 @@ class declaratie:
                 self.master.donext(self,'reason')
             else:
                 self.master.donext(self,'amount')
-                self.master.send_message(True,'message','Enter an amount between 0.01 and 999.99:')
+                self.master.send_message(True,'message','Enter an amount between 0.01 and 4999.99:')
                 self.master.send_message(True,'buttons',json.dumps({'special':'numbers'}))
             return True
         except:
@@ -88,9 +91,12 @@ class declaratie:
         return True
 
     def runasbar(self,text):
+        if text=="abort":
+            self.master.callhook('abort',None)
+            return True
         try:
             value=float(text)
-            if value>0 and value<1000:
+            if value>=0 and value<5000:
                 if value>self.value:
                     return self.askbar("E %.2f is larger than E %.2f ; " % (value,self.value))
                 self.asbar=value
@@ -98,7 +104,7 @@ class declaratie:
                     return self.final()
                 return self.askcash('')
             else:
-                return self.askbar('Not between 0.01 and 999.99; ');
+                return self.askbar('Not between 0.01 and 4999.99; ');
         except:
             import traceback
             traceback.print_exc()
@@ -119,9 +125,12 @@ class declaratie:
         return True
 
     def runascash(self,text):
+        if text=="abort":
+            self.master.callhook('abort',None)
+            return True
         try:
             value=float(text)
-            if value>0 and value<1000:
+            if value>=0 and value<5000:
                 if value > (self.value-self.asbar):
                     return self.askcash("E %.2f is larger than E %.2f ; " % (value,self.value-self.asbar))
                 self.ascash=value
@@ -129,7 +138,7 @@ class declaratie:
                     return self.final()
                 return self.askbank('')
             else:
-                return self.askcash('Not between 0.01 and 999.99; ');
+                return self.askcash('Not between 0.01 and 4999.99; ');
         except:
             import traceback
             traceback.print_exc()
@@ -149,9 +158,12 @@ class declaratie:
         return True
 
     def runasbank(self,text):
+        if text=="abort":
+            self.master.callhook('abort',None)
+            return True
         try:
             value=float(text)
-            if value>0 and value<1000:
+            if value>=0 and value<5000:
                 if value > (self.value-self.asbar-self.ascash):
                     return self.askbank("E %.2f is larger than E %.2f ; " % (value,self.value-self.asbar-self.ascash))
                 self.asbank=value
@@ -160,7 +172,7 @@ class declaratie:
                 else:
                     return self.askbank('The numbers do not match; ')
             else:
-                return self.askbank('Not between 0.01 and 999.99; ');
+                return self.askbank('Not between 0.01 and 4999.99; ');
         except:
             import traceback
             traceback.print_exc()

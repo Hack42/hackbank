@@ -22,6 +22,7 @@ class Session:
     prompt=""
     help={}
     cache={}
+    iets=0
 
     def import_from(self, module, name):
         module = __import__(module, fromlist=[name])
@@ -55,6 +56,7 @@ class Session:
         self.receipt=self.plugins['receipt']
         self.accounts=self.plugins['accounts']
         self.products=self.plugins['products']
+        self.stock=self.plugins['stock']
         self.log=self.plugins['log']
         self.POS=self.plugins['POS']
         self.counter+=1
@@ -92,6 +94,8 @@ class Session:
             self.send_message(True,'message',"Enter product, command or username")
             self.send_message(True,'buttons',json.dumps({}))
             return True
+        if self.iets==0 and text!="abort":
+            self.iets==1
         self.buttons={}
         done=0
         for plug in self.plugins:
@@ -200,12 +204,16 @@ def on_message(client, userdata, msg):
     #try:
     run_session(client,elms[3],elms[4],msg)
 
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
-
-client.connect("localhost", 1883, 60)
-client.loop_start()
-while True:
-    time.sleep(1)
-#client.loop_forever()
+while 1:
+  try:
+    client = mqtt.Client()
+    client.on_connect = on_connect
+    client.on_message = on_message
+    
+    client.connect("localhost", 1883, 60)
+    client.loop_start()
+    while True:
+        time.sleep(1)
+    #client.loop_forever()
+  except:
+    time.sleep(5)

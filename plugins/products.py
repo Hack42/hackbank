@@ -9,7 +9,7 @@ class products:
     times=1
 
     def help(self):
-        return {"aliasproduct": "Add alias to product"}
+        return {"aliasproduct": "Add alias to product","addproduct": "Add new product"}
 
     def readproducts(self):
         groupname=""
@@ -91,9 +91,17 @@ class products:
             self.newprodgroup=text
             if not self.newprodgroup in self.groups:
                 self.groups[self.newprodgroup]=[self.newprod]
-            else:
-                self.groups[groupname].append(self.newprod)
                 self.products[self.newprod]={'price': self.newprodprice,'description': self.newproddesc, 'group': self.newprodgroup, 'aliases': []}
+                self.writeproducts()
+                self.readproducts()
+                return True
+            else:
+                self.groups[self.newprodgroup].append(self.newprod)
+                self.products[self.newprod]={'price': self.newprodprice,'description': self.newproddesc, 'group': self.newprodgroup, 'aliases': []}
+                self.writeproducts()
+                self.readproducts()
+                return True
+           
 
     def addproductprice(self,text):
         if text=="abort": return self.master.callhook('abort',None)
@@ -123,7 +131,7 @@ class products:
         prod=self.lookupprod(text)
         if prod:
             return self.messageandbuttons('addproduct','keyboard','Product already exists? What product to add?')
-        elif len(prod)<4 or not re.compile('^[A-z0-9]+$').match(text):
+        elif len(text)<4 or not re.compile('^[A-z0-9]+$').match(text):
             return self.messageandbuttons('addproduct','keyboard','only [A-z0-9] is allowed as product name, what name do you want to add?')
         else:
             self.newprod=text

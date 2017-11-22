@@ -1,0 +1,446 @@
+body {
+  background-color: #f8f8f8;
+  overflow: hidden;
+}
+
+#Firstscreen {
+  background-color: #f8f8f8;
+/*  width: 1024px;
+  height: 768px; */
+  height: 99vh;
+  width: 99vw;
+  position: relative;
+}
+#Invoer {
+  background-color: #aaaaaa;
+  width: 99vw;
+  height: 5vh;
+  position: absolute;
+  left: 0vw;
+  bottom: 5vh;
+}
+#Log {
+  width: 99%;
+  height: 29vh;
+  position: absolute;
+  left: 5px;
+  bottom: 70px;
+  top: 64vh;
+  background-color: #ffffff;
+  overflow: scroll;
+  font-size: 3vh;
+}
+
+#Zoek {
+  -moz-box-sizing: border-box;
+  -moz-user-input: enable;
+  -moz-user-select: text;
+  background-color: #F8F8F8;
+  border: 1px solid rgba(,0,0,0,0.1);
+  border-radius: 3px;
+  color: #222222;
+  display: block;
+  font-size: 4vh;
+  font-weight: normal;
+  letter-spacing: -1px;
+  line-height: 4vh;
+  margin: 0;
+  outline: medium none;
+  padding: 0.5vh;
+  position: relative;
+  width: 100%;
+  z-index: 400;
+}
+
+#Receipt {
+  width: 48vw;
+  height: 45vh;
+  position: absolute;
+  left: 5px;
+  top: 10px;
+  color: #000000;
+  background-color: #ffffff;
+  font-weight: normal;
+  font-size: 3vh;
+  line-height: 4vh;
+  margin: 0;
+  outline: medium none;
+  padding: 0;
+  overflow:scroll;
+  overflow-x: hidden;
+}
+#Receipt2 {
+  width: 30vw;
+  height: 64vh;
+  position: absolute;
+  left: 66%;
+  top: 26vh;
+  color: #000000;
+  background-color: #ffffff;
+  font-size: 3vh;
+  font-weight: normal;
+  line-height: 4vh;
+  margin: 0;
+  outline: medium none;
+  padding: 0;
+  overflow:scroll;
+  overflow-x: hidden;
+  border-left: solid 1px;
+}
+.Product {
+  width: 15.5vw;
+  position: absolute;
+  overflow: hidden;
+  left: 0px;
+  height: 4vh;
+}
+.Times {
+  width: 3vw;
+  position: absolute;
+  overflow: hidden;
+  left: 15.5vw;
+  text-align: right;
+}
+.LoseOrGain {
+  width: 2.5vw;
+  position: absolute;
+  left: 18.5vw;
+  overflow: hidden;
+  text-align: left;
+  font-size: 2vh;
+}
+.Itemeuro:after {
+  left: 21.5vw;
+  position: absolute;
+  content: "€";
+}
+.ItemAmount {
+  outline: medium none;
+  width: 7vw;
+  position: relative;
+  left: 21.5vw;
+  text-align: right;
+  overflow: hidden;
+}
+
+
+#Totals {
+  width: 48vw;
+  height: 45vh;
+  position: absolute;
+  top: 10px;
+  right: 5px;
+  color: #000000;
+  background-color: #ffffff;
+  font-weight: normal;
+  font-size: 4vh;
+  line-height: 5vh;
+  margin: 0;
+  outline: medium none;
+  padding: 0;
+  overflow:scroll;
+  overflow-x: hidden;
+}
+.UserName {
+  width: 50%;
+  position: absolute;
+  overflow: hidden;
+  left: 0px;
+}
+.GainOrLose {
+  width: 20%;
+  position: absolute;
+  left: 50%;
+  overflow: hidden;
+  text-align: left;
+}
+.Totaleuro:after {
+  left: 70%;
+  position: absolute;
+  content: "€";
+}
+.Totalamount {
+  outline: medium none;
+  width: 25%;
+  position: relative;
+  left: 85%;
+  text-align: right;
+  overflow: hidden;
+}
+.infoboxes .UserName {
+  width: 30%;
+  position: absolute;
+  overflow: hidden;
+  left: 0px;
+}
+.infoboxes .GainOrLose {
+  width: 10%;
+  position: absolute;
+  left: 30%;
+  overflow: hidden;
+  text-align: left;
+}
+.infoboxes .Totaleuro:after {
+  left: 46%;
+  position: absolute;
+  content: "€";
+}
+.infoboxes {
+  font-size: 25px;
+}
+.infoboxes .Totalamount {
+  outline: medium none;
+  width: 25%;
+  position: absolute;
+  left: 33%;
+  text-align: right;
+  overflow: hidden;
+}
+.NowHas {
+  position: absolute;
+  left: 60%;
+  width: 15%;
+}
+.NowHas:after {
+  position: absolute;
+  left: 150%;
+  width: 15%;
+  content: "€";
+}
+.NewSaldo {
+  position: relative;
+  left: 90%;
+  text-align: right;
+  width: 15%;
+}
+
+
+#Buttons {
+  width: 99%;
+  height: 13vh;
+  position: absolute;
+  left: 0px;
+  top: 46vh;
+  overflow:hidden;
+}
+
+
+
+.Knopje {
+  align-items: flex-start;
+  background-color: #337ab7;
+  background-image: none;
+  border-bottom-color: #337ab7;
+  border-bottom-left-radius: 3px;
+  border-bottom-right-radius: 3px;
+  border-bottom-style: none;
+  border-bottom-width: 0px;
+  border-image-outset: 0px;
+  border-image-repeat: stretch;
+  border-image-slice: 100%;
+  border-image-source: none;
+  border-image-width: 1;
+  border-left-color: #337ab7;
+  border-left-style: none;
+  border-left-width: 0px;
+  border-right-color: #337ab7;
+  border-right-style: none;
+  border-right-width: 0px;
+  border-top-color: #337ab7;
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+  border-top-style: none;
+  border-top-width: 0px;
+  box-shadow: none;
+  box-sizing: border-box;
+  color: #FFF;
+  cursor: pointer;
+  direction: ltr;
+  display: inline-block;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: bold;
+  height: 13vh;
+  letter-spacing: normal;
+/*  line-height: 80px; */
+  margin-bottom: 0px;
+  margin-left: 0px;
+  margin-right: 5px;
+  margin-top: 5px;
+  min-width: 13vw;
+  outline-color: #FFF;
+  outline-style: none;
+  outline-width: 0px;
+  padding-bottom: 9px;
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-top: 9px;
+  position: relative;
+  text-align: center;
+  text-decoration: none solid rgb(255, 255, 255);
+  text-indent: 0px;
+  text-shadow: none;
+  text-transform: none;
+  vertical-align: middle;
+  width: 120px;
+  word-spacing: 0px;
+  writing-mode: lr-tb;
+}
+.Button {
+  background-color: #539ad7;
+  height: 12vh;
+  margin-left: 5px;
+  margin-right: 5px;
+  margin-top: 5px;
+  min-width: 12.4vw;
+  padding-top: 1px;
+}
+
+.abort {
+  background-color: #B90000;
+}
+.back {
+  background-color: #00B900;
+}
+.ok {
+  background-color: #00B900;
+}
+.knopjes {
+  background-color: #00B900;
+}
+#Secondscreen {
+  height: 95vh; 
+  width: 100vw; 
+  width: 100%;
+  background-color: #f8f8f8;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  z-index: 300;
+ }    
+
+#IRCwindow {
+  left: 0.5vw;
+  top: 13vh;
+  width: 99%;
+  background-color: #ffffff;
+  position: absolute;
+  height: 83vh;
+  z-index: 542;
+}
+#LeftButtons {
+  left: 2vh;
+  top: 2.5vh;
+  width: 100%;
+  background-color: #f8f8f8;
+  position: absolute;
+  height: 13vh;
+}
+
+#MainButtons {
+  left: 2vh;
+  width: 66vw;
+  height: 65vh;
+  top: 26vh;
+  background-color: #FFFFFF;
+  position: absolute;
+}
+
+#TopButtons {
+  position: absolute;
+  left: 2vh;
+  top: 13vh;
+  width: 100%;
+  height: 13vh;
+  background-color: #f8f8f8;
+  text-align: center;
+}
+.Knop {
+  height: 12vh;
+  margin-left: 5px;
+  margin-right: 5px;
+  margin-top: 5px;
+  min-width: 12.0vw;
+  padding-top: 1px;
+  position: relative;
+}
+.Buttontext {
+  position: relative;
+}
+.Knopjetext {
+  position: relative;
+}
+.numbers {
+  left: 28%;
+  position: absolute;
+  width: 70%;
+}
+.invoer {
+  font-size: 80px;
+  line-height: 80px;
+}
+.extra {
+  padding-left: 1vw;
+  padding-right: 1vw;
+  background-color: #00b000;
+  border-radius: 0.5vw;
+  bottom: 0;
+  font-size: 2.5vh;
+  position: absolute;
+}
+.rood {
+  background-color: red;
+}
+.orange {
+  background-color: #FF8300;
+}
+
+.right {
+  right: 0;
+} 
+
+.left {
+  left: 0;
+}
+.small {
+  height: 7vh;
+  line-height: 6vh;
+  width: 5vw;
+  min-width: 5vw;
+  font-size: 6vh;
+  font-height: 6vh;
+}
+#leeg {
+  background-color: #fff;
+}
+#space {
+  min-width: 40vw;
+  width: 40vw;
+}
+.lines {
+  height: 70vh;
+  overflow: scroll;
+  font-size: 2.5vh;
+}
+.Question {
+font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  border-top-width: 5px;
+  font-size: 5vh;
+  line-height: 5vh;
+  position: absolute;
+  top: 4vh;
+  width: 100%;
+}
+.cash {
+  left: 0;
+  position: absolute;
+}
+.account.fullwidthButton {
+  width: 9.75vw;
+}
+
+.activetop {
+  background-color: #161650;
+}

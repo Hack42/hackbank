@@ -33,6 +33,10 @@ class sounds:
         custom.append({'text': 'kassaon','display': 'Kassa on'})
         custom.append({'text': 'kassaoff','display': 'Kassa off'})
         custom.append({'text': 'killsounds','display': 'Kill Music'})
+        custom.append({'text': 'groovesalad','display': 'Groove Salad'})
+        custom.append({'text': 'blues','display': 'Jazz Radio Blues'})
+        custom.append({'text': 'quieter','display': 'Quieter'})
+        custom.append({'text': 'louder','display': 'Louder'})
         self.master.send_message(True,'buttons',json.dumps({'special':'custom','custom':custom}))
         self.master.send_message(True,'message','Please select a command')
 
@@ -52,15 +56,30 @@ class sounds:
         elif text=='kassaoff':
             pass
         elif text=='killsounds':
-            pass
+            self.master.send_message(False,'groove','off')
+            return True
+        elif text=='groovesalad':
+            self.master.send_message(False,'groove','on')
+            return True
+        elif text=='blues':
+            self.master.send_message(False,'blues','on')
+            return True
+        elif text=='louder':
+            self.master.send_message(False,'vol','up')
+            return True
+        elif text=='quieter':
+            self.master.send_message(False,'vol','down')
+            return True
         elif text=='abort':
             self.master.callhook('abort',None)
             return True
 
     def pre_input(self,text):
-        self.master.send_message(False,'sound','KDE_Beep_ClassicBeep.wav')
+        if text!="abort":
+          self.master.send_message(False,'sound','KDE_Beep_ClassicBeep.wav')
 
     def hook_wrong(self,text):
+        self.master.send_message(False,'sound','KDE_Beep_Beep.wav')
         self.master.send_message(False,'sound','KDE_Beep_Beep.wav')
 
     def startup(self):

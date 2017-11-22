@@ -50,6 +50,18 @@ class stickers:
         os.system("convert -density 300 -units pixelsperinch data/barcode.png data/barcode.jpg")
         cups.Connection().printFile(self.printer,"data/barcode.jpg",'Eigendom',{'copies': str(self.copies),'page-ranges':'1'})
 
+    def thtprint(self):
+        img=gd.image(self.SMALL)
+        WHITE=img.colorAllocate(self.WHITE)
+        BLACK=img.colorAllocate(self.BLACK)
+        img.filledRectangle((0,0),(10,10),WHITE)
+        LOGO=gd.image(self.LOGOFILE)
+        LOGO.copyResizedTo(img,(0,0),(0,0),self.LOGOSMALLSIZE)
+        img.string_ttf(self.FONT,40,0,(0,self.SMALL[1]-15),"THT Datum",BLACK)
+        img.string_ttf(self.FONT,50,0,(320,  120),self.datum,BLACK)
+        img.writePng("data/foodout.png")
+        os.system("convert -density 300 -units pixelsperinch data/foodout.png data/foodout.jpg")
+        cups.Connection().printFile(self.printer,"data/foodout.jpg",title="Voedsel",options={'copies': str(self.copies),'page-ranges':'1'})
     def foodprint(self):
         img=gd.image(self.SMALL)
         WHITE=img.colorAllocate(self.WHITE)
@@ -170,10 +182,29 @@ class stickers:
             traceback.print_exc()
             return self.messageandbuttons('foodnum','numbers','NaN ; How many do you want?')
 
+    def thtnum(self,text):
+        if text=="abort": return self.master.callhook('abort',None)
+        try:
+            self.copies=int(text)
+            if self.copies<1 or self.copies>99:
+                return self.messageandbuttons('thtnum','numbers','Only 1 <> 99 allowed; How many do you want?')
+            else:
+                self.thtprint()
+                return True
+        except:
+            import traceback
+            traceback.print_exc()
+            return self.messageandbuttons('foodnum','numbers','NaN ; How many do you want?')
+
     def foodname(self,text):
         if text=="abort": return self.master.callhook('abort',None)
         self.name=text
         return self.messageandbuttons('foodnum','numbers','How many do you want?')
+
+    def thtname(self,text):
+        if text=="abort": return self.master.callhook('abort',None)
+        self.datum=text
+        return self.messageandbuttons('thtnum','numbers','How many do you want?')
         
     def input(self,text):
         if text=="eigendom":
@@ -186,12 +217,19 @@ class stickers:
             self.master.send_message(True,'message','Who are you?')
             self.master.send_message(True,'buttons',json.dumps({'special':'accounts'}))
             return True
+        elif text=="thtlabel":
+            self.master.donext(self,'thtname')
+            self.master.send_message(True,'message','What is the date?')
+            self.master.send_message(True,'buttons',json.dumps({'special':'accounts'}))
+            return True
         elif text=="barcode":
             return self.messageandbuttons('barcodecount','products','What product do you want a barcode for?')
         elif text=="stickers":
             custom=[]
             custom.append({'text': 'barcode','display': 'Barcode label'})
             custom.append({'text': 'eigendom','display': 'Property label'})
+            custom.append({'text': 'foodlabel','display': 'Food label'})
+            custom.append({'text': 'thtlabel','display': 'THT label'})
             self.master.send_message(True,'buttons',json.dumps({'special':'custom','custom':custom}))
             self.master.send_message(True,'message','Please select a command')
             return True
