@@ -14,7 +14,13 @@ function procmsg($topic,$msg){
 
 ##
 require("phpMQTT.php");
-$mqtt = new phpMQTT("localhost", 1883, "barclient".rand());
+
+$mqtt_host = $_ENV["MQTT_HOST"];
+if (empty($mqtt_host)) {
+  $mqtt_host = "localhost";
+}
+
+$mqtt = new phpMQTT($mqtt_host, 1883, "barclient".rand());
 if(!$mqtt->connect()){
 	exit(1);
 }

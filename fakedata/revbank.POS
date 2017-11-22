@@ -1,0 +1,14 @@
+(dp0
+I211378970
+(dp1
+S'bon'
+p2
+S'\x1b=\x01\x1b@\x1d!\x11\x1ba1\x1cp\x01\x03\x1d!\x00Bon transactie 211378970\n\x1dH\x00\x1dh`\x1dw`\x1dkG\tA211378970A\n\x1ba22017-11-22 20:29:30  -  Arnhem\n\x1ba0\n Product                   Aantal   EUR\n --------------------------------------\n Deposit                      1   25.00\n --------------------------------------\n Totaal                           25.00\n\nU bent geholpen door: raboof\n\n         Nieuw saldo: 130.00\n\n\x1ba1\x1b!\x01De kleine lettertjes: Deze bon kan niet in de       \nhack42 adminstratie gebruikt worden voor declaraties\n\x1ba0\n\n\n\n\n\x1bm\n'
+p3
+sS'totals'
+p4
+(dp5
+S'raboof'
+p6
+F25.0
+sss.

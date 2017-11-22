@@ -1,0 +1,19 @@
+2017-11-22_20:26:54 PROMPT Enter product, command or username >> bon
+2017-11-22_20:26:59 PROMPT Unknown product, command or username >> ok
+2017-11-22_20:27:00 PROMPT Enter product, command or username >> abort
+2017-11-22_20:27:00 PROMPT Enter product, command or username >> abort
+2017-11-22_20:27:01 PROMPT Enter product, command or username >> abort
+2017-11-22_20:27:01 PROMPT Enter product, command or username >> abort
+2017-11-22_20:27:10 PROMPT Enter product, command or username >> abort
+2017-11-22_20:27:18 PROMPT Enter product, command or username >> verkoop
+2017-11-22_20:27:22 PROMPT Who are you? >> raboof
+2017-11-22_20:27:38 PROMPT Unknown User; Who are you? >> abort
+2017-11-22_20:27:41 PROMPT Enter product, command or username >> deposit
+2017-11-22_20:27:44 PROMPT How much do you want to deposit? >> 25
+2017-11-22_20:29:14 PROMPT Enter product, command or username >> raboof
+2017-11-22_20:29:21 PROMPT Enter product, command or username >> deposit
+2017-11-22_20:29:23 PROMPT How much do you want to deposit? >> 25
+2017-11-22_20:29:30 PROMPT Enter product, command or username >> raboof
+2017-11-22_20:29:30 CHECKOUT 211378970  raboof 1 *      25.00 GAIN EUR      25.00 # Deposit
+2017-11-22_20:29:30 BALANCE 211378970  raboof had +80.00, gained +25.00, now has +105.00
+2017-11-22_20:32:08 PROMPT Enter product, command or username >> ok
