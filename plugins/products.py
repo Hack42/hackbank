@@ -9,7 +9,7 @@ class products:
     times=1
 
     def help(self):
-        return {"aliasproduct": "Add alias to product","addproduct": "Add new product"}
+        return {"aliasproduct": "Add alias to product","addproduct": "Add new product","setprice": "Change the price of a product"}
 
     def readproducts(self):
         groupname=""
@@ -27,6 +27,8 @@ class products:
                 for alias in aliases:
                     self.aliases[alias]=name
                 self.products[name]={'price': float(parts[1]),'description': parts[2], 'group': groupname, 'aliases': aliases}
+        for prod in self.products:
+            self.master.send_message(True,'products/'+prod,json.dumps(self.products[prod]))
 
     def writeproducts(self):
         with open('data/revbank.products','w') as f:
@@ -80,12 +82,37 @@ class products:
         else:
             return self.messageandbuttons('addalias','products','Unknown product;What product do you want to alias?')
 
+    def setprice(self,text):
+        if text=="abort": return self.master.callhook('abort',None)
+        prod=self.lookupprod(text)
+        if prod:
+            self.priceprod=prod
+            return self.messageandbuttons('saveprice','numbers','What is the new price for '+prod+'?')
+        else:
+            return self.messageandbuttons('setprice','products','Unknown product;What product do you want change price?')
+
+    def saveprice(self,text):
+        if text=="abort": return self.master.callhook('abort',None)
+        try:
+            price=float(text)
+            if price<0.01 or price>999.99:
+                return self.messageandbuttons('saveprice','numbers','Price should be between 0.01 and 999.99')
+            else:
+                self.newprodprice=price
+                self.products[self.priceprod]['price']=self.newprodprice
+                self.writeproducts()
+                self.readproducts()
+                return True
+        except:
+            import traceback
+            return self.messageandbuttons('saveprice','numbers','Not a valid number; What is the price for'+self.newprod+'?')
+
     def addproductgroup(self,text):
         if text=="abort": return self.master.callhook('abort',None)
         if len(text)<4:
             self.master.donext(self,'addproductgroup')
             self.master.send_message(True,'message','Too short,what productgroup to add the product to?')
-            self.master.send_message(True,'buttons',json.dumps({'custom':[ {'text':n,'display':n } for n in self.groups ]}))
+            self.master.send_message(True,'buttons',json.dumps({'special':'custom', 'custom':[ {'text':n,'display':n } for n in self.groups ]}))
             return True
         else:
             self.newprodgroup=text
@@ -113,9 +140,10 @@ class products:
                 self.newprodprice=price
                 self.master.donext(self,'addproductgroup')
                 self.master.send_message(True,'message','what productgroup to add the product to?')
-                self.master.send_message(True,'buttons',json.dumps({'custom':[ {'text':n,'display':n } for n in self.groups ]}))
+                self.master.send_message(True,'buttons',json.dumps({'special':'custom', 'custom':[ {'text':n,'display':n } for n in self.groups ]}))
                 return True
         except:
+            import traceback
             return self.messageandbuttons('addproductprice','numbers','Not a valid number; What is the price for'+self.newprod+'?')
 
     def addproductdesc(self,text):
@@ -147,6 +175,8 @@ class products:
             return self.messageandbuttons('addalias','products','What product do you want to alias?')
         elif text=="addproduct":
             return self.messageandbuttons('addproduct','keyboard','What is the name of the product you want to add?')
+        elif text=="setprice":
+            return self.messageandbuttons('setprice','products','What product to change the price for?')
         elif text.endswith('*'):
             try:
                 value=float(text[:-1])
@@ -163,6 +193,4 @@ class products:
 
     def startup(self):
         self.readproducts()
-        for prod in self.products:
-            self.master.send_message(True,'products/'+prod,json.dumps(self.products[prod]))
         self.times=1

@@ -192,7 +192,7 @@ $( document ).ready(function() {
     var buttons=[];
     $.each(prods,function(v,i) {
       button={'text': v,'display': prods[v].description,'right': prods[v].price.toFixed(2), rightclass:"green", class: v, aliases: prods[v].aliases}
-      if(stock[v]!=undefined) {
+      if(stock[v]!=undefined && stock[v]!=0) {
         button['left']=stock[v];
         button['leftclass']='orange';
       }
@@ -208,7 +208,7 @@ $( document ).ready(function() {
     });
     Object.keys(thisprods).sort().forEach(function(v,i) {
       button={'text': v,'display': prods[v].description,'right': prods[v].price.toFixed(2), rightclass:"green", class: v}
-      if(stock[v]!=undefined) {
+      if(stock[v]!=undefined && stock[v]!=0) {
         button['left']=stock[v];
         button['leftclass']='orange';
       }

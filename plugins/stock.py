@@ -73,9 +73,9 @@ class stock:
     def voorraad_amount(self,text):
         try:
              aantal=int(text)
-             if aantal<0 or aantal>1000:
+             if aantal<0 or aantal>5000:
                  self.master.donext(self,'voorraad_amount')
-                 self.master.send_message(True,'message','Please enter a number between 1 and 999, how much '+self.prod+' is in stock?')
+                 self.master.send_message(True,'message','Please enter a number between 1 and 4999, how much '+self.prod+' is in stock?')
                  self.master.send_message(True,'buttons',json.dumps({'special':'numbers'}))
                  return True
              else:
@@ -114,9 +114,9 @@ class stock:
     def inkoop_amount(self,text):
         try:
              aantal=int(text)
-             if aantal<0 or aantal>1000:
+             if aantal<0 or aantal>5000:
                  self.master.donext(self,'inkoop_amount')
-                 self.master.send_message(True,'message','Please enter a number between 1 and 999, how much '+self.prod+' did you buy?')
+                 self.master.send_message(True,'message','Please enter a number between 1 and 4999, how much '+self.prod+' did you buy?')
                  self.master.send_message(True,'buttons',json.dumps({'special':'numbers'}))
                  return True
              else:
