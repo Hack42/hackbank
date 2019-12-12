@@ -89,6 +89,7 @@ class accounts:
 
     def hook_post_checkout(self,text):
         self.master.send_message(True,'buttons',json.dumps({'special':'infobox'}))
+        #self.master.send_message(True,'buttons',json.dumps({'special':'final'}))
         for usr in self.master.receipt.totals:
             self.updateaccount(usr,self.master.receipt.totals[usr])
 
