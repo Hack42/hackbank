@@ -1,0 +1,457 @@
+      body {
+        -webkit-background-clip: border-box;
+        -webkit-background-origin: padding-box;
+        -webkit-background-size: auto;
+        -webkit-font-smoothing: antialiased;
+        background-attachment: scroll;
+        background-clip: border-box;
+        background-color: #E5E9EC;
+        body.loggedin - #e5e9ec
+        body - white
+        background-image: none;
+        background-origin: padding-box;
+        background-size: auto;
+        box-sizing: border-box;
+        color: #6F7B8A;
+        cursor: default;
+        display: block;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        font-style: normal;
+        font-weight: normal;
+        height: 729px;
+        line-height: 21px;
+        margin-bottom: 0px;
+        margin-left: 0px;
+        margin-right: 0px;
+        margin-top: 0px;
+        max-width: 100%;
+        overflow-x: hidden;
+        padding-bottom: 0px;
+        padding-left: 0px;
+        padding-right: 0px;
+        padding-top: 60px;
+        position: relative;
+        width: 1214px;
+      }
+      .button {
+        -webkit-appearance: none;
+        -webkit-box-shadow: none;
+        -webkit-font-smoothing: auto;
+        -webkit-transition-delay: 0s;
+        -webkit-transition-duration: 0.12s;
+        -webkit-transition-property: all;
+        -webkit-transition-timing-function: linear;
+        -webkit-writing-mode: horizontal-tb;
+        align-items: flex-start;
+        background-color: #0090D9;
+        background-image: none;
+        border-bottom-color: #3C9A5F;
+        border-bottom-left-radius: 3px;
+        border-bottom-right-radius: 3px;
+        border-bottom-style: none;
+        border-bottom-width: 0px;
+        border-image-outset: 0px;
+        border-image-repeat: stretch;
+        border-image-slice: 100%;
+        border-image-source: none;
+        border-image-width: 1;
+        border-left-color: #3C9A5F;
+        border-left-style: none;
+        border-left-width: 0px;
+        border-right-color: #3C9A5F;
+        border-right-style: none;
+        border-right-width: 0px;
+        border-top-color: #3C9A5F;
+        border-top-left-radius: 3px;
+        border-top-right-radius: 3px;
+        border-top-style: none;
+        border-top-width: 0px;
+        box-shadow: none;
+        box-sizing: border-box;
+        color: #FFF;
+        cursor: pointer;
+        direction: ltr;
+        display: inline-block;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        font-style: normal;
+        font-variant: normal;
+        font-weight: normal;
+        height: 38px;
+        letter-spacing: normal;
+        line-height: 20px;
+        margin-bottom: 0px;
+        margin-left: 0px;
+        margin-right: 5px;
+        margin-top: 5px;
+        min-width: 120px;
+        outline-color: #FFF;
+        outline-style: none;
+        outline-width: 0px;
+        padding-bottom: 9px;
+        padding-left: 12px;
+        padding-right: 12px;
+        padding-top: 9px;
+        position: relative;
+        text-align: center;
+        text-decoration: none solid rgb(255, 255, 255);
+        text-indent: 0px;
+        text-shadow: none;
+        text-transform: none;
+        transition-delay: 0s;
+        transition-duration: 0.12s;
+        transition-property: all;
+        transition-timing-function: linear;
+        vertical-align: middle;
+        width: 120px;
+        word-spacing: 0px;
+        writing-mode: lr-tb;
+      }
+      .Product {
+        -webkit-appearance: none;
+        -webkit-box-shadow: none;
+        -webkit-font-smoothing: auto;
+        -webkit-transition-delay: 0s;
+        -webkit-transition-duration: 0.12s;
+        -webkit-transition-property: all;
+        -webkit-transition-timing-function: linear;
+        -webkit-writing-mode: horizontal-tb;
+        align-items: flex-start;
+        background-color: #D99000;
+        background-image: none;
+        border-bottom-color: #3C9A5F;
+        border-bottom-left-radius: 3px;
+        border-bottom-right-radius: 3px;
+        border-bottom-style: none;
+        border-bottom-width: 0px;
+        border-image-outset: 0px;
+        border-image-repeat: stretch;
+        border-image-slice: 100%;
+        border-image-source: none;
+        border-image-width: 1;
+        border-left-color: #3C9A5F;
+        border-left-style: none;
+        border-left-width: 0px;
+        border-right-color: #3C9A5F;
+        border-right-style: none;
+        border-right-width: 0px;
+        border-top-color: #3C9A5F;
+        border-top-left-radius: 3px;
+        border-top-right-radius: 3px;
+        border-top-style: none;
+        border-top-width: 0px;
+        box-shadow: none;
+        box-sizing: border-box;
+        color: #FFF;
+        cursor: pointer;
+        direction: ltr;
+        display: inline-block;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        font-style: normal;
+        font-variant: normal;
+        font-weight: bold;
+        height: 84px;
+        letter-spacing: normal;
+        line-height: 20px;
+        margin-bottom: 0px;
+        margin-left: 0px;
+        margin-right: 5px;
+        margin-top: 5px;
+        min-width: 120px;
+        outline-color: #FFF;
+        outline-style: none;
+        outline-width: 0px;
+        padding-bottom: 9px;
+        padding-left: 12px;
+        padding-right: 12px;
+        padding-top: 9px;
+        position: relative;
+        text-align: center;
+        text-decoration: none solid rgb(255, 255, 255);
+        text-indent: 0px;
+        text-shadow: none;
+        text-transform: none;
+        transition-delay: 0s;
+        transition-duration: 0.12s;
+        transition-property: all;
+        transition-timing-function: linear;
+        vertical-align: middle;
+        width: 120px;
+        word-spacing: 0px;
+        writing-mode: lr-tb;
+      }
+      .Knopje {
+        min-width: 90px;
+        width: 90px;
+      }
+      .KnopjeOK {
+        min-width: 90px;
+        width: 90px;
+        background-color: #00D900;
+      }
+      .Left {
+        left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	position: absolute;
+	width: 160px;
+	clear: both;
+      }
+      .Log {
+	background-color: #ffffff;
+	clear: both;
+	height: 160px;
+	overflow: scroll;
+	position: relative;
+	top: 240px;
+	width: 339px;
+      }
+      .Middle {
+        left: 160px;
+	right: 350px;
+	top: 0;
+	bottom: 0;
+	position: absolute;
+      }
+      .Right {
+        right: 0;
+	top: 0;
+	bottom: 0;
+	position: absolute;
+	width: 350px;
+      }
+      .Numpad {
+        width: 320px;
+	clear: both;
+	position: absolute;
+      }
+      .Zoek {
+        -moz-box-sizing: border-box;
+	-moz-user-input: enable;
+	-moz-user-select: text;
+	background-color: #F7F7F7;
+	border: 1px solid rgba(,0,0,0,0.1);
+	border-radius: 3px;
+	color: #222222;
+	display: block;
+	font-size: 22px;
+	font-weight: normal;
+	letter-spacing: -1px;
+	line-height: 30px;
+	margin: 0;
+	outline: medium none;
+	padding: 13px 180px 12px 20px;
+	position: relative;
+	width: 100%;
+	z-index: 400;
+      }
+      #FirstScreen {
+        height: 768;
+        width: 1024;
+	background-color: #7f7f7f;
+        position: relative;
+      }
+      .Receipt {
+        clear: both;
+	color: #000000;
+	background-color: #ffffff;
+	font-size: 42px;
+	font-weight: normal;
+	line-height: 18px;
+	margin: 0;
+	outline: medium none;
+	padding: 0;
+	width: 45%;
+        top: 5px;
+	overflow:scroll;
+	overflow-x: hidden;
+        position: fixed;
+      }
+      .Totals {
+      	clear: both;
+	top: 5px;
+        right: 5px;
+	color: #222222;
+	background-color: #ffffff;
+	font-size: 12px;
+	font-weight: normal;
+	line-height: 18px;
+	margin: 0;
+	margin-top: 10px;
+	outline: medium none;
+	padding: 0;
+	width: 45%;
+	height: 40%;
+	overflow:scroll;
+	overflow-x: hidden;
+        position: fixed;
+      }
+      .Userlist {
+        height: 100%;
+	overflow:scroll;
+	overflow-x: hidden;
+      }
+      .UserLine {
+        padding: 0px;
+	width: 315px;
+	line-height: 25px;
+	font-size: 22px;
+	clear: both;
+	position: relative;
+      }
+      .Username {
+        width: 160px;
+	position: relative;
+	left: 0px;
+      }
+      .Totalamount {
+	outline: medium none;
+        width: 120px;
+	position: relative;
+	left: 185px;
+	text-align: right;
+      }
+      .Item {
+        padding: 0px;
+	width: 320px;
+	line-height: 19px;
+	font-size: 14px;
+	clear: both;
+	position: relative;
+      }
+      .Item2 {
+        padding: 0px;
+	width: 320px;
+	line-height: 25px;
+	font-size: 20px;
+	clear: both;
+	position: relative;
+      }
+      .name {
+        height: 20px;
+        overflow: hidden;
+        width: 160px;
+	position: absolute;
+	left: 0px;
+      }
+      .ProductHolder2 {
+        position: relative;
+        top: 350px;
+      }
+      .name3 {
+        height: 25px;
+        overflow: hidden;
+        width: 320px;
+	position: absolute;
+	left: 0px;
+      }
+      .name2 {
+        height: 32px;
+        overflow: hidden;
+        width: 160px;
+	position: absolute;
+	left: 0px;
+      }
+      .Times {
+        width: 40px;
+	position: absolute;
+	left: 160px;
+	text-align: right;
+      }
+      .Times2 {
+        width: 80px;
+	position: absolute;
+	left: 320px;
+	text-align: right;
+      }
+      .GainOrLose {
+        width: 40px;
+	position: absolute;
+	left: 160px;
+	text-align: right;
+      }
+      .LoseOrGain {
+        width: 40px;
+	position: absolute;
+	left: 200px;
+	text-align: right;
+      }
+      .GainOrLose2 {
+        width: 40px;
+	position: absolute;
+	left: 400px;
+	text-align: right;
+      }
+      .LoseOrGain2 {
+        width: 80px;
+	position: absolute;
+	left: 400px;
+	text-align: right;
+      }
+      .amount {
+        width: 110px;
+	position: relative;
+	left: 200px;
+	text-align: right;
+      }
+      .amount2 {
+        width: 110px;
+	position: relative;
+	left: 500px;
+	text-align: right;
+      }
+      .User {
+        border-bottom-left-radius: 10px;
+        border-bottom-right-radius: 10px;
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+        height: 30px;
+        width: 100px;
+        background-color: #00B900;
+      }
+      .UserRood,#back {
+        background-color: #B90000;
+      }
+      .disablebutton {
+        cursor: auto;
+        background-color: #AAAAAA;
+      }
+      .special,.abort {
+        background-color: #B90000;
+      }
+.price {
+  background-color: #FFC000;
+  border-radius: 5px;
+  height: 25px;
+  left: 0;
+  position: absolute;
+  top: 72px;
+  width: 70px;
+}
+.stock {
+  background-color: #FFC000;
+  border-radius: 5px;
+  font-weight: normal;
+  height: 25px;
+  left: 80px;
+  position: absolute;
+  top: 72px;
+  width: 50px;
+}
+
+#LeftButtons {
+  left: 0px;
+  width: 100px;
+  height: 100%;
+  background-color: #AAAAAA;
+}
+
+#Secondscreen {
+  height: 768;
+  width: 1024;
+  background-color: #7f7f7f;
+  position: relative;
+ }
