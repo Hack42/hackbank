@@ -281,11 +281,12 @@ $( document ).ready(function() {
   function makepage_history() {
     $('#MainButtons').empty();
     $('#TopButtons').empty();
-    $('#MainButtons').append($('<div>',{class: "lines", id: "lines"}));
+    $('#MainButtons').append($('<div>',{class: "mylines", id: "mylines"}));
     $.each(history,function(idx,val) {
-       $('#lines').append($('<div>',{class: 'Outputline',id: idx, text: val}));
+       $('#mylines').append(val+"<br>");
     });
-    $('#lines').scrollTop($('#lines')[0].scrollHeight);
+    $('#mylines').css({'position': 'relative','top': '-12vh','left': '0px','z-index': '100','background': 'lightgray','height': '76vh','overflow-wrap': 'break-word','overflow-y': 'scroll','width': '96vw'});
+    $('#mylines').scrollTop($('#mylines')[0].scrollHeight);
     showquestion();
   }
   function makepage_numbers() {
@@ -497,6 +498,7 @@ $( document ).ready(function() {
             break;
          case 'infobox':
             run_infobox(elms[6],msg);
+            $("#MainButtons").css("background-color","#d7ffd7");
             break;
          case 'accounts':
             setupaccounts(elms[5],msg);
@@ -512,6 +514,7 @@ $( document ).ready(function() {
             break;
          case 'buttons':
             dobuttons(msg);
+            $("#MainButtons").css("background-color","");
             break;
          case 'sound':
             playsound(msg);
@@ -554,6 +557,7 @@ $( document ).ready(function() {
   $('#body').append($('<div>',{id: 'Firstscreen'}));
   $('#body').append($('<div>',{id: 'Secondscreen'}));
   $('#body').append($('<div>',{id: 'IRCwindow'}));
+  $('#body').append($('<div>',{id: 'spacewindow'}));
 
   $('#Firstscreen').append(  $('<div>',{id: 'Receipt', class: 'Receipt'}) );
   $('#Firstscreen').append(  $('<div>',{id: 'Totals', class: 'Totals'}) );
@@ -571,6 +575,7 @@ $( document ).ready(function() {
   $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop special",id: 'commands'}).append($('<span>',{class: "Knopjetext",text: "Commands"})));
   $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop sounds",id: 'sounds'}).append($('<span>',{class: "Knopjetext",text: "Sounds"})));
   $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop irc",id: 'irc'}).append($('<span>',{class: "Knopjetext",text: "IRC"})));
+  $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop spacecon",id: 'spacecon'}).append($('<span>',{class: "Knopjetext",text: "Lights"})));
   //$('#LeftButtons').append($('<div>',{class: "Knopje Button back",id: 'back'}).append($('<span>',{class: "Knopjetext",text: "Back"})));
   $('#Buttons').append($('<div>',{class: "Knopje abort",id: 'abort'}).append($('<span>',{class: "Knopjetext",text: "Abort"})));
   $('#Buttons').append($('<div>',{class: "Knopje bon",id: 'bon'}).append($('<span>',{class: "Knopjetext",text: "Bon"})));
@@ -630,6 +635,7 @@ $( document ).ready(function() {
 
   function focus() {
     $('#IRCwindow').hide();
+    $('#spacewindow').hide();
     $('#Zoek')[0].focus();
   }
   function verwerkinput() {
@@ -724,11 +730,20 @@ $( document ).ready(function() {
            $("#IRCwindow").append($('<iframe>',{src: 'http://kleintje:4200/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
          }
          break;
+      case 'spacecon':
+         $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
+         locked=0;
+         $('#spacewindow').show();
+         if($('#spacewindow').html()=="") {
+           $("#spacewindow").append($('<iframe>',{src: '/spaceconsole/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
+         }
+         break;
       case 'knopjes':
          $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
          locked=0;
          $('#Secondscreen').show();
-         $('#IRC').hide();
+         $('#IRCwindow').hide();
+         $('#spacewindow').hide();
          focus();
          break;
       default:
