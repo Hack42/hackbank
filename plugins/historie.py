@@ -45,7 +45,7 @@ class historie:
         for line in self.reverse_readline("data/revbank.log"):
           if line.find(text)>0:
             lines.insert(0,line)
-          if len(lines)>100:
+          if len(lines)>200:
             return lines
         return lines
 
