@@ -330,6 +330,15 @@ body {
   height: 83vh;
   z-index: 542;
 }
+#spacewindow {
+  left: 0.5vw;
+  top: 13vh;
+  width: 99%;
+  background-color: #ffffff;
+  position: absolute;
+  height: 83vh;
+  z-index: 542;
+}
 #LeftButtons {
   left: 2vh;
   top: 2.5vh;
@@ -443,4 +452,47 @@ font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
 .activetop {
   background-color: #161650;
+}
+.Spaceknop {
+  min-width: 20vw;
+  height: 18vh;
+}
+.dot {
+  height: 3vw;
+  width: 3vw;
+  background-color: orange;
+  border-radius: 50%;
+  display: inline-block;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+} 
+.slider {
+  background: #d3d3d3;
+  height: 100%;
+  width: 25px;
+  background: #d3d3d3;
+  outline: none;
+  opacity: 0.7;
+  -webkit-transition: .2s;
+  transition: opacity .2s;
+}
+.slider::-moz-range-thumb {
+  width: 25px;
+  height: 25px;
+  background: #4CAF50;
+  cursor: pointer;
+}
+.topknop {
+  min-width: 9vw;
+  margin-left: 0px;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 25px;
+  height: 25px;
+  background: #4CAF50;
+  cursor: pointer;
 }
