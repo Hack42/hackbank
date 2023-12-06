@@ -119,7 +119,7 @@ class Session:
                 print(traceback.format_exc())
 
         self.prompt = ""
-        if not self.nextcall:
+        if self.nextcall:
             try:
                 print(text)
                 print(self.nextcall)
@@ -133,13 +133,13 @@ class Session:
                 print(traceback.format_exc())
         if done == 1:
             print("Call done with self.nextcall")
-        elif done == 0:  # pylint: disable = too-many-nested-blocks
+        else:  # pylint: disable = too-many-nested-blocks
             for part in text.split():
                 if part != "":
                     done = 0
                     print("Running part", part, self.nextcall)
                     self.prompt = ""
-                    if not self.nextcall:
+                    if self.nextcall:
                         try:
                             plug = self.nextcall["plug"]
                             func = self.nextcall["function"]
