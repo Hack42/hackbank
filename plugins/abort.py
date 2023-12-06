@@ -14,6 +14,7 @@ class abort:
         if text == "ok":
             self.master.callhook("ok", None)
             return True
+        return None
 
     def startup(self):
         pass

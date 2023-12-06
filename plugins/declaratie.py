@@ -1,9 +1,17 @@
 # -*- coding: utf-8 -*-
 import json
 import time
+import traceback
 
 
 class declaratie:
+    wie = ""
+    value = 0
+    reden = ""
+    ascash = 0
+    asbank = 0
+    asbar = 0
+    soort = ""
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
@@ -33,16 +41,15 @@ class declaratie:
                 True, "buttons", json.dumps({"special": "numbers"})
             )
             return True
-        elif text == "abort":
+        if text == "abort":
             self.master.callhook("abort", None)
             return True
-        else:
-            self.master.donext(self, "who")
-            self.master.send_message(True, "message", "Unknown User; Who are you?")
-            self.master.send_message(
-                True, "buttons", json.dumps({"special": "accounts"})
-            )
-            return True
+        self.master.donext(self, "who")
+        self.master.send_message(True, "message", "Unknown User; Who are you?")
+        self.master.send_message(
+            True, "buttons", json.dumps({"special": "accounts"})
+        )
+        return True
 
     def amount(self, text):
         if text == "abort":
@@ -50,7 +57,7 @@ class declaratie:
             return True
         try:
             value = float(text)
-            if value >= 0 and value < 5000:
+            if 0 < value < 5000:
                 self.value = value
                 if self.soort == "verkoop":
                     self.master.send_message(
@@ -79,8 +86,6 @@ class declaratie:
                 )
             return True
         except:
-            import traceback
-
             traceback.print_exc()
 
             if text == "abort":
@@ -134,7 +139,7 @@ class declaratie:
             return True
         try:
             value = float(text)
-            if value >= 0 and value < 5000:
+            if  0 < value < 5000:
                 if value > self.value:
                     return self.askbar(
                         "E %.2f is larger than E %.2f ; " % (value, self.value)
@@ -143,11 +148,8 @@ class declaratie:
                 if self.asbar == self.value:
                     return self.final()
                 return self.askcash("")
-            else:
-                return self.askbar("Not between 0.01 and 4999.99; ")
+            return self.askbar("Not between 0.01 and 4999.99; ")
         except:
-            import traceback
-
             traceback.print_exc()
             self.askbar("")
             return True
@@ -182,7 +184,7 @@ class declaratie:
             return True
         try:
             value = float(text)
-            if value >= 0 and value < 5000:
+            if 0 < value < 5000:
                 if value > (self.value - self.asbar):
                     return self.askcash(
                         "E %.2f is larger than E %.2f ; "
@@ -192,11 +194,8 @@ class declaratie:
                 if (self.ascash + self.asbar) == self.value:
                     return self.final()
                 return self.askbank("")
-            else:
-                return self.askcash("Not between 0.01 and 4999.99; ")
+            return self.askcash("Not between 0.01 and 4999.99; ")
         except:
-            import traceback
-
             traceback.print_exc()
             return self.askcash("")
 
@@ -231,7 +230,7 @@ class declaratie:
             return True
         try:
             value = float(text)
-            if value >= 0 and value < 5000:
+            if 0 < value < 5000:
                 if value > (self.value - self.asbar - self.ascash):
                     return self.askbank(
                         "E %.2f is larger than E %.2f ; "
@@ -240,13 +239,9 @@ class declaratie:
                 self.asbank = value
                 if (self.ascash + self.asbar + self.asbank) == self.value:
                     return self.final()
-                else:
-                    return self.askbank("The numbers do not match; ")
-            else:
-                return self.askbank("Not between 0.01 and 4999.99; ")
+                return self.askbank("The numbers do not match; ")
+            return self.askbank("Not between 0.01 and 4999.99; ")
         except:
-            import traceback
-
             traceback.print_exc()
             return self.askbank("")
 
@@ -256,7 +251,7 @@ class declaratie:
         )
 
     def save(self):
-        with open("data/administratie.txt", "a") as logfile:
+        with open("data/administratie.txt", "a", encoding='utf-8') as logfile:
             logfile.write(
                 "%s   %s %+10.2f   %+10.2f  # %s\n"
                 % (
@@ -287,23 +282,23 @@ class declaratie:
                 self.master.POS.drawer()
             self.save()
             return True
-        elif text == "no":
+        if text == "no":
             return True
-        elif text == "abort":
+        if text == "abort":
             self.master.callhook("abort", None)
-        else:
-            self.master.send_message(
-                True, "message", "Invalid answer; Is the receipt correct?"
-            )
-            custom = [
-                {"text": "yes", "display": "Yes"},
-                {"text": "no", "display": "No"},
-            ]
-            self.master.send_message(
-                True, "buttons", json.dumps({"special": "custom", "custom": custom})
-            )
-            self.master.donext(self, "correct")
-            return True
+            return None
+        self.master.send_message(
+            True, "message", "Invalid answer; Is the receipt correct?"
+        )
+        custom = [
+            {"text": "yes", "display": "Yes"},
+            {"text": "no", "display": "No"},
+        ]
+        self.master.send_message(
+            True, "buttons", json.dumps({"special": "custom", "custom": custom})
+        )
+        self.master.donext(self, "correct")
+        return True
 
     def final(self):
         self.bon()
@@ -316,7 +311,7 @@ class declaratie:
         return True
 
     def input(self, text):
-        if text == "declaratie" or text == "verkoop" or text == "afroom":
+        if text in ("declaratie", "verkoop", "afroom"):
             self.ascash = 0
             self.asbar = 0
             self.asbank = 0
@@ -327,6 +322,7 @@ class declaratie:
             )
             self.soort = text
             return True
+        return None
 
     def startup(self):
         pass

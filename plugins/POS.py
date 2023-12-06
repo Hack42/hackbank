@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
+import traceback
 import json
-import math
 import time
 import pickle
 import serial
@@ -30,20 +30,21 @@ DRAWER = b"\x1B\x700AA"
 class POS:
     bonnetjes = {}
     ser = None
+    lastbonID = 0
 
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
 
     def open(self):
-        if self.ser != None:
+        if self.ser is not None:
             return
-        self.ser = serial.Serial(
-            port="/dev/ttyUSB0",
-            baudrate=19200,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-            bytesize=serial.EIGHTBITS,
+        self.ser = serial.Serial(   # pylint: disable=no-member
+                port="/dev/ttyUSB0",  # pylint: disable=no-member
+            baudrate=19200,  # pylint: disable=no-member
+            parity=serial.PARITY_NONE,  # pylint: disable=no-member
+            stopbits=serial.STOPBITS_ONE,  # pylint: disable=no-member
+            bytesize=serial.EIGHTBITS,  # pylint: disable=no-member
         )
         print("Serial open")
 
@@ -70,7 +71,7 @@ class POS:
         self.ser.write(out)
 
     def hook_checkout(self, user):
-        if user is "cash":
+        if user == "cash":
             self.drawer()
 
     def hook_addremove(self, args):
@@ -82,7 +83,7 @@ class POS:
         self.ser.write(PRINTER + DRAWER)
 
     def hook_undo(self, args):
-        (transID, void1, void2, void3) = args
+        (transID, _void1, _void2, _void3) = args
         self.loadbons()
         if transID in self.bonnetjes:
             self.bonnetjes[transID]["bon"] = (
@@ -169,7 +170,8 @@ class POS:
             "Handtekening:\n\n\n\n------------------------------------\n"
             + CENTER
             + SMALL
-            + "De kleine lettertjes: Deze bon kan juist wel in de  \nhack42 adminstratie gebruikt worden voor declaraties\n"
+            + "De kleine lettertjes: Deze bon kan juist wel in de  \n"
+            + "hack42 adminstratie gebruikt worden voor declaraties\n"
         )
         BON += LEFT + FEED + CUT
         self.open()
@@ -186,7 +188,7 @@ class POS:
         }
         self.lastbonID = self.master.transID
         self.writebons()
-        if user is "cash":
+        if user == "cash":
             self.drawer()
         else:
             for r in self.master.receipt.receipt:
@@ -214,11 +216,9 @@ class POS:
             if bonID in self.bonnetjes:
                 self.bon(bonID)
                 return True
-            else:
-                self.listbons()
-                return True
+            self.listbons()
+            return True
         except:
-            import traceback
 
             traceback.print_exc()
             self.listbons()
@@ -229,9 +229,8 @@ class POS:
             fk = sorted(self.bonnetjes.keys())
             del self.bonnetjes[fk[0]]
 
-        output = open("data/revbank.POS", "wb")
-        pickle.dump(self.bonnetjes, output)
-        output.close()
+        with open("data/revbank.POS", "wb") as output:
+            pickle.dump(self.bonnetjes, output)
 
     def loadbons(self):
         try:
@@ -277,6 +276,7 @@ class POS:
         if text == "printstock":
             self.printstock()
             return True
+        return None
 
     def startup(self):
         self.loadbons()

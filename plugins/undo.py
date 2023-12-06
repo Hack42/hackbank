@@ -2,6 +2,7 @@
 import json
 import pickle
 import time
+import traceback
 
 
 class undo:
@@ -28,7 +29,7 @@ class undo:
         self.writeundo()
 
     def hook_undo(self, args):
-        (transID, totals, receipt, beni) = args
+        (transID, totals, _receipt, beni) = args
         self.loadundo()
         if transID in self.undo:
             del self.undo[transID]
@@ -50,9 +51,8 @@ class undo:
             fk = sorted(self.undo.keys())
             del self.undo[fk[0]]
 
-        output = open("data/revbank.UNDO", "wb")
-        pickle.dump(self.undo, output)
-        output.close()
+        with open("data/revbank.UNDO", "wb") as output:
+            pickle.dump(self.undo, output)
 
     def loadundo(self):
         try:
@@ -79,11 +79,9 @@ class undo:
                     ),
                 )
                 return True
-            else:
-                self.listundo()
-                return True
+            self.listundo()
+            return True
         except:
-            import traceback
 
             traceback.print_exc()
             self.listundo()
@@ -120,17 +118,15 @@ class undo:
                         rr["product"],
                     )
                 return True
-            else:
-                self.listundo()
-                return True
+            self.listundo()
+            return True
         except:
-            import traceback
 
             traceback.print_exc()
             self.listundo()
             return True
 
-    def listundo(self, restore):
+    def listundo(self, restore = False):
         self.loadundo()
         custom = []
         count = 0
@@ -161,15 +157,16 @@ class undo:
         if text == "undolist":
             self.listundo(0)
             return True
-        elif text == "restore":
+        if text == "restore":
             self.listundo(1)
             return True
-        elif text == "undo":
+        if text == "undo":
             # whatever, works if you just did a transaction
             self.doundo(self.master.transID)
             return True
+        return None
 
-    def hook_abort(self, void):
+    def hook_abort(self, _void):
         self.startup()
 
     def startup(self):
