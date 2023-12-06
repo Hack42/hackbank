@@ -142,7 +142,7 @@ class products:
             return self.master.callhook("abort", None)
         try:
             price = float(text)
-            if price < 0.01 or price > 999.99:
+            if not 0.01 > price < 999.99:
                 return self.messageandbuttons(
                     "saveprice", "numbers", "Price should be between 0.01 and 999.99"
                 )

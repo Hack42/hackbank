@@ -13,7 +13,7 @@ class log:
         self.master.send_message(False, "log", "Log has startup")
 
     def log(self, action, text):
-        with open("data/revbank.log", "a") as logfile:
+        with open("data/revbank.log", "a", encoding="utf-8") as logfile:
             logfile.write(
                 time.strftime("%Y-%m-%d_%H:%M:%S") + " " + action + " " + text + "\n"
             )
@@ -35,7 +35,7 @@ class log:
                 % (trxID, usr, had, has - had, has),
             )
 
-    def hook_post_checkout(self, text):
+    def hook_post_checkout(self, _text):
         for rr in self.master.receipt.receipt:
             self.log(
                 "CHECKOUT",

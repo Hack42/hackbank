@@ -5,7 +5,14 @@ import re
 class market:
     products = {}
     aliases = {}
+    groups = {}
     times = 1
+    aliasprod = ""
+    priceprod = 0
+    newprodprice = 0
+    newprodgroup = ""
+    newproddesc = ""
+    newprod = ""
 
     def help(self):
         return {
@@ -16,8 +23,7 @@ class market:
         }
 
     def readproducts(self):
-        groupname = ""
-        with open("data/revbank.market", "r") as f:
+        with open("data/revbank.market", "r", encoding="utf-8") as f:
             lines = f.readlines()
         for line in lines:
             parts = " ".join(line.split()).split(" ", 4)
@@ -33,24 +39,22 @@ class market:
                 }
                 for alias in aliases:
                     self.aliases[alias] = name
-        for prod in self.products:
-            self.master.send_message(
-                True, "market/" + prod, json.dumps(self.products[prod])
-            )
+        for prod, product in self.products.items():
+            self.master.send_message(True, "market/" + prod, json.dumps(product))
 
     def writeproducts(self):
-        with open("data/revbank.market", "w") as f:
-            for group in self.groups:
+        with open("data/revbank.market", "w", encoding="utf-8") as f:
+            for group, groupvalue in self.groups.items():
                 f.write("# " + group + "\n")
-                for prod in self.groups[group]:
-                    names = self.products[prod]["aliases"]
+                for prod, product in groupvalue.items():
+                    names = product["aliases"]
                     names.insert(0, prod)
                     f.write(
                         "%-58s %7.2f  %s\n"
                         % (
                             ",".join(names),
-                            self.products[prod]["price"],
-                            self.products[prod]["description"],
+                            product["price"],
+                            product["description"],
                         )
                     )
                 f.write("\n")
@@ -85,17 +89,16 @@ class market:
                 "keyboard",
                 "Already known alias " + text + " for " + prod + "! Try again.",
             )
-        elif len(text) < 6 or not re.compile("^[A-z0-9]+$").match(text):
+        if len(text) < 6 or not re.compile("^[A-z0-9]+$").match(text):
             return self.messageandbuttons(
                 "savealias",
                 "keyboard",
                 "only [A-z0-9] is allowed in any alias and it should be at least 4 chars long",
             )
-        else:
-            self.products[self.aliasprod]["aliases"].append(text)
-            self.writeproducts()
-            self.readproducts()
-            return True
+        self.products[self.aliasprod]["aliases"].append(text)
+        self.writeproducts()
+        self.readproducts()
+        return True
 
     def addalias(self, text):
         if text == "abort":
@@ -106,12 +109,11 @@ class market:
             return self.messageandbuttons(
                 "savealias", "keyboard", "What alias to add for " + prod + "?"
             )
-        else:
-            return self.messageandbuttons(
-                "addalias",
-                "products",
-                "Unknown product;What product do you want to alias?",
-            )
+        return self.messageandbuttons(
+            "addalias",
+            "products",
+            "Unknown product;What product do you want to alias?",
+        )
 
     def setprice(self, text):
         if text == "abort":
@@ -122,31 +124,27 @@ class market:
             return self.messageandbuttons(
                 "saveprice", "numbers", "What is the new price for " + prod + "?"
             )
-        else:
-            return self.messageandbuttons(
-                "setprice",
-                "products",
-                "Unknown product;What product do you want change price?",
-            )
+        return self.messageandbuttons(
+            "setprice",
+            "products",
+            "Unknown product;What product do you want change price?",
+        )
 
     def saveprice(self, text):
         if text == "abort":
             return self.master.callhook("abort", None)
         try:
             price = float(text)
-            if price < 0.01 or price > 999.99:
+            if 0.01 < price > 999.99:
                 return self.messageandbuttons(
                     "saveprice", "numbers", "Price should be between 0.01 and 999.99"
                 )
-            else:
-                self.newprodprice = price
-                self.products[self.priceprod]["price"] = self.newprodprice
-                self.writeproducts()
-                self.readproducts()
-                return True
+            self.newprodprice = price
+            self.products[self.priceprod]["price"] = self.newprodprice
+            self.writeproducts()
+            self.readproducts()
+            return True
         except:
-            import traceback
-
             return self.messageandbuttons(
                 "saveprice",
                 "numbers",
@@ -172,62 +170,57 @@ class market:
                 ),
             )
             return True
-        else:
-            self.newprodgroup = text
-            if not self.newprodgroup in self.groups:
-                self.groups[self.newprodgroup] = [self.newprod]
-                self.products[self.newprod] = {
-                    "price": self.newprodprice,
-                    "description": self.newproddesc,
-                    "group": self.newprodgroup,
-                    "aliases": [],
-                }
-                self.writeproducts()
-                self.readproducts()
-                return True
-            else:
-                self.groups[self.newprodgroup].append(self.newprod)
-                self.products[self.newprod] = {
-                    "price": self.newprodprice,
-                    "description": self.newproddesc,
-                    "group": self.newprodgroup,
-                    "aliases": [],
-                }
-                self.writeproducts()
-                self.readproducts()
-                return True
+        self.newprodgroup = text
+        if not self.newprodgroup in self.groups:
+            self.groups[self.newprodgroup] = [self.newprod]
+            self.products[self.newprod] = {
+                "price": self.newprodprice,
+                "description": self.newproddesc,
+                "group": self.newprodgroup,
+                "aliases": [],
+            }
+            self.writeproducts()
+            self.readproducts()
+            return True
+        self.groups[self.newprodgroup].append(self.newprod)
+        self.products[self.newprod] = {
+            "price": self.newprodprice,
+            "description": self.newproddesc,
+            "group": self.newprodgroup,
+            "aliases": [],
+        }
+        self.writeproducts()
+        self.readproducts()
+        return True
 
     def addproductprice(self, text):
         if text == "abort":
             return self.master.callhook("abort", None)
         try:
             price = float(text)
-            if price < 0.01 or price > 999.99:
+            if 0.01 < price > 999.99:
                 return self.messageandbuttons(
                     "addproductprice",
                     "numbers",
                     "Price should be between 0.01 and 999.99",
                 )
-            else:
-                self.newprodprice = price
-                self.master.donext(self, "addproductgroup")
-                self.master.send_message(
-                    True, "message", "what productgroup to add the product to?"
-                )
-                self.master.send_message(
-                    True,
-                    "buttons",
-                    json.dumps(
-                        {
-                            "special": "custom",
-                            "custom": [{"text": n, "display": n} for n in self.groups],
-                        }
-                    ),
-                )
-                return True
+            self.newprodprice = price
+            self.master.donext(self, "addproductgroup")
+            self.master.send_message(
+                True, "message", "what productgroup to add the product to?"
+            )
+            self.master.send_message(
+                True,
+                "buttons",
+                json.dumps(
+                    {
+                        "special": "custom",
+                        "custom": [{"text": n, "display": n} for n in self.groups],
+                    }
+                ),
+            )
+            return True
         except:
-            import traceback
-
             return self.messageandbuttons(
                 "addproductprice",
                 "numbers",
@@ -243,13 +236,12 @@ class market:
                 "keyboard",
                 "Too short, What is the description for " + self.newprod + "?",
             )
-        else:
-            self.newproddesc = text
-            return self.messageandbuttons(
-                "addproductprice",
-                "numbers",
-                "What is the price for " + self.newprod + "?",
-            )
+        self.newproddesc = text
+        return self.messageandbuttons(
+            "addproductprice",
+            "numbers",
+            "What is the price for " + self.newprod + "?",
+        )
 
     def addproduct(self, text):
         if text == "abort":
@@ -259,19 +251,18 @@ class market:
             return self.messageandbuttons(
                 "addproduct", "keyboard", "Product already exists? What product to add?"
             )
-        elif len(text) < 4 or not re.compile("^[A-z0-9]+$").match(text):
+        if len(text) < 4 or not re.compile("^[A-z0-9]+$").match(text):
             return self.messageandbuttons(
                 "addproduct",
                 "keyboard",
                 "only [A-z0-9] is allowed as product name, what name do you want to add?",
             )
-        else:
-            self.newprod = text
-            return self.messageandbuttons(
-                "addproductdesc",
-                "keyboard",
-                "What is the description for " + text + "?",
-            )
+        self.newprod = text
+        return self.messageandbuttons(
+            "addproductdesc",
+            "keyboard",
+            "What is the description for " + text + "?",
+        )
 
     def input(self, text):
         prod = self.lookupprod(text)
@@ -306,17 +297,17 @@ class market:
             )
             self.master.products.times = 1
             return True
-        elif text == "market":
+        if text == "market":
             custom = []
-            for prod in self.products:
+            for prod, product in self.products.items():
                 custom.append(
                     {
                         "text": prod,
-                        "display": self.products[prod]["description"],
+                        "display": product["description"],
                         "right": "%0.2f (%0.2f)"
                         % (
-                            self.products[prod]["price"] + self.products[prod]["space"],
-                            self.products[prod]["space"],
+                            product["price"] + product["space"],
+                            product["space"],
                         ),
                     }
                 )
@@ -325,24 +316,25 @@ class market:
             )
             return True
 
-    #        elif text=="aliasproduct":
-    #            return self.messageandbuttons('addalias','products','What product do you want to alias?')
-    #        elif text=="addproduct":
-    #            return self.messageandbuttons('addproduct','keyboard','What is the name of the product you want to add?')
-    #        elif text=="setprice":
-    #            return self.messageandbuttons('setprice','products','What product to change the price for?')
-    #        elif text.endswith('*'):
-    #            try:
-    #                value=float(text[:-1])
-    #                if value>0 and value<100:
-    #                    self.times=value
-    #                    self.master.send_message(True,'message',"What are you buying %d from?" % self.times)
-    #                    self.master.send_message(True,'buttons',json.dumps({'special':'products'}))
-    #                    return True
-    #            except:
-    #                pass
+        #        elif text=="aliasproduct":
+        #            return self.messageandbuttons('addalias','products','What product do you want to alias?')
+        #        elif text=="addproduct":
+        #            return self.messageandbuttons('addproduct','keyboard','What is the name of the product you want to add?')
+        #        elif text=="setprice":
+        #            return self.messageandbuttons('setprice','products','What product to change the price for?')
+        #        elif text.endswith('*'):
+        #            try:
+        #                value=float(text[:-1])
+        #                if value>0 and value<100:
+        #                    self.times=value
+        #                    self.master.send_message(True,'message',"What are you buying %d from?" % self.times)
+        #                    self.master.send_message(True,'buttons',json.dumps({'special':'products'}))
+        #                    return True
+        #            except:
+        #                pass
+        return None
 
-    def hook_abort(self, void):
+    def hook_abort(self, _void):
         self.startup()
 
     def startup(self):

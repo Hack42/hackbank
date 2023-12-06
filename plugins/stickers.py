@@ -113,8 +113,8 @@ class stickers:
         # Load the logo
         LOGO = Image.open(self.LOGOFILE)
         LOGO = LOGO.resize(
-            self.LOGOSMALLSIZE, resample=Image.LANCZOS
-        )  # pylint: disable=no-member
+            self.LOGOSMALLSIZE, resample=Image.LANCZOS  # pylint: disable=no-member
+        )
 
         # Paste the logo onto the image
         img.paste(LOGO, (0, 0))
@@ -144,8 +144,8 @@ class stickers:
 
         LOGO = Image.open(self.LOGOFILE)
         LOGO = LOGO.resize(
-            self.LOGOSMALLSIZE, resample=Image.LANCZOS
-        )  # pylint: disable=no-member
+            self.LOGOSMALLSIZE, resample=Image.LANCZOS  # pylint: disable=no-member
+        )
         img.paste(LOGO, (0, 0))
 
         font = ImageFont.truetype(self.FONT, 40)
@@ -168,8 +168,8 @@ class stickers:
 
         LOGO = Image.open(self.LOGOFILE)
         LOGO = LOGO.resize(
-            self.LOGOSMALLSIZE, resample=Image.LANCZOS
-        )  # pylint: disable=no-member
+            self.LOGOSMALLSIZE, resample=Image.LANCZOS  # pylint: disable=no-member
+        )
         img.paste(LOGO, (0, 0))
 
         font = ImageFont.truetype(self.FONT, 40)

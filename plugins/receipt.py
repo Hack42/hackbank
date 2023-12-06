@@ -16,7 +16,7 @@ class receipt:
 
     def updatetotals(self):
         self.totals = {}
-        for r in range(
+        for r in range(  # pylint: disable=consider-using-enumerate
             0, len(self.receipt)
         ):  # pylint: disable=consider-using-enumerate
             rr = self.receipt[r]
@@ -40,7 +40,7 @@ class receipt:
 
     def hook_checkout(self, user):
         self.totals = {}
-        for r in range(
+        for r in range(  # pylint: disable=consider-using-enumerate
             0, len(self.receipt)
         ):  # pylint: disable=consider-using-enumerate
             rr = self.receipt[r]
@@ -70,10 +70,10 @@ class receipt:
     def help(self):
         return {"remove": "Remove Item"}
 
-    def add(
+    def add(  # pylint: disable=too-many-arguments
         self, Lose, Value, Description, Count, Beni, Prod
     ):  # pylint: disable=too-many-arguments
-        for r in range(
+        for r in range(  # pylint: disable=consider-using-enumerate
             0, len(self.receipt)
         ):  # pylint: disable=consider-using-enumerate
             if (

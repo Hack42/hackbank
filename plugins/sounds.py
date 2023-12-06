@@ -10,7 +10,7 @@ class sounds:
     def help(self):
         return {"sounds": "All sound commands"}
 
-    def hook_checkout(self, text):
+    def hook_checkout(self, _text):
         for r in self.master.receipt.receipt:
             if r["product"] == "deposit":
                 self.master.send_message(False, "sound", "itsgone.wav")
@@ -18,13 +18,12 @@ class sounds:
         self.master.send_message(False, "sound", "katsjing.wav")
 
     def hook_balance(self, args):
-        (usr, had, has, transID) = args
+        (_usr, _had, has, _transID) = args
         if has < -13.37:
             self.master.send_message(False, "sound", "sinterklaas.wav")
 
     def hook_undo(self, args):
-        (transID, totals, receipt, beni) = args
-        pass
+        (_transID, _totals, _receipt, _beni) = args
 
     def showsounds(self):
         custom = []
@@ -45,48 +44,51 @@ class sounds:
         )
         self.master.send_message(True, "message", "Please select a command")
 
-    def input(self, text):
+    def input(
+        self, text
+    ):  # pylint: disable=too-many-return-statements, too-many-branches
         if text == "sounds":
             self.showsounds()
             return True
-        elif text == "ns":
+        if text == "ns":
             self.master.send_message(False, "sound", "ns.wav")
             return True
-        elif text == "deuron":
+        if text == "deuron":
             pass
-        elif text == "deuroff":
+        if text == "deuroff":
             pass
-        elif text == "kassaon":
+        if text == "kassaon":
             pass
-        elif text == "kassaoff":
+        if text == "kassaoff":
             pass
-        elif text == "killsounds":
+        if text == "killsounds":
             self.master.send_message(False, "groove", "off")
             return True
-        elif text == "groovesalad":
+        if text == "groovesalad":
             self.master.send_message(False, "groove", "on")
             return True
-        elif text == "christmas":
+        if text == "christmas":
             self.master.send_message(False, "christmas", "on")
             return True
-        elif text == "blues":
+        if text == "blues":
             self.master.send_message(False, "blues", "on")
             return True
-        elif text == "louder":
+        if text == "louder":
             self.master.send_message(False, "vol", "up")
             return True
-        elif text == "quieter":
+        if text == "quieter":
             self.master.send_message(False, "vol", "down")
             return True
-        elif text == "abort":
+        if text == "abort":
             self.master.callhook("abort", None)
             return True
+        return None
 
     def pre_input(self, text):
         if text != "abort":
             self.master.send_message(False, "sound", "KDE_Beep_ClassicBeep.wav")
 
-    def hook_wrong(self, text):
+    def hook_wrong(self, _text):
         self.master.send_message(False, "sound", "KDE_Beep_Beep.wav")
         self.master.send_message(False, "sound", "KDE_Beep_Beep.wav")
 

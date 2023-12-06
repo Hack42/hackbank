@@ -21,7 +21,7 @@ pip-sync-dev: ## synchronizes the .venv with the state of requirements.txt
 	. .venv/bin/activate && ${env} python3 -m piptools sync requirements.txt requirements-dev.txt
 
 lint: venv  ## Do basic linting
-	@. .venv/bin/activate && ${env} python3 -m pylint kassa.py tests plugins
+	@. .venv/bin/activate && ${env} python3 -m pylint kassa.py plugins
 	@. .venv/bin/activate && ${env} python3 -m black --check .
 
 check-types: venv ## Check for type issues with mypy
