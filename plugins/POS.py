@@ -39,16 +39,21 @@ class POS:
         if self.ser != None:
             return
         self.ser = serial.Serial(
-            port='/dev/ttyUSB0',
+            port="/dev/ttyUSB0",
             baudrate=19200,
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
-            bytesize=serial.EIGHTBITS
+            bytesize=serial.EIGHTBITS,
         )
         print("Serial open")
 
     def help(self):
-        return {"bon": "Print Receipt", "bons": "Receipts to print", "kassala": "Open cash drawer", "printstock": "Print stock overview"}
+        return {
+            "bon": "Print Receipt",
+            "bons": "Receipts to print",
+            "kassala": "Open cash drawer",
+            "printstock": "Print stock overview",
+        }
 
     def printstock(self):
         BON = PRINTER + LARGE + CENTER + LOGO + NORMAL + LEFT
@@ -65,7 +70,7 @@ class POS:
         self.ser.write(out)
 
     def hook_checkout(self, user):
-        if user is 'cash':
+        if user is "cash":
             self.drawer()
 
     def hook_addremove(self, args):
@@ -80,46 +85,79 @@ class POS:
         (transID, void1, void2, void3) = args
         self.loadbons()
         if transID in self.bonnetjes:
-            self.bonnetjes[transID]['bon'] = PRINTER + LARGE + "\nVOID VOID VOID\nVOID VOID VOID\n" + self.bonnetjes[transID]['bon']
+            self.bonnetjes[transID]["bon"] = (
+                PRINTER
+                + LARGE
+                + "\nVOID VOID VOID\nVOID VOID VOID\n"
+                + self.bonnetjes[transID]["bon"]
+            )
             self.writebons()
 
     def makebon(self, user):
         BON = PRINTER + LARGE + CENTER + LOGO
-        if (self.master.accounts.accounts[user]['amount'] + self.master.receipt.totals[user]) < -13.37:
+        if (
+            self.master.accounts.accounts[user]["amount"]
+            + self.master.receipt.totals[user]
+        ) < -13.37:
             BON += b"SALDO TE LAAG\n"
         BON += NORMAL + b"Bon transactie %d\n" % self.master.transID
-        BON += BARCODE_T + BARCODE_H + BARCODE_W + BARCODE % (len(str(self.master.transID)) + 2, self.master.transID)
-        BON += RIGHT + b"%s  -  Arnhem\n" % time.strftime('%Y-%m-%d %H:%M:%S')
+        BON += (
+            BARCODE_T
+            + BARCODE_H
+            + BARCODE_W
+            + BARCODE % (len(str(self.master.transID)) + 2, self.master.transID)
+        )
+        BON += RIGHT + b"%s  -  Arnhem\n" % time.strftime("%Y-%m-%d %H:%M:%S")
         BON += LEFT + b"\n" + b" %-26s%12s\n " % ("Product", "Aantal   EUR")
         BON += b"-" * 38 + b"\n"
         for r in self.master.receipt.receipt:
-            if r['beni'] == user:
-                if len(r['description']) > 25:
+            if r["beni"] == user:
+                if len(r["description"]) > 25:
                     end = 0
-                    while end < len(r['description']):
+                    while end < len(r["description"]):
                         start = end
                         end += 24
-                        desc = r['description'][start:end - 1]
+                        desc = r["description"][start : end - 1]
                         if start == 0:
-                            BON += b" %-26s % 3d % 7.2f\n" % (desc, r['count'], r['total'])
+                            BON += b" %-26s % 3d % 7.2f\n" % (
+                                desc,
+                                r["count"],
+                                r["total"],
+                            )
                         else:
                             BON += b" %-26s\n" % desc
                 else:
-                    BON += b" %-26s % 3d % 7.2f\n" % (r['description'], r['count'], r['total'])
+                    BON += b" %-26s % 3d % 7.2f\n" % (
+                        r["description"],
+                        r["count"],
+                        r["total"],
+                    )
         BON += b" " + b"-" * 38 + b"\n"
         BON += b" %-26s% 12.2f\n" % ("Totaal", self.master.receipt.totals[user])
         BON += b"\nU bent geholpen door: %s\n" % user
-        if user != b'cash':
-            BON += b"\n         Nieuw saldo: %5.2f\n" % (self.master.accounts.accounts[user]['amount'])
-        BON += b"\n" + CENTER + SMALL + b"De kleine lettertjes: Deze bon kan niet in de       \n" + \
-            b"hack42 adminstratie gebruikt worden voor declaraties\n"
+        if user != b"cash":
+            BON += b"\n         Nieuw saldo: %5.2f\n" % (
+                self.master.accounts.accounts[user]["amount"]
+            )
+        BON += (
+            b"\n"
+            + CENTER
+            + SMALL
+            + b"De kleine lettertjes: Deze bon kan niet in de       \n"
+            + b"hack42 adminstratie gebruikt worden voor declaraties\n"
+        )
         BON += LEFT + FEED + CUT
         return BON
 
     def printdeclaratie(self, args):
         (Name, Type, Reason, Bar, Cash, Bank) = args
         BON = PRINTER + LARGE + CENTER + LOGO
-        BON += NORMAL + "Declaratie\n\n" + RIGHT + "%s  -  Arnhem\n" % time.strftime('%Y-%m-%d %H:%M:%S')
+        BON += (
+            NORMAL
+            + "Declaratie\n\n"
+            + RIGHT
+            + "%s  -  Arnhem\n" % time.strftime("%Y-%m-%d %H:%M:%S")
+        )
         BON += LEFT + "\n\n"
         BON += "Naam:   %s\n" % Name
         BON += "Type:   %s\n" % Type
@@ -127,8 +165,12 @@ class POS:
         BON += "Bartegoed:   %.2f\n" % Bar
         BON += "Cash Geld:   %.2f\n" % Cash
         BON += "Via Bank:    %.2f\n" % Bank
-        BON += "Handtekening:\n\n\n\n------------------------------------\n" + CENTER + SMALL + \
-            "De kleine lettertjes: Deze bon kan juist wel in de  \nhack42 adminstratie gebruikt worden voor declaraties\n"
+        BON += (
+            "Handtekening:\n\n\n\n------------------------------------\n"
+            + CENTER
+            + SMALL
+            + "De kleine lettertjes: Deze bon kan juist wel in de  \nhack42 adminstratie gebruikt worden voor declaraties\n"
+        )
         BON += LEFT + FEED + CUT
         self.open()
         self.slowwrite(BON)
@@ -138,31 +180,34 @@ class POS:
         BON = ""
         for usr in self.master.receipt.totals:
             BON += self.makebon(usr)
-        self.bonnetjes[self.master.transID] = {"totals": self.master.receipt.totals, "bon": BON}
+        self.bonnetjes[self.master.transID] = {
+            "totals": self.master.receipt.totals,
+            "bon": BON,
+        }
         self.lastbonID = self.master.transID
         self.writebons()
-        if user is 'cash':
+        if user is "cash":
             self.drawer()
         else:
             for r in self.master.receipt.receipt:
-                if r['product'] == 'deposit':
+                if r["product"] == "deposit":
                     self.drawer()
                     break
 
     def slowwrite(self, y):
-        for bla in [y[i:i + 32] for i in range(0, len(y), 32)]:
+        for bla in [y[i : i + 32] for i in range(0, len(y), 32)]:
             self.ser.write(bla)
             time.sleep(0.05)
 
     def bon(self, bonID):
         if bonID in self.bonnetjes:
             self.open()
-            self.slowwrite(self.bonnetjes[bonID]['bon'].encode())
+            self.slowwrite(self.bonnetjes[bonID]["bon"].encode())
         return True
 
     def selectbon(self, text):
         if text == "abort":
-            self.master.callhook('abort', None)
+            self.master.callhook("abort", None)
             return True
         try:
             bonID = int(text)
@@ -174,6 +219,7 @@ class POS:
                 return True
         except:
             import traceback
+
             traceback.print_exc()
             self.listbons()
             return True
@@ -183,13 +229,13 @@ class POS:
             fk = sorted(self.bonnetjes.keys())
             del self.bonnetjes[fk[0]]
 
-        output = open('data/revbank.POS', 'wb')
+        output = open("data/revbank.POS", "wb")
         pickle.dump(self.bonnetjes, output)
         output.close()
 
     def loadbons(self):
         try:
-            with open('data/revbank.POS', 'rb') as f:
+            with open("data/revbank.POS", "rb") as f:
                 self.bonnetjes = pickle.load(f)
                 f.close()
         except:
@@ -201,16 +247,22 @@ class POS:
         count = 0
         for bonID in sorted(self.bonnetjes.keys(), reverse=True):
             txt = ""
-            for usr in self.bonnetjes[bonID]['totals'].keys():
-                txt += usr + " €" + "%.2f" % self.bonnetjes[bonID]['totals'][usr] + " "
-            txt += time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(bonID + 1300000000))
-            custom.append({'text': bonID, 'display': txt})
+            for usr in self.bonnetjes[bonID]["totals"].keys():
+                txt += usr + " €" + "%.2f" % self.bonnetjes[bonID]["totals"][usr] + " "
+            txt += time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(bonID + 1300000000)
+            )
+            custom.append({"text": bonID, "display": txt})
             count += 1
             if count > 49:
                 break
-        self.master.send_message(True, 'buttons', json.dumps({'special': 'custom', 'custom': custom, 'sort': 'text'}))
-        self.master.send_message(True, 'message', 'Select a receipt')
-        self.master.donext(self, 'selectbon')
+        self.master.send_message(
+            True,
+            "buttons",
+            json.dumps({"special": "custom", "custom": custom, "sort": "text"}),
+        )
+        self.master.send_message(True, "message", "Select a receipt")
+        self.master.donext(self, "selectbon")
 
     def input(self, text):
         if text == "bon":

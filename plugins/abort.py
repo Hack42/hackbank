@@ -1,22 +1,19 @@
 class abort:
-
-    def __init__(self,SID,master):
-        self.master=master
-        self.SID=SID
+    def __init__(self, SID, master):
+        self.master = master
+        self.SID = SID
 
     def help(self):
         return {"abort": "Abort everything"}
 
-
-    def input(self,text):
-        if text=="abort": 
-            if self.master.iets==0:
-                self.master.callhook('abort',None)
+    def input(self, text):
+        if text == "abort":
+            if self.master.iets == 0:
+                self.master.callhook("abort", None)
             return True
-        if text=="ok": 
-            self.master.callhook('ok',None)
+        if text == "ok":
+            self.master.callhook("ok", None)
             return True
 
     def startup(self):
         pass
-

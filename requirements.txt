@@ -5,3 +5,5 @@ cups
 serial
 pytest
 pypng
+pytest-cov
+black
