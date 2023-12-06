@@ -10,6 +10,7 @@ class take:
     peruser = 0
     myreason = ""
     value = 0
+
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID

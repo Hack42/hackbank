@@ -12,6 +12,7 @@ class declaratie:
     asbank = 0
     asbar = 0
     soort = ""
+
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
@@ -46,9 +47,7 @@ class declaratie:
             return True
         self.master.donext(self, "who")
         self.master.send_message(True, "message", "Unknown User; Who are you?")
-        self.master.send_message(
-            True, "buttons", json.dumps({"special": "accounts"})
-        )
+        self.master.send_message(True, "buttons", json.dumps({"special": "accounts"}))
         return True
 
     def amount(self, text):
@@ -139,7 +138,7 @@ class declaratie:
             return True
         try:
             value = float(text)
-            if  0 < value < 5000:
+            if 0 < value < 5000:
                 if value > self.value:
                     return self.askbar(
                         "E %.2f is larger than E %.2f ; " % (value, self.value)
@@ -251,7 +250,7 @@ class declaratie:
         )
 
     def save(self):
-        with open("data/administratie.txt", "a", encoding='utf-8') as logfile:
+        with open("data/administratie.txt", "a", encoding="utf-8") as logfile:
             logfile.write(
                 "%s   %s %+10.2f   %+10.2f  # %s\n"
                 % (

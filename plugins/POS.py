@@ -39,8 +39,8 @@ class POS:
     def open(self):
         if self.ser is not None:
             return
-        self.ser = serial.Serial(   # pylint: disable=no-member
-                port="/dev/ttyUSB0",  # pylint: disable=no-member
+        self.ser = serial.Serial(  # pylint: disable=no-member
+            port="/dev/ttyUSB0",  # pylint: disable=no-member
             baudrate=19200,  # pylint: disable=no-member
             parity=serial.PARITY_NONE,  # pylint: disable=no-member
             stopbits=serial.STOPBITS_ONE,  # pylint: disable=no-member
@@ -219,7 +219,6 @@ class POS:
             self.listbons()
             return True
         except:
-
             traceback.print_exc()
             self.listbons()
             return True

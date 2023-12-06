@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
-from PIL import Image, ImageDraw, ImageFont
 import os
-import cups
+import traceback
 import json
-import pyqrcode
 import re
 import time
 import io
 import base64
+from PIL import Image, ImageDraw, ImageFont
+import pyqrcode
+import cups
 
 
 class stickers:
@@ -22,6 +23,13 @@ class stickers:
     SPACE = (
         0  # spacing around qrcode, should be 4 but our printer prints on white labels
     )
+
+    copies = 0
+    barcode = ""
+    name = ""
+    price = 0
+    description = ""
+    datum = ""
 
     def __init__(self, SID, master):
         self.master = master
@@ -53,7 +61,7 @@ class stickers:
         size = self.SMALL[1] // (qrcode_img.size[0] + 2 * self.SPACE)
         qrcode_img = qrcode_img.resize(
             (size * qrcode_img.size[0], size * qrcode_img.size[1]),
-            resample=Image.LANCZOS,
+            resample=Image.LANCZOS,  # pylint: disable=no-member
         )
 
         # Place QR code on the image
@@ -90,7 +98,7 @@ class stickers:
         )
 
         # Print the file
-        cups.Connection().printFile(
+        cups.Connection().printFile(  # pylint: disable=no-member
             self.printer,
             "data/barcode.jpg",
             "Eigendom",
@@ -104,7 +112,9 @@ class stickers:
 
         # Load the logo
         LOGO = Image.open(self.LOGOFILE)
-        LOGO = LOGO.resize(self.LOGOSMALLSIZE, resample=Image.LANCZOS)
+        LOGO = LOGO.resize(
+            self.LOGOSMALLSIZE, resample=Image.LANCZOS
+        )  # pylint: disable=no-member
 
         # Paste the logo onto the image
         img.paste(LOGO, (0, 0))
@@ -121,7 +131,7 @@ class stickers:
         img.save("data/foodout.png")
 
         # Print the file
-        cups.Connection().printFile(
+        cups.Connection().printFile(  # pylint: disable=no-member
             self.printer,
             "data/foodout.png",
             title="Voedsel",
@@ -133,7 +143,9 @@ class stickers:
         draw = ImageDraw.Draw(img)
 
         LOGO = Image.open(self.LOGOFILE)
-        LOGO = LOGO.resize(self.LOGOSMALLSIZE, resample=Image.LANCZOS)
+        LOGO = LOGO.resize(
+            self.LOGOSMALLSIZE, resample=Image.LANCZOS
+        )  # pylint: disable=no-member
         img.paste(LOGO, (0, 0))
 
         font = ImageFont.truetype(self.FONT, 40)
@@ -143,7 +155,7 @@ class stickers:
         draw.text((320, 120), time.strftime("%Y-%m-%d"), fill=self.BLACK, font=font)
 
         img.save("data/foodout.png")
-        cups.Connection().printFile(
+        cups.Connection().printFile(  # pylint: disable=no-member
             self.printer,
             "data/foodout.png",
             title="Voedsel",
@@ -155,7 +167,9 @@ class stickers:
         draw = ImageDraw.Draw(img)
 
         LOGO = Image.open(self.LOGOFILE)
-        LOGO = LOGO.resize(self.LOGOSMALLSIZE, resample=Image.LANCZOS)
+        LOGO = LOGO.resize(
+            self.LOGOSMALLSIZE, resample=Image.LANCZOS
+        )  # pylint: disable=no-member
         img.paste(LOGO, (0, 0))
 
         font = ImageFont.truetype(self.FONT, 40)
@@ -193,7 +207,7 @@ class stickers:
         os.system(
             "convert -density 300 -units pixelsperinch data/output.png data/output.jpg"
         )
-        cups.Connection().printFile(
+        cups.Connection().printFile(  # pylint: disable=no-member
             self.printer,
             "data/output.jpg",
             title="Eigendom",
@@ -211,12 +225,9 @@ class stickers:
                     "numbers",
                     "Only 1 <> 99 allowed; How many do you want?",
                 )
-            else:
-                self.barcodeprint()
-                return True
+            self.barcodeprint()
+            return True
         except:
-            import traceback
-
             traceback.print_exc()
             return self.messageandbuttons(
                 "barcodenum", "numbers", "NaN ; How many do you want?"
@@ -230,23 +241,20 @@ class stickers:
                 "products",
                 "Unknown Product; What product do you want a barcode for?",
             )
-        else:
-            prod = self.master.products.products.get(prod)
-            self.barcode = None
+        prod = self.master.products.products.get(prod)
+        self.barcode = None
+        for a in prod["aliases"]:
+            if re.compile("^[0-9]+$").match(a):
+                self.barcode = a
+        if not self.barcode:
+            self.barcode = text
             for a in prod["aliases"]:
-                if re.compile("^[0-9]+$").match(a):
+                if len(a) < len(self.barcode):
                     self.barcode = a
-            if not self.barcode:
-                self.barcode = text
-                for a in prod["aliases"]:
-                    if len(a) < len(self.barcode):
-                        self.barcode = a
-            self.name = text
-            self.price = "    € %.2f" % prod["price"]
-            self.description = prod["description"]
-            return self.messageandbuttons(
-                "barcodenum", "numbers", "How many do you want?"
-            )
+        self.name = text
+        self.price = "    € %.2f" % prod["price"]
+        self.description = prod["description"]
+        return self.messageandbuttons("barcodenum", "numbers", "How many do you want?")
 
     def messageandbuttons(self, donext, buttons, msg):
         self.master.donext(self, donext)
@@ -265,12 +273,9 @@ class stickers:
                     "numbers",
                     "Only 1 <> 99 allowed; How many do you want?",
                 )
-            else:
-                self.eigendomprint()
-                return True
+            self.eigendomprint()
+            return True
         except:
-            import traceback
-
             traceback.print_exc()
             return self.messageandbuttons(
                 "eigendomnum", "numbers", "NaN ; How many do you want?"
@@ -291,12 +296,9 @@ class stickers:
                 return self.messageandbuttons(
                     "foodnum", "numbers", "Only 1 <> 99 allowed; How many do you want?"
                 )
-            else:
-                self.foodprint()
-                return True
+            self.foodprint()
+            return True
         except:
-            import traceback
-
             traceback.print_exc()
             return self.messageandbuttons(
                 "foodnum", "numbers", "NaN ; How many do you want?"
@@ -311,12 +313,9 @@ class stickers:
                 return self.messageandbuttons(
                     "thtnum", "numbers", "Only 1 <> 99 allowed; How many do you want?"
                 )
-            else:
-                self.thtprint()
-                return True
+            self.thtprint()
+            return True
         except:
-            import traceback
-
             traceback.print_exc()
             return self.messageandbuttons(
                 "foodnum", "numbers", "NaN ; How many do you want?"
@@ -342,25 +341,25 @@ class stickers:
                 True, "buttons", json.dumps({"special": "accounts"})
             )
             return True
-        elif text == "foodlabel":
+        if text == "foodlabel":
             self.master.donext(self, "foodname")
             self.master.send_message(True, "message", "Who are you?")
             self.master.send_message(
                 True, "buttons", json.dumps({"special": "accounts"})
             )
             return True
-        elif text == "thtlabel":
+        if text == "thtlabel":
             self.master.donext(self, "thtname")
             self.master.send_message(True, "message", "What is the date?")
             self.master.send_message(
                 True, "buttons", json.dumps({"special": "accounts"})
             )
             return True
-        elif text == "barcode":
+        if text == "barcode":
             return self.messageandbuttons(
                 "barcodecount", "products", "What product do you want a barcode for?"
             )
-        elif text == "stickers":
+        if text == "stickers":
             custom = []
             custom.append({"text": "barcode", "display": "Barcode label"})
             custom.append({"text": "eigendom", "display": "Property label"})
@@ -371,6 +370,7 @@ class stickers:
             )
             self.master.send_message(True, "message", "Please select a command")
             return True
+        return None
 
     def startup(self):
         pass

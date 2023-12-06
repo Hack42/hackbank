@@ -37,7 +37,6 @@ class deposit:
                 )
             return True
         except:
-
             traceback.print_exc()
             if text == "abort":
                 self.master.callhook("abort", None)

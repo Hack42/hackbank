@@ -5,6 +5,7 @@ class give:
     userto = ""
     value = 0
     myreason = ""
+
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
@@ -28,9 +29,7 @@ class give:
             return True
         self.master.donext(self, "who")
         self.master.send_message(True, "message", "Unknown User; User to give to?")
-        self.master.send_message(
-            True, "buttons", json.dumps({"special": "accounts"})
-        )
+        self.master.send_message(True, "buttons", json.dumps({"special": "accounts"}))
         return True
 
     def amount(self, text):

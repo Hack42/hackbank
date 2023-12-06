@@ -82,7 +82,6 @@ class undo:
             self.listundo()
             return True
         except:
-
             traceback.print_exc()
             self.listundo()
             return True
@@ -121,12 +120,11 @@ class undo:
             self.listundo()
             return True
         except:
-
             traceback.print_exc()
             self.listundo()
             return True
 
-    def listundo(self, restore = False):
+    def listundo(self, restore=False):
         self.loadundo()
         custom = []
         count = 0
