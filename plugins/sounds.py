@@ -17,11 +17,13 @@ class sounds:
                 break;
         self.master.send_message(False,'sound','katsjing.wav')
 
-    def hook_balance(self,(usr,had,has,transID)):
+    def hook_balance(self, args):
+        (usr,had,has,transID) = args
         if has < -13.37:
             self.master.send_message(False,'sound','sinterklaas.wav')
 
-    def hook_undo(self,(transID,totals,receipt,beni)):
+    def hook_undo(self, args):
+        (transID,totals,receipt,beni) = args
         pass
 
     def showsounds(self):

@@ -13,7 +13,8 @@ class pfand:
     def help(self):
         return {"pfand": "Return deposit"}
 
-    def hook_addremove(self,(Lose,Value,Description,Count,Beni,Prod)):
+    def hook_addremove(self, args):
+        (Lose,Value,Description,Count,Beni,Prod) = args
         if Prod in self.products:
            self.master.receipt.add(True,self.products[Prod],'Pfand '+Description,Count,Beni,'pfand_'+Prod)
 

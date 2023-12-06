@@ -19,7 +19,8 @@ class undo:
         self.undo[self.master.transID]={"totals":self.master.receipt.totals,"receipt":self.master.receipt.receipt,'beni':text}
         self.writeundo()
 
-    def hook_undo(self,(transID,totals,receipt,beni)):
+    def hook_undo(self, args):
+        (transID,totals,receipt,beni) = args
         self.loadundo()
         if transID in self.undo:
             del self.undo[transID]

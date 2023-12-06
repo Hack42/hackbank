@@ -3,6 +3,8 @@ class log:
     def __init__(self,SID,master):
         self.SID=SID
         self.master=master
+    def help(self):
+        return {}
     
     def startup(self):
         self.master.send_message(False,'log',"Log has startup")
@@ -13,7 +15,8 @@ class log:
           logfile.close()
         self.master.send_message(False,'log',action+" >> "+text)
 
-    def hook_balance(self,(usr,had,has,trxID)):
+    def hook_balance(self, args):
+        (usr,had,has,trxID) = args
         if had>has:
             self.log("BALANCE","%-10d %s had %+.02f, lost %+.02f, now has %+.02f" % ( trxID,usr,had,0-(had-has),has))
         else:
@@ -27,5 +30,5 @@ class log:
         pass
 
     def pre_input(self,text):
-        self.log("PROMPT",self.master.prompt+" >> "+text)
+        self.log("PROMPT",self.master.prompt.decode()+" >> "+text)
         #self.master.send_message(False,'log',self.master.prompt+" >> "+text)

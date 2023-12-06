@@ -12,6 +12,7 @@ class products:
         return {"aliasproduct": "Add alias to product","addproduct": "Add new product","setprice": "Change the price of a product"}
 
     def readproducts(self):
+        print("readproducts")
         groupname=""
         with open('data/revbank.products','r') as f:
             lines=f.readlines()
@@ -29,6 +30,7 @@ class products:
                 self.products[name]={'price': float(parts[1]),'description': parts[2], 'group': groupname, 'aliases': aliases}
         for prod in self.products:
             self.master.send_message(True,'products/'+prod,json.dumps(self.products[prod]))
+        print("readproducts done")
 
     def writeproducts(self):
         with open('data/revbank.products','w') as f:

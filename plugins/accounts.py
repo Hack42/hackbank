@@ -30,7 +30,7 @@ class accounts:
                 self.aliases[s[0]]=s[1].rstrip()
 
     def updateaccount(self,usr,value):
-           print "Updating account",usr
+           print("Updating account",usr)
            if usr=="cash": return
            had=self.accounts[usr]['amount']
            self.accounts[usr]['amount']+=value
@@ -47,7 +47,8 @@ class accounts:
                f.write("%s %s\n" % ( usr , self.aliases[usr]))
 
     # Hooks
-    def hook_balance(self,(usr,had,has,transID)):
+    def hook_balance(self, args):
+        (usr,had,has,transID) = args
         self.master.send_message(False,'infobox/account/'+usr,json.dumps(self.accounts[usr]))
         self.master.send_message(True,'accounts/'+usr,json.dumps(self.accounts[usr]))
 

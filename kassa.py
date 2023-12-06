@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import paho.mqtt.client as mqtt
 import glob
@@ -34,25 +34,28 @@ class Session:
         self.plugins={}
 
     def startup(self):
-        print "Startup",self.SID
+        print("Startup",self.SID)
         for fname in glob.glob("plugins/*.py"):
             plugname=fname.split("/")[1].rstrip(".py")
             if plugname!='__init__' and not plugname in self.plugins:
                 if plugname in sys.modules:
                     del sys.modules[plugname]
-        print self.plugins
+        print(self.plugins)
         for fname in glob.glob("plugins/*.py"):
             plugname=fname.split("/")[1].rstrip(".py")
+            print(plugname)
             if plugname!='__init__' and not plugname in self.plugins:
                 if plugname in sys.modules:
                     del sys.modules[plugname]
                 self.plugins[plugname]= self.import_from('plugins.'+plugname,plugname)(self.SID,self)
-                print plugname,self.import_from('plugins.'+plugname,plugname)
+                print(plugname,self.import_from('plugins.'+plugname,plugname))
                 self.send_message(True,'message','loaded plugin '+plugname);
                 try:
                     self.help.update(self.plugins[plugname].help())
                 except:
-                    pass
+                    import traceback
+                    print(traceback.format_exc())
+        print(self.plugins)
         self.receipt=self.plugins['receipt']
         self.accounts=self.plugins['accounts']
         self.products=self.plugins['products']
@@ -62,10 +65,15 @@ class Session:
         self.counter+=1
         self.send_message(False,'message','Please wait while loading...');
         for plug in self.plugins:
-            self.plugins[plug].startup()
+            print(plug)
+            try:
+                self.plugins[plug].startup()
+            except:
+                    import traceback
+                    print(traceback.format_exc())
         self.send_message(True,'commands',json.dumps(self.help))
         self.send_message(True,'message','Enter product, command or username');
-        print self.plugins
+        print(self.plugins)
 
 
     def realcallhook(self,hook,arg):
@@ -76,7 +84,7 @@ class Session:
                     getattr(self.plugins[plug], 'hook_'+hook)(arg)
                 except:
                     import traceback
-                    print traceback.format_exc()
+                    print(traceback.format_exc())
             except AttributeError:
                 pass
 
@@ -105,7 +113,7 @@ class Session:
                 pass
             except:
                 import traceback
-                print traceback.format_exc()
+                print(traceback.format_exc())
 
         self.prompt=""
         if self.nextcall!={}:
@@ -179,16 +187,16 @@ class Session:
 def get_session(SID,client):
     global sessions
     if not SID in sessions:
-        print "Starting new session",SID
+        print("Starting new session",SID)
         sessions[SID]=Session(SID,client)
         sessions[SID].startup()
-        client.publish('hack42bar/output/sessions',json.dumps(sessions.keys()))
+        client.publish('hack42bar/output/sessions',json.dumps(list(sessions.keys())))
     return sessions[SID]
 
 def run_session(client,SID,action,data):
     if action=='input':
         session=get_session(SID,client)
-        session.input(data)
+        session.input(data.decode())
     else:
         print("unhandled",action)
 

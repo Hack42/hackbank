@@ -7,12 +7,13 @@ class door:
         self.master=master
         self.SID=SID
     def help(self):
+        print("Help")
         return {"dooropen": "Door open"}
 
     def input(self,text):
         if text=="dooropen":
             client = mqtt.Client()
-            client.connect("192.168.142.66", 1883, 60)
+            client.connect("mqtt.space.hack42.nl", 1883, 60)
             client.publish('hack42/brandhok/deuropen','closed',1,True)
             client.publish('hack42/brandhok/deuropen','open',1,True)
             client.disconnect()

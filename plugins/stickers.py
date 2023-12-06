@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import gd
+from PIL import Image, ImageDraw, ImageFont
 import os
 import cups
 import json
@@ -14,8 +14,8 @@ class stickers:
     BLACK=(0,0,0)
     LOGOFILE="images/hack42.png"
     FONT="images/arialbd.ttf"
-    printer='QL-710W'
-    printer='QL-710W'
+    printer='QL710W'
+    printer='QL710W'
     SPACE=0 # spacing around qrcode, should be 4 but our printer prints on white labels
 
     def __init__(self,SID,master):
@@ -27,84 +27,121 @@ class stickers:
 
     def barcodeprint(self):
         if re.compile('^[0-9A-Z]+$').match(self.barcode):
-            print "Qrcode: alphanum"
-            qrcode=pyqrcode.create(self.barcode, error='L', version=1, mode='alphanumeric').code
+            print("Qrcode: alphanum")
+            qrcode_image = pyqrcode.create(self.barcode, error='L', version=1, mode='alphanumeric').png_as_base64_str(scale=5)
         else:
-            print "Qrcode: binary"
-            qrcode=pyqrcode.create(self.barcode, error='L', version=2, mode='binary').code
-        img=gd.image(self.SMALL)
-        WHITE=img.colorAllocate(self.WHITE)
-        BLACK=img.colorAllocate(self.BLACK)
-        img.filledRectangle((0,0),(10,10),WHITE)
-        size=self.SMALL[1]/(len(qrcode)+2*self.SPACE)
-        for line in range(0,len(qrcode)):
-           for pix in range(0,len(qrcode[line])):
-             img.rectangle(((pix+self.SPACE)*size,(line+self.SPACE)*size),((pix+self.SPACE)*size+size,(line+self.SPACE)*size+size),(BLACK if qrcode[line][pix] == 1 else WHITE),(BLACK if qrcode[line][pix] == 1 else WHITE))
+            print("Qrcode: binary")
+            qrcode_image = pyqrcode.create(self.barcode, error='L', version=2, mode='binary').png_as_base64_str(scale=5)
 
-        img.string_ttf(self.FONT,40,0,(self.SMALL[1]+10,64),self.name,BLACK)
-        img.string_ttf(self.FONT,20,0,(self.SMALL[1]+10,104),self.description,BLACK)
-        img.string_ttf(self.FONT,60,0,(self.SMALL[1]+10,200),self.price,BLACK)
-        img.string_ttf(self.FONT,12,0,(self.SMALL[1]+10,self.SMALL[1]-16),"deze prijs kan varieren kijk op de kassa voor",BLACK)
-        img.string_ttf(self.FONT,12,0,(self.SMALL[1]+10,self.SMALL[1]-2),"meer informatie.",BLACK)
-        img.writePng("data/barcode.png")
+        # Create an image object
+        img = Image.new('RGB', self.SMALL, self.WHITE)
+        draw = ImageDraw.Draw(img)
+
+        # Load the QR code as an image
+        qrcode_img = Image.open(io.BytesIO(base64.b64decode(qrcode_image)))
+
+        # Calculate size for QR code
+        size = self.SMALL[1] // (len(qrcode_img) + 2 * self.SPACE)
+        qrcode_img = qrcode_img.resize((size * len(qrcode_img), size * len(qrcode_img)), Image.ANTIALIAS)
+
+        # Place QR code on the image
+        img.paste(qrcode_img, (self.SPACE, self.SPACE))
+
+        # Load a font
+        font = ImageFont.truetype(self.FONT, 40)
+
+        # Add text to the image
+        draw.text((self.SMALL[1] + 10, 64), self.name, fill=self.BLACK, font=font)
+        draw.text((self.SMALL[1] + 10, 104), self.description, fill=self.BLACK, font=font)
+        draw.text((self.SMALL[1] + 10, 200), self.price, fill=self.BLACK, font=font)
+        draw.text((self.SMALL[1] + 10, self.SMALL[1] - 16), "deze prijs kan varieren kijk op de kassa voor", fill=self.BLACK, font=font)
+        draw.text((self.SMALL[1] + 10, self.SMALL[1] - 2), "meer informatie.", fill=self.BLACK, font=font)
+
+        # Save the image
+        img.save("data/barcode.png")
+
+        # Convert PNG to JPG (if needed)
         os.system("convert -density 300 -units pixelsperinch data/barcode.png data/barcode.jpg")
-        cups.Connection().printFile(self.printer,"data/barcode.jpg",'Eigendom',{'copies': str(self.copies),'page-ranges':'1'})
+
+        # Print the file
+        cups.Connection().printFile(self.printer, "data/barcode.jpg", 'Eigendom', {'copies': str(self.copies), 'page-ranges': '1'})
 
     def thtprint(self):
-        img=gd.image(self.SMALL)
-        WHITE=img.colorAllocate(self.WHITE)
-        BLACK=img.colorAllocate(self.BLACK)
-        img.filledRectangle((0,0),(10,10),WHITE)
-        LOGO=gd.image(self.LOGOFILE)
-        LOGO.copyResizedTo(img,(0,0),(0,0),self.LOGOSMALLSIZE)
-        img.string_ttf(self.FONT,40,0,(0,self.SMALL[1]-15),"THT Datum",BLACK)
-        img.string_ttf(self.FONT,50,0,(320,  120),self.datum,BLACK)
-        img.writePng("data/foodout.png")
-        os.system("convert -density 300 -units pixelsperinch data/foodout.png data/foodout.jpg")
-        cups.Connection().printFile(self.printer,"data/foodout.jpg",title="Voedsel",options={'copies': str(self.copies),'page-ranges':'1'})
+        # Create an image
+        img = Image.new('RGB', self.SMALL, self.WHITE)
+        draw = ImageDraw.Draw(img)
+    
+        # Load the logo
+        LOGO = Image.open(self.LOGOFILE)
+        LOGO = LOGO.resize(self.LOGOSMALLSIZE, Image.ANTIALIAS)
+    
+        # Paste the logo onto the image
+        img.paste(LOGO, (0, 0))
+    
+        # Load a font
+        font = ImageFont.truetype(self.FONT, 40)
+    
+        # Add text
+        draw.text((0, self.SMALL[1] - 15), "THT Datum", fill=self.BLACK, font=font)
+        font = ImageFont.truetype(self.FONT, 50)
+        draw.text((320, 120), self.datum, fill=self.BLACK, font=font)
+    
+        # Save the image
+        img.save("data/foodout.png")
+    
+        # Print the file
+        cups.Connection().printFile(self.printer, "data/foodout.png", title="Voedsel", options={'copies': str(self.copies), 'page-ranges': '1'})
+
     def foodprint(self):
-        img=gd.image(self.SMALL)
-        WHITE=img.colorAllocate(self.WHITE)
-        BLACK=img.colorAllocate(self.BLACK)
-        img.filledRectangle((0,0),(10,10),WHITE)
-        LOGO=gd.image(self.LOGOFILE)
-        LOGO.copyResizedTo(img,(0,0),(0,0),self.LOGOSMALLSIZE)
-        img.string_ttf(self.FONT,40,0,(0,self.SMALL[1]-15),self.name,BLACK)
-        img.string_ttf(self.FONT,50,0,(320,  120),time.strftime('%Y-%m-%d'),BLACK)
-        img.writePng("data/foodout.png")
-        os.system("convert -density 300 -units pixelsperinch data/foodout.png data/foodout.jpg")
-        cups.Connection().printFile(self.printer,"data/foodout.jpg",title="Voedsel",options={'copies': str(self.copies),'page-ranges':'1'})
+        img = Image.new('RGB', self.SMALL, self.WHITE)
+        draw = ImageDraw.Draw(img)
+    
+        LOGO = Image.open(self.LOGOFILE)
+        LOGO = LOGO.resize(self.LOGOSMALLSIZE, Image.ANTIALIAS)
+        img.paste(LOGO, (0, 0))
+    
+        font = ImageFont.truetype(self.FONT, 40)
+        draw.text((0, self.SMALL[1] - 15), self.name, fill=self.BLACK, font=font)
+    
+        font = ImageFont.truetype(self.FONT, 50)
+        draw.text((320, 120), time.strftime('%Y-%m-%d'), fill=self.BLACK, font=font)
+    
+        img.save("data/foodout.png")
+        cups.Connection().printFile(self.printer, "data/foodout.png", title="Voedsel", options={'copies': str(self.copies), 'page-ranges': '1'})
 
     def eigendomprint(self):
-        img=gd.image(self.SMALL)
-        WHITE=img.colorAllocate(self.WHITE)
-        BLACK=img.colorAllocate(self.BLACK)
-        img.filledRectangle((0,0),(10,10),WHITE)
-        LOGO=gd.image(self.LOGOFILE)
-        LOGO.copyResizedTo(img,(0,0),(0,0),self.LOGOSMALLSIZE)
-        img.string_ttf(self.FONT,40,0,(0,self.SMALL[1]-15),self.name,BLACK)
-        img.string_ttf(self.FONT,20,0,(320,  23),"Don't                             Ask",BLACK)
-        img.string_ttf(self.FONT,25,0,(320,  64),"☐          Look ",BLACK)
-        img.string_ttf(self.FONT,25,0,(321,  65),"☐",BLACK)
-        img.string_ttf(self.FONT,25,0,(320,  99),"☐          Hack ",BLACK)
-        img.string_ttf(self.FONT,25,0,(321, 100),"☐",0)
-        img.string_ttf(self.FONT,25,0,(320, 134),"☐          Repair ",BLACK)
-        img.string_ttf(self.FONT,25,0,(321, 135),"☐",BLACK)
-        img.string_ttf(self.FONT,25,0,(320, 169),"☐          Destroy ",BLACK)
-        img.string_ttf(self.FONT,25,0,(321, 170),"☐",0)
-        img.string_ttf(self.FONT,25,0,(320, 204),"☐          Steal  ",BLACK)
-        img.string_ttf(self.FONT,25,0,(321, 205),"☐",BLACK)
-        img.string_ttf(self.FONT,25,0,(650,  64),"☐",BLACK)
-        img.string_ttf(self.FONT,25,0,(651,  65),"☐",BLACK)
-        img.string_ttf(self.FONT,25,0,(650,  99),"☐",BLACK)
-        img.string_ttf(self.FONT,25,0,(651, 100),"☐",0)
-        img.string_ttf(self.FONT,25,0,(650, 134),"☐",BLACK)
-        img.string_ttf(self.FONT,25,0,(651, 135),"☐",BLACK)
-        img.string_ttf(self.FONT,25,0,(650, 169),"☐",BLACK)
-        img.string_ttf(self.FONT,25,0,(651, 170),"☐",0)
-        img.string_ttf(self.FONT,25,0,(650, 204),"☐",BLACK)
-        img.string_ttf(self.FONT,25,0,(651, 205),"☐",BLACK)
-        img.writePng("data/output.png")
+
+        img = Image.new('RGB', self.SMALL, self.WHITE)
+        draw = ImageDraw.Draw(img)
+    
+        LOGO = Image.open(self.LOGOFILE)
+        LOGO = LOGO.resize(self.LOGOSMALLSIZE, Image.ANTIALIAS)
+        img.paste(LOGO, (0, 0))
+    
+        font = ImageFont.truetype(self.FONT, 40)
+        draw.text((0, self.SMALL[1] - 15), self.name, fill=self.BLACK, font=font)
+        font = ImageFont.truetype(self.FONT, 25)
+        draw.text((320, 64), "☐          Look ", fill=self.BLACK, font=font)
+        draw.text((321, 65), "☐", fill=self.BLACK, font=font)
+        draw.text((320, 99), "☐          Hack ", fill=self.BLACK, font=font)
+        draw.text((321, 100), "☐", fill=(0, 0, 0, 0), font=font) # Assuming 0 is transparent
+        draw.text((320, 134), "☐          Repair ", fill=self.BLACK, font=font)
+        draw.text((321, 135), "☐", fill=self.BLACK, font=font)
+        draw.text((320, 169), "☐          Destroy ", fill=self.BLACK, font=font)
+        draw.text((321, 170), "☐", fill=(0, 0, 0, 0), font=font) # Assuming 0 is transparent
+        draw.text((320, 204), "☐          Steal  ", fill=self.BLACK, font=font)
+        draw.text((321, 205), "☐", fill=self.BLACK, font=font)
+        draw.text((650, 64), "☐", fill=self.BLACK, font=font)
+        draw.text((651, 65), "☐", fill=self.BLACK, font=font)
+        draw.text((650, 99), "☐", fill=self.BLACK, font=font)
+        draw.text((651, 100), "☐", fill=(0, 0, 0, 0), font=font) # Assuming 0 is transparent
+        draw.text((650, 134), "☐", fill=self.BLACK, font=font)
+        draw.text((651, 135), "☐", fill=self.BLACK, font=font)
+        draw.text((650, 169), "☐", fill=self.BLACK, font=font)
+        draw.text((651, 170), "☐", fill=(0, 0, 0, 0), font=font) # Assuming 0 is transparent
+        draw.text((650, 204), "☐", fill=self.BLACK, font=font)
+        draw.text((651, 205), "☐", fill=self.BLACK, font=font)
+        img.save("data/output.jpg", "JPEG", dpi=(300, 300))
         os.system("convert -density 300 -units pixelsperinch data/output.png data/output.jpg")
         cups.Connection().printFile(self.printer,"data/output.jpg",title="Eigendom",options={'copies':str(self.copies),'page-ranges':'1'})
 
