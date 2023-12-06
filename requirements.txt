@@ -3,3 +3,5 @@ PyQRCode
 Pillow
 cups
 serial
+pytest
+pypng

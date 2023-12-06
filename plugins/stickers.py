@@ -6,6 +6,8 @@ import json
 import pyqrcode
 import re
 import time
+import io
+import base64
 
 class stickers:
     SMALL=(690,271)
@@ -41,8 +43,8 @@ class stickers:
         qrcode_img = Image.open(io.BytesIO(base64.b64decode(qrcode_image)))
 
         # Calculate size for QR code
-        size = self.SMALL[1] // (len(qrcode_img) + 2 * self.SPACE)
-        qrcode_img = qrcode_img.resize((size * len(qrcode_img), size * len(qrcode_img)), Image.ANTIALIAS)
+        size = self.SMALL[1] // (qrcode_img.size[0] + 2 * self.SPACE)
+        qrcode_img = qrcode_img.resize((size * qrcode_img.size[0], size * qrcode_img.size[1]), resample=Image.LANCZOS)
 
         # Place QR code on the image
         img.paste(qrcode_img, (self.SPACE, self.SPACE))
@@ -73,7 +75,7 @@ class stickers:
     
         # Load the logo
         LOGO = Image.open(self.LOGOFILE)
-        LOGO = LOGO.resize(self.LOGOSMALLSIZE, Image.ANTIALIAS)
+        LOGO = LOGO.resize(self.LOGOSMALLSIZE, resample=Image.LANCZOS)
     
         # Paste the logo onto the image
         img.paste(LOGO, (0, 0))
@@ -97,7 +99,7 @@ class stickers:
         draw = ImageDraw.Draw(img)
     
         LOGO = Image.open(self.LOGOFILE)
-        LOGO = LOGO.resize(self.LOGOSMALLSIZE, Image.ANTIALIAS)
+        LOGO = LOGO.resize(self.LOGOSMALLSIZE, resample=Image.LANCZOS)
         img.paste(LOGO, (0, 0))
     
         font = ImageFont.truetype(self.FONT, 40)
@@ -115,7 +117,7 @@ class stickers:
         draw = ImageDraw.Draw(img)
     
         LOGO = Image.open(self.LOGOFILE)
-        LOGO = LOGO.resize(self.LOGOSMALLSIZE, Image.ANTIALIAS)
+        LOGO = LOGO.resize(self.LOGOSMALLSIZE, resample=Image.LANCZOS)
         img.paste(LOGO, (0, 0))
     
         font = ImageFont.truetype(self.FONT, 40)
@@ -164,7 +166,7 @@ class stickers:
         if not prod:
             return self.messageandbuttons('barcodecount','products','Unknown Product; What product do you want a barcode for?')
         else:
-            prod=self.master.products.products[prod]
+            prod=self.master.products.products.get(prod)
             self.barcode=None
             for a in prod['aliases']:
                 if re.compile('^[0-9]+$').match(a):
