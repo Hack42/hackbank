@@ -60,14 +60,19 @@ class POS:
         BON = PRINTER + LARGE + CENTER + LOGO + NORMAL + LEFT
         for name in sorted(self.master.stock.stock.keys()):
             num = self.master.stock.stock[name]
-            BON += b"%20s %5d\n" % (name, num)
+            BON += b"%20s %5d\n" % (name.encode(), num)
         BON += LEFT + FEED + CUT
         self.open()
         self.slowwrite(BON)
 
     def printdisplay(self, desc, amount, som):
         self.open()
-        out = DISPLAY + b"%-14s% 6.2f%-12s% 8.2f" % (desc[0:14], amount, "Total", som)
+        out = DISPLAY + b"%-14s% 6.2f%-12s% 8.2f" % (
+            desc[0:14].encode(),
+            amount,
+            b"Total",
+            som,
+        )
         self.ser.write(out)
 
     def hook_checkout(self, user):
@@ -89,7 +94,7 @@ class POS:
             self.bonnetjes[transID]["bon"] = (
                 PRINTER
                 + LARGE
-                + "\nVOID VOID VOID\nVOID VOID VOID\n"
+                + b"\nVOID VOID VOID\nVOID VOID VOID\n"
                 + self.bonnetjes[transID]["bon"]
             )
             self.writebons()
@@ -108,8 +113,8 @@ class POS:
             + BARCODE_W
             + BARCODE % (len(str(self.master.transID)) + 2, self.master.transID)
         )
-        BON += RIGHT + b"%s  -  Arnhem\n" % time.strftime("%Y-%m-%d %H:%M:%S")
-        BON += LEFT + b"\n" + b" %-26s%12s\n " % ("Product", "Aantal   EUR")
+        BON += RIGHT + b"%s  -  Arnhem\n" % time.strftime("%Y-%m-%d %H:%M:%S").encode()
+        BON += LEFT + b"\n" + b" %-26s%12s\n " % (b"Product", b"Aantal   EUR")
         BON += b"-" * 38 + b"\n"
         for r in self.master.receipt.receipt:
             if r["beni"] == user:
@@ -121,7 +126,7 @@ class POS:
                         desc = r["description"][start : end - 1]
                         if start == 0:
                             BON += b" %-26s % 3d % 7.2f\n" % (
-                                desc,
+                                desc.encode(),
                                 r["count"],
                                 r["total"],
                             )
@@ -129,13 +134,13 @@ class POS:
                             BON += b" %-26s\n" % desc
                 else:
                     BON += b" %-26s % 3d % 7.2f\n" % (
-                        r["description"],
+                        r["description"].encode(),
                         r["count"],
                         r["total"],
                     )
         BON += b" " + b"-" * 38 + b"\n"
-        BON += b" %-26s% 12.2f\n" % ("Totaal", self.master.receipt.totals[user])
-        BON += b"\nU bent geholpen door: %s\n" % user
+        BON += b" %-26s% 12.2f\n" % (b"Totaal", self.master.receipt.totals[user])
+        BON += b"\nU bent geholpen door: %s\n" % user.encode()
         if user != b"cash":
             BON += b"\n         Nieuw saldo: %5.2f\n" % (
                 self.master.accounts.accounts[user]["amount"]
@@ -155,23 +160,23 @@ class POS:
         BON = PRINTER + LARGE + CENTER + LOGO
         BON += (
             NORMAL
-            + "Declaratie\n\n"
+            + b"Declaratie\n\n"
             + RIGHT
-            + "%s  -  Arnhem\n" % time.strftime("%Y-%m-%d %H:%M:%S")
+            + b"%s  -  Arnhem\n" % time.strftime("%Y-%m-%d %H:%M:%S").encode()
         )
-        BON += LEFT + "\n\n"
-        BON += "Naam:   %s\n" % Name
-        BON += "Type:   %s\n" % Type
-        BON += "Reason:   %s\n" % Reason
-        BON += "Bartegoed:   %.2f\n" % Bar
-        BON += "Cash Geld:   %.2f\n" % Cash
-        BON += "Via Bank:    %.2f\n" % Bank
+        BON += LEFT + b"\n\n"
+        BON += b"Naam:   %s\n" % Name.encode()
+        BON += b"Type:   %s\n" % Type.encode()
+        BON += b"Reason:   %s\n" % Reason.encode()
+        BON += b"Bartegoed:   %.2f\n" % Bar
+        BON += b"Cash Geld:   %.2f\n" % Cash
+        BON += b"Via Bank:    %.2f\n" % Bank
         BON += (
-            "Handtekening:\n\n\n\n------------------------------------\n"
+            b"Handtekening:\n\n\n\n------------------------------------\n"
             + CENTER
             + SMALL
-            + "De kleine lettertjes: Deze bon kan juist wel in de  \n"
-            + "hack42 adminstratie gebruikt worden voor declaraties\n"
+            + b"De kleine lettertjes: Deze bon kan juist wel in de  \n"
+            + b"hack42 adminstratie gebruikt worden voor declaraties\n"
         )
         BON += LEFT + FEED + CUT
         self.open()
@@ -179,7 +184,7 @@ class POS:
 
     def hook_post_checkout(self, user):
         self.loadbons()
-        BON = ""
+        BON = b""
         for usr in self.master.receipt.totals:
             BON += self.makebon(usr)
         self.bonnetjes[self.master.transID] = {
