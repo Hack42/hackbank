@@ -25,8 +25,10 @@ class market:
     def readproducts(self):
         with open("data/revbank.market", "r", encoding="utf-8") as f:
             lines = f.readlines()
+        print("ok",lines)
         for line in lines:
             parts = " ".join(line.split()).split(" ", 4)
+            print(parts)
             if len(parts) == 5 and not line.startswith("#"):
                 aliases = parts[1].split(",")
                 name = aliases.pop(0)

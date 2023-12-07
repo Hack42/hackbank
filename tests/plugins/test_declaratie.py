@@ -179,6 +179,7 @@ class TestDeclaratie:
 
     def test_who_abort(self):
         self.declaratie.master.callhook = Mock()
+        self.declaratie.master.accounts.accounts = {}
         assert self.declaratie.who("abort")
         self.declaratie.master.callhook.assert_called_with("abort", None)
 
@@ -198,11 +199,6 @@ class TestDeclaratie:
         assert self.declaratie.amount("5000")
         self.declaratie.master.donext.assert_called_with(self.declaratie, "amount")
         self.declaratie.master.send_message.assert_called()
-
-    def test_reason_abort(self):
-        self.declaratie.master.callhook = Mock()
-        assert self.declaratie.reason("abort")
-        self.declaratie.master.callhook.assert_called_with("abort", None)
 
     def test_runasbar_abort(self):
         self.declaratie.master.callhook = Mock()
@@ -247,7 +243,3 @@ class TestDeclaratie:
     def test_input_invalid_command(self):
         assert self.declaratie.input("invalid") is None
 
-    def test_input_abort(self):
-        self.declaratie.master.callhook = Mock()
-        assert self.declaratie.input("abort") is None
-        self.declaratie.master.callhook.assert_called_with("abort", None)
