@@ -205,7 +205,7 @@ class products:
             return self.master.callhook("abort", None)
         try:
             price = float(text)
-            if 0 < price > 999.99:
+            if 0 < price < 999.99:
                 return self.messageandbuttons(
                     "addproductprice",
                     "numbers",

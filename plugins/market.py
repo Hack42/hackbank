@@ -135,7 +135,7 @@ class market:
             return self.master.callhook("abort", None)
         try:
             price = float(text)
-            if 0.01 < price > 999.99:
+            if 0.01 < price < 999.99:
                 return self.messageandbuttons(
                     "saveprice", "numbers", "Price should be between 0.01 and 999.99"
                 )
@@ -198,7 +198,7 @@ class market:
             return self.master.callhook("abort", None)
         try:
             price = float(text)
-            if 0.01 < price > 999.99:
+            if 0.01 < price < 999.99:
                 return self.messageandbuttons(
                     "addproductprice",
                     "numbers",

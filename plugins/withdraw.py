@@ -9,7 +9,7 @@ class withdraw:
     def withdraw(self, text):
         try:
             value = float(text)
-            if 0 < value > 1000:
+            if 0 < value < 1000:
                 self.master.receipt.add(
                     True, value, "Withdrawal or unlisted product", 1, None, "withdraw"
                 )

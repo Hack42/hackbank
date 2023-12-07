@@ -219,7 +219,7 @@ class stickers:
             return self.master.callhook("abort", None)
         try:
             self.copies = int(text)
-            if self.copies < 1 or self.copies > 99:
+            if not 0 < self.copies < 100:
                 return self.messageandbuttons(
                     "barcodenum",
                     "numbers",
@@ -267,7 +267,7 @@ class stickers:
             return self.master.callhook("abort", None)
         try:
             self.copies = int(text)
-            if self.copies < 1 or self.copies > 99:
+            if not 0 < self.copies < 100:
                 return self.messageandbuttons(
                     "eigendomnum",
                     "numbers",
@@ -292,7 +292,7 @@ class stickers:
             return self.master.callhook("abort", None)
         try:
             self.copies = int(text)
-            if self.copies < 1 or self.copies > 99:
+            if not 0 < self.copies < 100:
                 return self.messageandbuttons(
                     "foodnum", "numbers", "Only 1 <> 99 allowed; How many do you want?"
                 )
@@ -309,7 +309,7 @@ class stickers:
             return self.master.callhook("abort", None)
         try:
             self.copies = int(text)
-            if self.copies < 1 or self.copies > 99:
+            if not 0 < self.copies < 100:
                 return self.messageandbuttons(
                     "thtnum", "numbers", "Only 1 <> 99 allowed; How many do you want?"
                 )

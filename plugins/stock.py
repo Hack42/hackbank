@@ -78,7 +78,7 @@ class stock:
     def voorraad_amount(self, text):
         try:
             aantal = int(text)
-            if aantal < 0 or aantal > 5000:
+            if not 0 < aantal < 5000:
                 self.master.donext(self, "voorraad_amount")
                 self.master.send_message(
                     True,
@@ -138,7 +138,7 @@ class stock:
     def inkoop_amount(self, text):
         try:
             aantal = int(text)
-            if aantal < 0 or aantal > 5000:
+            if not 0 < aantal < 5000:
                 self.master.donext(self, "inkoop_amount")
                 self.master.send_message(
                     True,
