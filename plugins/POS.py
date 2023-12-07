@@ -131,7 +131,7 @@ class POS:
                                 r["total"],
                             )
                         else:
-                            BON += b" %-26s\n" % desc
+                            BON += b" %-26s\n" % desc.encode()
                 else:
                     BON += b" %-26s % 3d % 7.2f\n" % (
                         r["description"].encode(),
@@ -210,7 +210,8 @@ class POS:
         if bonID in self.bonnetjes:
             self.open()
             self.slowwrite(self.bonnetjes[bonID]["bon"].encode())
-        return True
+            return True
+        return False
 
     def selectbon(self, text):
         if text == "abort":
