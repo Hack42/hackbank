@@ -9,7 +9,7 @@ class historie:
 
     def reverse_readline(self, filename, buf_size=8192):
         """a generator that returns the lines of a file in reverse order"""
-        with open(filename) as fh:
+        with open(filename, encoding="utf-8") as fh:
             segment = None
             offset = 0
             fh.seek(0, os.SEEK_END)
@@ -27,7 +27,7 @@ class historie:
                     # if the previous chunk starts right from the beginning of line
                     # do not concact the segment to the last line of new chunk
                     # instead, yield the segment first
-                    if buffer[-1] is not "\n":
+                    if buffer[-1] != "\n":
                         lines[-1] += segment
                     else:
                         yield segment
@@ -59,18 +59,15 @@ class historie:
                 True, "buttons", json.dumps({"special": "history"})
             )
             return True
-        elif text == "abort":
+        if text == "abort":
             self.master.callhook("abort", None)
             return True
-        else:
-            self.master.donext(self, "history")
-            self.master.send_message(
-                True, "message", "Unknown User; User to view history from?"
-            )
-            self.master.send_message(
-                True, "buttons", json.dumps({"special": "accounts"})
-            )
-            return True
+        self.master.donext(self, "history")
+        self.master.send_message(
+            True, "message", "Unknown User; User to view history from?"
+        )
+        self.master.send_message(True, "buttons", json.dumps({"special": "accounts"}))
+        return True
 
     def input(self, text):
         if text == "history":
@@ -80,6 +77,7 @@ class historie:
                 True, "buttons", json.dumps({"special": "accounts"})
             )
             return True
+        return None
 
     def startup(self):
         pass

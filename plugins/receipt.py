@@ -10,19 +10,21 @@ class receipt:
         self.SID = SID
 
     def is_empty(self):
-        if len(self.receipt):
+        print("hooi", self.receipt)
+        if self.receipt:
             return False
-        else:
-            return True
+        return True
 
     def updatetotals(self):
         self.totals = {}
-        for r in range(0, len(self.receipt)):
+        for r in range(  # pylint: disable=consider-using-enumerate
+            0, len(self.receipt)
+        ):  # pylint: disable=consider-using-enumerate
             rr = self.receipt[r]
             beni = rr["beni"]
             count = rr["count"]
             value = rr["value"]
-            if rr["Lose"] == True:
+            if rr["Lose"]:
                 if beni in self.totals:
                     self.totals[beni] -= count * value
                 else:
@@ -33,16 +35,18 @@ class receipt:
                 else:
                     self.totals[beni] = count * value
         ret = []
-        for usr in self.totals:
+        for usr in self.totals:  # pylint: disable=consider-using-dict-items
             ret.append({"user": usr, "amount": self.totals[usr]})
         self.master.send_message(True, "totals", json.dumps(ret))
 
     def hook_checkout(self, user):
         self.totals = {}
-        for r in range(0, len(self.receipt)):
+        for r in range(  # pylint: disable=consider-using-enumerate
+            0, len(self.receipt)
+        ):  # pylint: disable=consider-using-enumerate
             rr = self.receipt[r]
             beni = rr["beni"]
-            if beni == None:
+            if beni is None:
                 beni = user
                 self.receipt[r]["beni"] = user
             self.receipt[r]["description"] = self.receipt[r]["description"].replace(
@@ -51,15 +55,15 @@ class receipt:
         self.updatetotals()
         self.master.send_message(True, "receipt", json.dumps(self.receipt))
 
-    def hook_endsession(self, text):
+    def hook_endsession(self, _text):
         self.receipt = []
 
-    def hook_ok(self, void):
+    def hook_ok(self, _void):
         self.receipt = []
         self.master.send_message(True, "receipt", json.dumps(self.receipt))
         self.updatetotals()
 
-    def hook_abort(self, void):
+    def hook_abort(self, _void):
         self.receipt = []
         self.master.send_message(True, "receipt", json.dumps(self.receipt))
         self.updatetotals()
@@ -67,8 +71,12 @@ class receipt:
     def help(self):
         return {"remove": "Remove Item"}
 
-    def add(self, Lose, Value, Description, Count, Beni, Prod):
-        for r in range(0, len(self.receipt)):
+    def add(  # pylint: disable=too-many-arguments
+        self, Lose, Value, Description, Count, Beni, Prod
+    ):  # pylint: disable=too-many-arguments
+        for r in range(  # pylint: disable=consider-using-enumerate
+            0, len(self.receipt)
+        ):  # pylint: disable=consider-using-enumerate
             if (
                 self.receipt[r]["description"] == Description
                 and self.receipt[r]["value"] == Value
@@ -112,6 +120,7 @@ class receipt:
             )
             self.master.donext(self, "remove")
             return True
+        return None
 
     def remove(self, text):
         try:

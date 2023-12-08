@@ -2,9 +2,15 @@
 # -*- coding: utf-8 -*-
 import json
 import math
+import traceback
 
 
 class take:
+    totakefrom = []
+    peruser = 0
+    myreason = ""
+    value = 0
+
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
@@ -27,13 +33,13 @@ class take:
                 True, "buttons", json.dumps({"special": "accountsamount"})
             )
             return True
-        elif text == "abort":
+        if text == "abort":
             self.master.callhook("abort", None)
             return True
-        elif len(self.totakefrom) > 0:
+        if len(self.totakefrom) > 0:
             try:
                 value = round(float(text), 2)
-                if value > 0 and value < 1000:
+                if 0 < value < 1000:
                     self.value = value
                     self.peruser = (
                         math.ceil((self.value / len(self.totakefrom)) * 100) / 100
@@ -63,8 +69,6 @@ class take:
                     )
                 return True
             except:
-                import traceback
-
                 traceback.print_exc()
         self.master.donext(self, "who")
         self.master.send_message(
@@ -114,6 +118,7 @@ class take:
                 True, "buttons", json.dumps({"special": "accounts"})
             )
             return True
+        return None
 
     def startup(self):
         pass

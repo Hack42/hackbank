@@ -20,6 +20,7 @@ class door:
             client.publish("hack42/brandhok/deuropen", "open", 1, True)
             client.disconnect()
             return True
+        return None
 
     def startup(self):
         pass

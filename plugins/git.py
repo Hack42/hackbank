@@ -11,7 +11,7 @@ class git:
     def background(self):
         os.system("cd data && git commit -m " + str(self.master.transID) + " .")
 
-    def hook_post_checkout(self, text):
+    def hook_post_checkout(self, _text):
         threading.Thread(target=self.background)
 
     def input(self, text):

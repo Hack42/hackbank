@@ -1,4 +1,5 @@
 import json
+import traceback
 
 
 class deposit:
@@ -19,11 +20,12 @@ class deposit:
                 True, "buttons", json.dumps({"special": "numbers"})
             )
             return True
+        return None
 
     def value(self, text):
         try:
             value = float(text)
-            if value > 0 and value < 1000:
+            if 0 < value < 1000:
                 self.master.receipt.add(False, value, "Deposit", 1, None, "deposit")
             else:
                 self.master.donext(self, "value")
@@ -35,8 +37,6 @@ class deposit:
                 )
             return True
         except:
-            import traceback
-
             traceback.print_exc()
             if text == "abort":
                 self.master.callhook("abort", None)
