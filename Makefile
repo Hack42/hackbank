@@ -2,7 +2,7 @@ test:
 	@. .venv/bin/activate && ${env} python3 -m pytest  -vvv --cov=. --cov-report term-missing
 venv: .venv/make_venv_complete ## Create virtual environment
 .venv/make_venv_complete:
-	python3.11 -m venv .venv
+	python3 -m venv .venv
 	. .venv/bin/activate && ${env} pip install -U pip
 	. .venv/bin/activate && ${env} pip install -U pip-tools
 	. .venv/bin/activate && ${env} pip install -Ur requirements.txt
