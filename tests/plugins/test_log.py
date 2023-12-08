@@ -2,6 +2,7 @@ from unittest.mock import patch, mock_open, MagicMock
 import plugins.log as log_module
 import time
 
+
 class TestLog:
     def setup_method(self, method):
         self.master_mock = MagicMock()
@@ -20,7 +21,14 @@ class TestLog:
             self.log.log(test_action, test_text)
             mo.assert_called_with("data/revbank.log", "a", encoding="utf-8")
             handle = mo()
-            handle.write.assert_called_with(time.strftime("%Y-%m-%d_%H:%M:%S") + " " + test_action + " " + test_text + "\n")
+            handle.write.assert_called_with(
+                time.strftime("%Y-%m-%d_%H:%M:%S")
+                + " "
+                + test_action
+                + " "
+                + test_text
+                + "\n"
+            )
 
     def test_hook_balance(self):
         test_args = ("user", 100.0, 90.0, 123)
@@ -33,7 +41,17 @@ class TestLog:
             handle.write.assert_called_with(expected_log)
 
     def test_hook_post_checkout(self):
-        self.log.master.receipt = MagicMock(receipt=[{"beni": "user", "count": 2, "value": 50.0, "Lose": True, "description": "Test"}])
+        self.log.master.receipt = MagicMock(
+            receipt=[
+                {
+                    "beni": "user",
+                    "count": 2,
+                    "value": 50.0,
+                    "Lose": True,
+                    "description": "Test",
+                }
+            ]
+        )
         self.log.master.transID = 456
         mo = mock_open()
         with patch("builtins.open", mo):
@@ -47,11 +65,11 @@ class TestLog:
         test_text = "input text"
         self.log.master.prompt = b"Test Prompt"
         mo = mock_open()
-        with patch("builtins.open", mo), patch.object(self.master_mock, "send_message") as mock_send_message:
+        with patch("builtins.open", mo), patch.object(
+            self.master_mock, "send_message"
+        ) as mock_send_message:
             self.log.pre_input(test_text)
             mo.assert_called_with("data/revbank.log", "a", encoding="utf-8")
             handle = mo()
             expected_log = f"{time.strftime('%Y-%m-%d_%H:%M:%S')} PROMPT Test Prompt >> {test_text}\n"
             handle.write.assert_called_with(expected_log)
-
-

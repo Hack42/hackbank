@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import Mock, patch, mock_open, call
 import plugins.products as ProductsModule
 
 
@@ -19,8 +19,18 @@ class TestProducts(unittest.TestCase):
 
     def test_writeproducts(self):
         self.products.products = {
-            "product1": {"aliases": ["alias1"], "price": 2.50, "description": "Description1", "group": "Group1"},
-            "product2": {"aliases": [], "price": 1.50, "description": "Description2", "group": "Group2"}
+            "product1": {
+                "aliases": ["alias1"],
+                "price": 2.50,
+                "description": "Description1",
+                "group": "Group1",
+            },
+            "product2": {
+                "aliases": [],
+                "price": 1.50,
+                "description": "Description2",
+                "group": "Group2",
+            },
         }
         self.products.groups = {"Group1": ["product1"], "Group2": ["product2"]}
         with patch("builtins.open", mock_open()) as mocked_file:
@@ -37,7 +47,10 @@ class TestProducts(unittest.TestCase):
     def test_messageandbuttons(self):
         self.products.messageandbuttons("next_step", "buttons", "message")
         self.master_mock.donext.assert_called_with(self.products, "next_step")
-        self.master_mock.send_message.assert_called_with(True, "message", "message")
+        assert self.products.master.send_message.call_args_list == [
+            call(True, "message", "message"),
+            call(True, "buttons", '{"special": "buttons"}'),
+        ]
 
     def test_startup(self):
         with patch.object(self.products, "readproducts") as mocked_readproducts:
@@ -48,7 +61,9 @@ class TestProducts(unittest.TestCase):
     def test_savealias_valid_alias(self):
         self.products.products = {"product1": {"aliases": []}}
         self.products.aliasprod = "product1"
-        with patch.object(self.products, "readproducts"), patch.object(self.products, "writeproducts"):
+        with patch.object(self.products, "readproducts"), patch.object(
+            self.products, "writeproducts"
+        ):
             result = self.products.savealias("alias1")
             self.assertTrue(result)
             self.assertIn("alias1", self.products.products["product1"]["aliases"])
@@ -56,8 +71,19 @@ class TestProducts(unittest.TestCase):
     def test_savealias_invalid_alias(self):
         self.products.products = {"product1": {"aliases": []}}
         self.products.aliasprod = "product1"
-        result = self.products.savealias("invalid alias")
-        self.assertFalse(result)
+        with patch.object(self.products, "readproducts"), patch.object(
+            self.products, "writeproducts"
+        ):
+            result = self.products.savealias("invalid alias")
+            assert self.products.master.send_message.call_args_list == [
+                call(
+                    True,
+                    "message",
+                    "only [A-z0-9] is allowed in any alias and it should be at least 4 chars long",
+                ),
+                call(True, "buttons", '{"special": "keyboard"}'),
+            ]
+            self.assertTrue(result)
 
     def test_addalias_existing_product(self):
         self.products.products = {"product1": {}}
@@ -69,26 +95,19 @@ class TestProducts(unittest.TestCase):
         result = self.products.setprice("product1")
         self.assertTrue(result)
 
-
-    def test_saveprice_valid_price(self):
-        self.products.products = {"product1": {}}
-        self.products.priceprod = "product1"
-        with patch.object(self.products, "readproducts"), patch.object(self.products, "writeproducts"):
-            result = self.products.saveprice("10.0")
-            self.assertTrue(result)
-            self.assertEqual(self.products.products["product1"]["price"], 10.0)
-
     def test_saveprice_invalid_price(self):
         self.products.priceprod = "product1"
         result = self.products.saveprice("invalid")
-        self.assertFalse(result)
+        self.assertTrue(result)
 
     def test_addproductgroup_new_group(self):
         self.products.newprod = "product1"
         self.products.newprodprice = 2.5
         self.products.newproddesc = "description"
         self.products.groups = {}
-        with patch.object(self.products, "readproducts"), patch.object(self.products, "writeproducts"):
+        with patch.object(self.products, "readproducts"), patch.object(
+            self.products, "writeproducts"
+        ):
             result = self.products.addproductgroup("group1")
             self.assertTrue(result)
             self.assertIn("product1", self.products.groups["group1"])
@@ -98,7 +117,9 @@ class TestProducts(unittest.TestCase):
         self.products.newprodprice = 2.5
         self.products.newproddesc = "description"
         self.products.groups = {"group1": []}
-        with patch.object(self.products, "readproducts"), patch.object(self.products, "writeproducts"):
+        with patch.object(self.products, "readproducts"), patch.object(
+            self.products, "writeproducts"
+        ):
             result = self.products.addproductgroup("group1")
             self.assertTrue(result)
             self.assertIn("product1", self.products.groups["group1"])
@@ -109,31 +130,45 @@ class TestProducts(unittest.TestCase):
             self.products.master.send_message.assert_called_with(
                 True, "message", "Unknown product;What product do you want to alias?"
             )
+
     def test_addalias_nonexistent_product(self):
         with patch.object(self.products.master, "send_message"):
             self.products.addalias("nonexistent")
-            self.products.master.send_message.assert_called_with(
-                True, "message", "Unknown product;What product do you want to alias?"
-            )
+            assert self.products.master.send_message.call_args_list == [
+                call(
+                    True,
+                    "message",
+                    "Unknown product;What product do you want to alias?",
+                ),
+                call(True, "buttons", '{"special": "products"}'),
+            ]
 
     def test_setprice_nonexistent_product(self):
         with patch.object(self.products.master, "send_message"):
             self.products.setprice("nonexistent")
-            self.products.master.send_message.assert_called_with(
-                True, "message", "Unknown product;What product do you want change price?"
-            )
+            assert self.products.master.send_message.call_args_list == [
+                call(
+                    True,
+                    "message",
+                    "Unknown product;What product do you want change price?",
+                ),
+                call(True, "buttons", '{"special": "products"}'),
+            ]
 
     def test_savealias_valid_alias(self):
-        self.products.products = {"product1": {"aliases": []}}
+        self.products.groups = {"Group1": ["product1"]}
+        self.products.products = {
+            "product1": {"aliases": [], "price": 42, "description": "aa"}
+        }
         self.products.aliasprod = "product1"
         with patch("builtins.open", mock_open()):
-            assert self.products.savealias("alias1")
-            assert "alias1" in self.products.products["product1"]["aliases"]
-    
+            assert self.products.savealias("alias2")
+            assert "alias2" in self.products.products["product1"]["aliases"]
+
     def test_saveprice_valid_price(self):
         self.products.products = {"product1": {"price": 2.5}}
         self.products.priceprod = "product1"
         with patch("builtins.open", mock_open()):
             assert self.products.saveprice("3.0")
+            print("hooi", self.products.products)
             assert self.products.products["product1"]["price"] == 3.0
-

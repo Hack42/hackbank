@@ -25,7 +25,7 @@ class market:
     def readproducts(self):
         with open("data/revbank.market", "r", encoding="utf-8") as f:
             lines = f.readlines()
-        print("ok",lines)
+        print("ok", lines)
         for line in lines:
             parts = " ".join(line.split()).split(" ", 4)
             print(parts)
@@ -46,9 +46,11 @@ class market:
 
     def writeproducts(self):
         with open("data/revbank.market", "w", encoding="utf-8") as f:
+            print(self.groups)
             for group, groupvalue in self.groups.items():
                 f.write("# " + group + "\n")
-                for prod, product in groupvalue.items():
+                for prod in groupvalue:
+                    product = self.products[prod]
                     names = product["aliases"]
                     names.insert(0, prod)
                     f.write(
@@ -137,12 +139,12 @@ class market:
             return self.master.callhook("abort", None)
         try:
             price = float(text)
-            if 0.01 < price < 999.99:
+            if not 0 < price < 1000:
                 return self.messageandbuttons(
                     "saveprice", "numbers", "Price should be between 0.01 and 999.99"
                 )
             self.newprodprice = price
-            self.products[self.priceprod]["price"] = self.newprodprice
+            self.products[self.priceprod]["price"] = price
             self.writeproducts()
             self.readproducts()
             return True

@@ -17,33 +17,38 @@ class TestHistorie:
         with patch("builtins.open", mo) as mock_file:
             file_handle = mo.return_value
             file_handle.tell.return_value = len(test_data)
-            file_handle.read.side_effect = [test_data, '']
+            file_handle.read.side_effect = [test_data, ""]
             file_handle.seek.side_effect = self.mock_seek
             result = list(self.historie.reverse_readline("testfile.txt"))
             assert result == ["Line4", "Line3", "Line2", "Line1"]
 
-
     def test_history_valid_user(self):
         self.historie.master.accounts.accounts = {"user1": {}}
-        with patch.object(self.historie, 'reversesearch', return_value=["Line1", "Line2"]), patch.object(self.historie.master, 'send_message'):
+        with patch.object(
+            self.historie, "reversesearch", return_value=["Line1", "Line2"]
+        ), patch.object(self.historie.master, "send_message"):
             assert self.historie.history("user1")
             self.historie.master.send_message.assert_called()
 
     def test_history_abort(self):
         self.historie.master.accounts.accounts = {}
-        with patch.object(self.historie.master, 'callhook'):
+        with patch.object(self.historie.master, "callhook"):
             assert self.historie.history("abort")
             self.historie.master.callhook.assert_called_with("abort", None)
 
     def test_history_unknown_user(self):
         self.historie.master.accounts.accounts = {}
-        with patch.object(self.historie.master, 'donext'), patch.object(self.historie.master, 'send_message'):
+        with patch.object(self.historie.master, "donext"), patch.object(
+            self.historie.master, "send_message"
+        ):
             assert self.historie.history("unknown_user")
             self.historie.master.donext.assert_called_with(self.historie, "history")
             self.historie.master.send_message.assert_called()
 
     def test_input_history(self):
-        with patch.object(self.historie.master, 'donext'), patch.object(self.historie.master, 'send_message'):
+        with patch.object(self.historie.master, "donext"), patch.object(
+            self.historie.master, "send_message"
+        ):
             assert self.historie.input("history")
             self.historie.master.donext.assert_called_with(self.historie, "history")
             self.historie.master.send_message.assert_called()

@@ -20,11 +20,12 @@ class TestPfand:
         # Mocking the required properties of master.products
         self.pfand.master.products = Mock()
         self.pfand.master.products.lookupprod.return_value = True
-        self.pfand.master.products.products = {'prod1': {'description': 'desc1'}}
-    
+        self.pfand.master.products.products = {"prod1": {"description": "desc1"}}
+
         with patch.object(self.pfand.master, "send_message") as mock_send:
             self.pfand.listpfand()
             mock_send.assert_called()
+
     def test_pfand_known_product(self):
         self.pfand.products = {"prod1": 1.0}
         assert self.pfand.pfand("prod1") is True
@@ -59,5 +60,3 @@ class TestPfand:
         with patch.object(self.pfand, "loadmarket"):
             self.pfand.startup()
             self.pfand.loadmarket.assert_called()
-
-

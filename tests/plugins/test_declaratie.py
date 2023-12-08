@@ -242,4 +242,3 @@ class TestDeclaratie:
 
     def test_input_invalid_command(self):
         assert self.declaratie.input("invalid") is None
-

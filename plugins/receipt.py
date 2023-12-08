@@ -10,6 +10,7 @@ class receipt:
         self.SID = SID
 
     def is_empty(self):
+        print("hooi", self.receipt)
         if self.receipt:
             return False
         return True
