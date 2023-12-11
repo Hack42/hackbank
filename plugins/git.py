@@ -12,7 +12,7 @@ class git:
         os.system("cd data && git commit -m " + str(self.master.transID) + " .")
 
     def hook_post_checkout(self, _text):
-        threading.Thread(target=self.background)
+        threading.Thread(target=self.background).start()
 
     def input(self, text):
         pass

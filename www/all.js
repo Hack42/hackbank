@@ -40,6 +40,7 @@ $( document ).ready(function() {
   var groups={};
   var nobcgroup={};
   var members=[];
+  var nonmembers=[];
   var history=[];
   var tabenable=0;
   var question="";
@@ -175,7 +176,7 @@ $( document ).ready(function() {
   function accountstobuttons(accounts,type) {
     var buttons=[];
     Object.keys(accounts).sort(mycomparator).forEach(function(v, i) {
-      if($.inArray(v,members)!=-1 & type=='m' || ( $.inArray(v,members)==-1 & type=='o')) {
+      if($.inArray(v,members)!=-1 & type=='m' || ( $.inArray(v,nonmembers)!=-1 & type=='o' || ($.inArray(v,nonmembers)==-1 & $.inArray(v,members)==-1 & type=='x'))) {
         var extraclass=v;
         if(accounts[v].amount < -13.37) {
           extraclass=v+" rood";
@@ -522,6 +523,9 @@ $( document ).ready(function() {
          case 'members':
             members=JSON.parse(msg);
             break;
+         case 'nonmembers':
+            nonmembers=JSON.parse(msg);
+            break;
          case 'commands':
             setupcommands(msg);
             break;
@@ -602,6 +606,11 @@ $( document ).ready(function() {
        }
     });
     $.each(accountstobuttons(accounts,'o'),function(i,v) {
+       if(v.text.toLowerCase().startsWith(zoek) || v.display.toLowerCase().startsWith(zoek)) {
+           buttons.push(v);
+       }
+    });
+    $.each(accountstobuttons(accounts,'x'),function(i,v) {
        if(v.text.toLowerCase().startsWith(zoek) || v.display.toLowerCase().startsWith(zoek)) {
            buttons.push(v);
        }

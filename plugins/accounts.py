@@ -17,6 +17,13 @@ class accounts:
     def help(self):
         return {"adduseralias": "Add user key alias"}
 
+    def get_last_updated_accounts(self):
+        # Sort the accounts based on last update time, in descending order
+        sorted_accounts = sorted(self.accounts.items(), key=lambda x: x[1]['lastupdate'], reverse=True)
+        # Extract the account names from the sorted list
+        account_names = [account[0] for account in sorted_accounts if account[0] not in self.members][0:125]
+        self.master.send_message(True, "nonmembers", json.dumps(account_names))
+
     # Internal functions
     def readaccounts(self):
         with codecs.open("data/revbank.accounts", "r", "utf-8") as f:
@@ -72,9 +79,11 @@ class accounts:
 
     def hook_endsession(self, _text):
         self.writeaccount()
+        self.get_last_updated_accounts()
 
     def hook_abort(self, _void):
         self.readaccounts()
+        self.get_last_updated_accounts()
         for name, account in self.accounts.items():
             self.master.send_message(True, "accounts/" + name, json.dumps(account))
 
@@ -106,6 +115,7 @@ class accounts:
 
     def startup(self):
         self.readaccounts()
+        self.get_last_updated_accounts()
         for name, account in self.accounts.items():
             self.master.send_message(True, "accounts/" + name, json.dumps(account))
         with open("data/revbank.members", encoding="utf-8") as f:
