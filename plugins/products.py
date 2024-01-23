@@ -143,9 +143,9 @@ class products:
         try:
             price = float(text)
             print(price)
-            if 0.01 > price < 999.99:
+            if not 0 < price < 1000:
                 return self.messageandbuttons(
-                    "saveprice", "numbers", "Price should be between 0.01 and 999.99"
+                    "saveprice", "numbers", "Price should be between 0 and 1000"
                 )
             self.newprodprice = price
             self.products[self.priceprod]["price"] = self.newprodprice
@@ -206,11 +206,11 @@ class products:
             return self.master.callhook("abort", None)
         try:
             price = float(text)
-            if 0 < price < 999.99:
+            if not 0 < price < 1000:
                 return self.messageandbuttons(
                     "addproductprice",
                     "numbers",
-                    "Price should be between 0.01 and 999.99",
+                    "Price should be between 0 and 1000",
                 )
             self.newprodprice = price
             self.master.donext(self, "addproductgroup")
