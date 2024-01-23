@@ -141,7 +141,7 @@ class market:
             price = float(text)
             if not 0 < price < 1000:
                 return self.messageandbuttons(
-                    "saveprice", "numbers", "Price should be between 0.01 and 999.99"
+                    "saveprice", "numbers", "Price should be between 0 and 1000"
                 )
             self.newprodprice = price
             self.products[self.priceprod]["price"] = price
@@ -202,11 +202,11 @@ class market:
             return self.master.callhook("abort", None)
         try:
             price = float(text)
-            if 0.01 < price < 999.99:
+            if not 0 < price < 1000:
                 return self.messageandbuttons(
                     "addproductprice",
                     "numbers",
-                    "Price should be between 0.01 and 999.99",
+                    "Price should be between 0 and 1000",
                 )
             self.newprodprice = price
             self.master.donext(self, "addproductgroup")
