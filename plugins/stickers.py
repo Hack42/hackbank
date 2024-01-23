@@ -30,6 +30,7 @@ class stickers:
     price = 0
     description = ""
     datum = ""
+    large = False
 
     def __init__(self, SID, master):
         self.master = master
@@ -90,12 +91,7 @@ class stickers:
         )
 
         # Save the image
-        img.save("data/barcode.png")
-
-        # Convert PNG to JPG (if needed)
-        os.system(
-            "convert -density 300 -units pixelsperinch data/barcode.png data/barcode.jpg"
-        )
+        img.save("data/barcode.jpg", "JPEG", dpi=(300, 300))
 
         # Print the file
         cups.Connection().printFile(  # pylint: disable=no-member
@@ -172,46 +168,41 @@ class stickers:
         )
         img.paste(LOGO, (0, 0))
 
+        first = 10
+        last = 190
+        step = (last-first)/5
+
+        steps = [10+step*i for i in range(0,6)]
+
+
         font = ImageFont.truetype(self.FONT, 40)
-        draw.text((0, self.SMALL[1] - 15), self.name, fill=self.BLACK, font=font)
-        font = ImageFont.truetype(self.FONT, 25)
-        draw.text((320, 64), "☐          Look ", fill=self.BLACK, font=font)
-        draw.text((321, 65), "☐", fill=self.BLACK, font=font)
-        draw.text((320, 99), "☐          Hack ", fill=self.BLACK, font=font)
-        draw.text(
-            (321, 100), "☐", fill=(0, 0, 0, 0), font=font
-        )  # Assuming 0 is transparent
-        draw.text((320, 134), "☐          Repair ", fill=self.BLACK, font=font)
-        draw.text((321, 135), "☐", fill=self.BLACK, font=font)
-        draw.text((320, 169), "☐          Destroy ", fill=self.BLACK, font=font)
-        draw.text(
-            (321, 170), "☐", fill=(0, 0, 0, 0), font=font
-        )  # Assuming 0 is transparent
-        draw.text((320, 204), "☐          Steal  ", fill=self.BLACK, font=font)
-        draw.text((321, 205), "☐", fill=self.BLACK, font=font)
-        draw.text((650, 64), "☐", fill=self.BLACK, font=font)
-        draw.text((651, 65), "☐", fill=self.BLACK, font=font)
-        draw.text((650, 99), "☐", fill=self.BLACK, font=font)
-        draw.text(
-            (651, 100), "☐", fill=(0, 0, 0, 0), font=font
-        )  # Assuming 0 is transparent
-        draw.text((650, 134), "☐", fill=self.BLACK, font=font)
-        draw.text((651, 135), "☐", fill=self.BLACK, font=font)
-        draw.text((650, 169), "☐", fill=self.BLACK, font=font)
-        draw.text(
-            (651, 170), "☐", fill=(0, 0, 0, 0), font=font
-        )  # Assuming 0 is transparent
-        draw.text((650, 204), "☐", fill=self.BLACK, font=font)
-        draw.text((651, 205), "☐", fill=self.BLACK, font=font)
+        draw.text((0, self.SMALL[1] - 55), self.name, fill=self.BLACK, font=font)
+        font = ImageFont.truetype(self.FONT, 30)
+        draw.text((320, steps[0]-1), "Don't                           Ask", fill=self.BLACK, font=font)
+        draw.text((320, steps[0]-0), "Don't                           Ask", fill=self.BLACK, font=font)
+        draw.text((320, steps[1]-1), "☐          Look ", fill=self.BLACK, font=font)
+        draw.text((321, steps[1]-0), "☐", fill=self.BLACK, font=font)
+        draw.text((320, steps[2]-1), "☐          Hack ", fill=self.BLACK, font=font)
+        draw.text((321, steps[2]-0), "☐", fill=self.BLACK, font=font) 
+        draw.text((320, steps[3]-1), "☐          Repair ", fill=self.BLACK, font=font)
+        draw.text((321, steps[3]-0), "☐", fill=self.BLACK, font=font)
+        draw.text((320, steps[4]-1), "☐          Destroy ", fill=self.BLACK, font=font)
+        draw.text((321, steps[4]-0), "☐", fill=self.BLACK, font=font)
+        draw.text((320, steps[5]-1), "☐          Steal  ", fill=self.BLACK, font=font)
+        draw.text((321, steps[5]-0), "☐", fill=self.BLACK, font=font)
+        for mystep in steps[1:]:
+            draw.text((650, mystep-1), "☐", fill=self.BLACK, font=font)
+            draw.text((651, mystep-0), "☐", fill=self.BLACK, font=font)
         img.save("data/output.jpg", "JPEG", dpi=(300, 300))
-        os.system(
-            "convert -density 300 -units pixelsperinch data/output.png data/output.jpg"
-        )
+        if self.large:
+            options={"copies": str(self.copies), "page-ranges": "1", "media": "media=custom_61.98x100mm_61.98x100mm"}
+        else:
+            options={"copies": str(self.copies), "page-ranges": "1"}
         cups.Connection().printFile(  # pylint: disable=no-member
             self.printer,
             "data/output.jpg",
             title="Eigendom",
-            options={"copies": str(self.copies), "page-ranges": "1"},
+            options=options,
         )
 
     def barcodenum(self, text):
@@ -335,6 +326,15 @@ class stickers:
 
     def input(self, text):
         if text == "eigendom":
+            self.large = False
+            self.master.donext(self, "eigendomcount")
+            self.master.send_message(True, "message", "Who are you?")
+            self.master.send_message(
+                True, "buttons", json.dumps({"special": "accounts"})
+            )
+            return True
+        if text == "eigendomlarge":
+            self.large = True
             self.master.donext(self, "eigendomcount")
             self.master.send_message(True, "message", "Who are you?")
             self.master.send_message(
@@ -363,6 +363,7 @@ class stickers:
             custom = []
             custom.append({"text": "barcode", "display": "Barcode label"})
             custom.append({"text": "eigendom", "display": "Property label"})
+            custom.append({"text": "eigendomlarge", "display": "Large Property label"})
             custom.append({"text": "foodlabel", "display": "Food label"})
             custom.append({"text": "thtlabel", "display": "THT label"})
             self.master.send_message(
