@@ -78,12 +78,12 @@ class stock:
     def voorraad_amount(self, text):
         try:
             aantal = int(text)
-            if not 0 < aantal < 5000:
+            if not -1 < aantal < 5000:
                 self.master.donext(self, "voorraad_amount")
                 self.master.send_message(
                     True,
                     "message",
-                    "Please enter a number between 1 and 4999, how much "
+                    "Please enter a number between 0 and 4999, how much "
                     + self.prod
                     + " is in stock?",
                 )
