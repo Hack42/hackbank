@@ -39,6 +39,7 @@ class sounds:
         custom.append({"text": "blues", "display": "Jazz Radio Blues"})
         custom.append({"text": "quieter", "display": "Quieter"})
         custom.append({"text": "louder", "display": "Louder"})
+        custom.append({"text": "vergaderen", "display": "Vergaderen!"})
         self.master.send_message(
             True, "buttons", json.dumps({"special": "custom", "custom": custom})
         )
@@ -52,6 +53,9 @@ class sounds:
             return True
         if text == "ns":
             self.master.send_message(False, "sound", "ns.wav")
+            return True
+        if text == "vergaderen":
+            self.master.send_message(False, "sound", "vergaderen.mp3")
             return True
         if text == "deuron":
             pass
