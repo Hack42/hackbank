@@ -209,7 +209,7 @@ class POS:
     def bon(self, bonID):
         if bonID in self.bonnetjes:
             self.open()
-            self.slowwrite(self.bonnetjes[bonID]["bon"].encode())
+            self.slowwrite(self.bonnetjes[bonID]["bon"])
             return True
         return False
 

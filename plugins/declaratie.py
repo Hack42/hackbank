@@ -56,12 +56,13 @@ class declaratie:
             return True
         try:
             value = float(text)
-            if 0 < value < 5000:
+            if -5000 < value < 5000:
                 self.value = value
                 if self.soort == "verkoop":
                     self.master.send_message(
                         True, "message", "Why do you give us E %.2f?" % self.value
                     )
+                    self.value = -self.value
                 elif self.soort == "declaratie":
                     self.master.send_message(
                         True, "message", "Where did you spend E %.2f on?" % self.value
@@ -138,7 +139,7 @@ class declaratie:
             return True
         try:
             value = float(text)
-            if 0 < value < 5000:
+            if -5000 < value < 5000:
                 if value > self.value:
                     return self.askbar(
                         "E %.2f is larger than E %.2f ; " % (value, self.value)
@@ -229,7 +230,7 @@ class declaratie:
             return True
         try:
             value = float(text)
-            if 0 < value < 5000:
+            if -5000 < value < 5000:
                 if value > (self.value - self.asbar - self.ascash):
                     return self.askbank(
                         "E %.2f is larger than E %.2f ; "
