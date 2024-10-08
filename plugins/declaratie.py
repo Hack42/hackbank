@@ -184,7 +184,7 @@ class declaratie:
             return True
         try:
             value = float(text)
-            if 0 < value < 5000:
+            if 0 <= value < 5000:
                 if value > (self.value - self.asbar):
                     return self.askcash(
                         "E %.2f is larger than E %.2f ; "
@@ -194,7 +194,7 @@ class declaratie:
                 if (self.ascash + self.asbar) == self.value:
                     return self.final()
                 return self.askbank("")
-            return self.askcash("Not between 0.01 and 4999.99; ")
+            return self.askcash("Not between 0 and 4999.99; ")
         except:
             traceback.print_exc()
             return self.askcash("")
