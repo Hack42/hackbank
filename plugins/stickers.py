@@ -134,29 +134,54 @@ class stickers:
             options={"copies": str(self.copies), "page-ranges": "1"},
         )
 
-    def foodprint(self):
+    def toolprint(self):
+        if re.compile("^[0-9A-Z]+$").match(self.name):
+            print("Qrcode: alphanum")
+            qrcode_image = pyqrcode.create(
+                self.name, error="L", version=1, mode="alphanumeric"
+            ).png_as_base64_str(scale=5)
+        else:
+            print("Qrcode: binary")
+            qrcode_image = pyqrcode.create(
+                self.name, error="L", version=2, mode="binary"
+            ).png_as_base64_str(scale=5)
+
+        # Create an image object
         img = Image.new("RGB", self.SMALL, self.WHITE)
         draw = ImageDraw.Draw(img)
 
-        LOGO = Image.open(self.LOGOFILE)
-        LOGO = LOGO.resize(
-            self.LOGOSMALLSIZE, resample=Image.LANCZOS  # pylint: disable=no-member
+        # Load the QR code as an image
+        qrcode_img = Image.open(io.BytesIO(base64.b64decode(qrcode_image)))
+
+        # Calculate size for QR code
+        size = self.SMALL[1] // (qrcode_img.size[0] + 4 * self.SPACE)
+        qrcode_img = qrcode_img.resize(
+            (size * qrcode_img.size[0], size * qrcode_img.size[1]),
+            resample=Image.LANCZOS,  # pylint: disable=no-member
         )
-        img.paste(LOGO, (0, 0))
 
+        # Place QR code on the image
+        img.paste(qrcode_img, (self.SPACE, self.SPACE))
+
+        # Load a font
         font = ImageFont.truetype(self.FONT, 40)
-        draw.text((0, self.SMALL[1] - 15), self.name, fill=self.BLACK, font=font)
 
-        font = ImageFont.truetype(self.FONT, 50)
-        draw.text((320, 120), time.strftime("%Y-%m-%d"), fill=self.BLACK, font=font)
+        # Add text to the image
+        draw.text((64, self.SMALL[1]), self.name, fill=self.BLACK, font=font)
 
-        img.save("data/foodout.png")
+        # Save the image
+        img.save("data/toollabel.jpg", "JPEG", dpi=(300, 300))
+
+        # Print the file
+        options={"copies": str(self.copies), "page-ranges": "1", "media": "media=custom_61.98x100mm_61.98x100mm"}
         cups.Connection().printFile(  # pylint: disable=no-member
             self.printer,
-            "data/foodout.png",
-            title="Voedsel",
-            options={"copies": str(self.copies), "page-ranges": "1"},
+            "data/toollabel.jpg",
+            title="Toollabel",
+            options=options,
         )
+
+
 
     def eigendomprint(self):
         img = Image.new("RGB", self.SMALL, self.WHITE)
@@ -309,7 +334,24 @@ class stickers:
         except:
             traceback.print_exc()
             return self.messageandbuttons(
-                "foodnum", "numbers", "NaN ; How many do you want?"
+                "thtnum", "numbers", "NaN ; How many do you want?"
+            )
+
+    def toolnum(self, text):
+        if text == "abort":
+            return self.master.callhook("abort", None)
+        try:
+            self.copies = int(text)
+            if not 0 < self.copies < 100:
+                return self.messageandbuttons(
+                    "toolnum", "numbers", "Only 1 <> 99 allowed; How many do you want?"
+                )
+            self.toolprint()
+            return True
+        except:
+            traceback.print_exc()
+            return self.messageandbuttons(
+                "toolnum", "numbers", "NaN ; How many do you want?"
             )
 
     def foodname(self, text):
@@ -323,6 +365,12 @@ class stickers:
             return self.master.callhook("abort", None)
         self.datum = text
         return self.messageandbuttons("thtnum", "numbers", "How many do you want?")
+
+    def toolname(self, text):
+        if text == "abort":
+            return self.master.callhook("abort", None)
+        self.name = text
+        return self.messageandbuttons("toolnum", "numbers", "How many do you want?")
 
     def input(self, text):
         if text == "eigendom":
@@ -355,6 +403,10 @@ class stickers:
                 True, "buttons", json.dumps({"special": "accounts"})
             )
             return True
+        if text == "toollabel":
+            self.master.donext(self, "toolname")
+            self.master.send_message(True, "message", "What is the Toolname?")
+            return True
         if text == "barcode":
             return self.messageandbuttons(
                 "barcodecount", "products", "What product do you want a barcode for?"
@@ -366,6 +418,7 @@ class stickers:
             custom.append({"text": "eigendomlarge", "display": "Large Property label"})
             custom.append({"text": "foodlabel", "display": "Food label"})
             custom.append({"text": "thtlabel", "display": "THT label"})
+            custom.append({"text": "toollabel", "display": "Tool label"})
             self.master.send_message(
                 True, "buttons", json.dumps({"special": "custom", "custom": custom})
             )
