@@ -147,8 +147,8 @@ def test_hook_abort(mock_readaccounts):
 
     mock_readaccounts.assert_called_once()
     expected_calls = [
-        call(True, 'nonmembers', '["user1"]'),
-        call(True, "accounts/user1", '{"amount": 100.0, "lastupdate": "2021-01-01"}')
+        call(True, "nonmembers", '["user1"]'),
+        call(True, "accounts/user1", '{"amount": 100.0, "lastupdate": "2021-01-01"}'),
     ]
     assert master_mock.send_message.call_args_list == expected_calls
 
@@ -240,7 +240,7 @@ def test_startup(mock_file):
 
     assert acc.members == ["user1", "user2"]
     expected_calls = [
-        call(True, 'nonmembers', '["user2", "user1", "new_user"]'),
+        call(True, "nonmembers", '["user2", "user1", "new_user"]'),
         call(True, "accounts/user1", '{"amount": 100.0, "lastupdate": "2021-01-01"}'),
         call(True, "accounts/user2", '{"amount": 200.0, "lastupdate": "2021-01-02"}'),
         call(True, "accounts/new_user", '{"amount": 0, "lastupdate": "1970-01-01"}'),
