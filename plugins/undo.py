@@ -79,9 +79,8 @@ class undo:
                     ),
                 )
                 return True
-            else:
-                print(self.undo.keys())
-                print(f"transID not in undo: {transID}")
+            print(self.undo.keys())
+            print(f"transID not in undo: {transID}")
             self.listundo()
             return True
         except:
@@ -135,7 +134,7 @@ class undo:
             txt = ""
             for usr in self.undo[transID]["totals"].keys():
                 txt += " €" + "%.2f" % self.undo[transID]["totals"][usr] + " "
-                #txt += usr + " €" + "%.2f" % self.undo[transID]["totals"][usr] + " "
+                # txt += usr + " €" + "%.2f" % self.undo[transID]["totals"][usr] + " "
             txt += time.strftime(
                 "%Y-%m-%d %H:%M:%S", time.localtime(transID + 1300000000)
             )
