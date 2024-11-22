@@ -19,9 +19,13 @@ class accounts:
 
     def get_last_updated_accounts(self):
         # Sort the accounts based on last update time, in descending order
-        sorted_accounts = sorted(self.accounts.items(), key=lambda x: x[1]['lastupdate'], reverse=True)
+        sorted_accounts = sorted(
+            self.accounts.items(), key=lambda x: x[1]["lastupdate"], reverse=True
+        )
         # Extract the account names from the sorted list
-        account_names = [account[0] for account in sorted_accounts if account[0] not in self.members][0:125]
+        account_names = [
+            account[0] for account in sorted_accounts if account[0] not in self.members
+        ][0:125]
         self.master.send_message(True, "nonmembers", json.dumps(account_names))
 
     # Internal functions

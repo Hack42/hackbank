@@ -101,16 +101,15 @@ class Session:
     def donext(self, plug, function):
         self.nextcall = {"plug": plug, "function": function}
 
-
-    def input(self, text):
+    def input(self, text): # pylint: disable=too-many-branches
         if not text:
             self.send_message(True, "message", "Enter product, command or username")
             self.send_message(True, "buttons", json.dumps({}))
             return
-    
+
         self.buttons = {}
         done = 0
-    
+
         for plug, plugin in self.plugins.items():
             try:
                 plugin.pre_input(text)
@@ -118,9 +117,9 @@ class Session:
                 pass
             except:
                 print(traceback.format_exc())
-    
+
         self.prompt = ""
-    
+
         if self.nextcall:
             try:
                 plug = self.nextcall["plug"]
@@ -133,22 +132,22 @@ class Session:
                     done = 1
             except:
                 print(traceback.format_exc())
-    
+
         if done == 0:
             parts = text.split()
             for part in parts:
                 if part:
                     done = self.handle_part(part)  # Call handle_part for each part
-    
+
         if done == 1 and not self.prompt:
             self.send_message(True, "message", "Enter product, command or username")
         elif not self.prompt:
             self.send_message(True, "message", "Unknown product, command or username")
             self.callhook("wrong", ())
-    
+
         if not self.nextcall and not self.buttons:
             self.send_message(True, "buttons", json.dumps({}))
-    
+
     def handle_part(self, part):
         done = 0
         if self.nextcall:
@@ -160,7 +159,7 @@ class Session:
                     done = 1
             except:
                 print(traceback.format_exc())
-    
+
         if done == 0:
             for plug, plugin in self.plugins.items():
                 try:
@@ -171,13 +170,13 @@ class Session:
                     print(traceback.format_exc())
                 except:
                     print(traceback.format_exc())
-    
+
         if done == 0:
             if self.plugins.get("withdraw") and self.plugins["withdraw"].withdraw(part):
                 done = 1
             if self.plugins.get("accounts") and self.plugins["accounts"].newuser(part):
                 done = 1
-    
+
         return done
 
     def send_message(self, retain, topic, message):
