@@ -7,7 +7,6 @@ import base64
 import urllib
 from PIL import Image, ImageDraw, ImageFont
 import pyqrcode
-import cups
 import brother_ql.conversion
 import brother_ql.backends.helpers
 import brother_ql.raster
@@ -92,17 +91,8 @@ class stickers:
             fill=self.BLACK,
             font=font,
         )
+        self.realprint(img)
 
-        # Save the image
-        img.save("data/barcode.jpg", "JPEG", dpi=(300, 300))
-
-        # Print the file
-        cups.Connection().printFile(  # pylint: disable=no-member
-            self.printer,
-            "data/barcode.jpg",
-            "Eigendom",
-            {"copies": str(self.copies), "page-ranges": "1"},
-        )
 
     def thtprint(self):
         # Create an image
@@ -125,17 +115,28 @@ class stickers:
         draw.text((0, self.SMALL[1] - 15), "THT Datum", fill=self.BLACK, font=font)
         font = ImageFont.truetype(self.FONT, 50)
         draw.text((320, 120), self.datum, fill=self.BLACK, font=font)
+        self.realprint(img)
 
-        # Save the image
-        img.save("data/foodout.png")
-
-        # Print the file
-        cups.Connection().printFile(  # pylint: disable=no-member
-            self.printer,
-            "data/foodout.png",
-            title="Voedsel",
-            options={"copies": str(self.copies), "page-ranges": "1"},
-        )
+    def realprint(self, img, rotate="0", copies=1)
+        qlr = brother_ql.raster.BrotherQLRaster(self.MODEL)
+        qlr.exception_on_warning = True
+        printoptions = {
+            "rotate": rotate,
+            "label": "62",
+            "images": (img,),
+            "threshold": 70.0,
+            "dither": False,
+            "compress": False,
+            "red": False,
+            "dpi_600": False,
+            "lq": False,
+            "cut": True,
+        }
+        instructions = brother_ql.conversion.convert(qlr=qlr, **printoptions)
+        for _i in range(copies):
+            brother_ql.backends.helpers.send(
+                instructions=instructions, printer_identifier=self.PRINTER, blocking=True
+            )
 
     def toolprint(self): # pylint: disable=too-many-locals
         FONTSIZE = 80
@@ -170,24 +171,7 @@ class stickers:
             fill=self.BLACK,
             font=font,
         )
-        qlr = brother_ql.raster.BrotherQLRaster(self.MODEL)
-        qlr.exception_on_warning = True
-        printoptions = {
-            "rotate": "90",
-            "label": "62",
-            "images": (img,),
-            "threshold": 70.0,
-            "dither": False,
-            "compress": False,
-            "red": False,
-            "dpi_600": False,
-            "lq": True,
-            "cut": True,
-        }
-        instructions = brother_ql.conversion.convert(qlr=qlr, **printoptions)
-        brother_ql.backends.helpers.send(
-            instructions=instructions, printer_identifier=self.PRINTER, blocking=True
-        )
+        self.realprint(img, "90")
 
     def eigendomprint(self):
         img = Image.new("RGB", self.SMALL, self.WHITE)
@@ -235,21 +219,11 @@ class stickers:
         for mystep in steps[1:]:
             draw.text((650, mystep - 1), "☐", fill=self.BLACK, font=font)
             draw.text((651, mystep - 0), "☐", fill=self.BLACK, font=font)
-        img.save("data/output.jpg", "JPEG", dpi=(300, 300))
         if self.large:
-            options = {
-                "copies": str(self.copies),
-                "page-ranges": "1",
-                "media": "media=custom_61.98x100mm_61.98x100mm",
-            }
+            # TODO: resize
+            self.realprint(img, rotate="90", copies=int(self.copies))
         else:
-            options = {"copies": str(self.copies), "page-ranges": "1"}
-        cups.Connection().printFile(  # pylint: disable=no-member
-            self.printer,
-            "data/output.jpg",
-            title="Eigendom",
-            options=options,
-        )
+            self.realprint(img, copies=int(self.copies))
 
     def barcodenum(self, text):
         if text == "abort":
