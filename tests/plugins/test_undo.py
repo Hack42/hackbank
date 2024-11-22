@@ -109,7 +109,7 @@ def test_undo_listundo():
                 {
                     "special": "custom",
                     "custom": [
-                        {"text": 123, "display": "user \u20ac10.00 2011-03-13 08:08:43"}
+                        {"text": 123, "display": " \u20ac10.00 2011-03-13 08:08:43"}
                     ],
                     "sort": "text",
                 }

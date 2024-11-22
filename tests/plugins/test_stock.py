@@ -310,7 +310,7 @@ def test_stock_voorraad_amount_too_large_number():
             call(
                 True,
                 "message",
-                "Please enter a number between 1 and 4999, how much product1 is in stock?",
+                "Please enter a number between 0 and 4999, how much product1 is in stock?",
             ),
             call(True, "buttons", '{"special": "numbers"}'),
         ]

@@ -18,6 +18,7 @@ class accounts:
         return {"adduseralias": "Add user key alias"}
 
     def get_last_updated_accounts(self):
+        print(self.accounts)
         # Sort the accounts based on last update time, in descending order
         sorted_accounts = sorted(
             self.accounts.items(), key=lambda x: x[1]["lastupdate"], reverse=True

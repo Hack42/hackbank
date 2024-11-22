@@ -8,7 +8,7 @@ from plugins.stickers import stickers
 
 
 @patch("builtins.open")
-@patch("plugins.stickers.cups")
+@patch("plugins.stickers.brother_ql.backends.helpers")
 def test_eigendom(_cups, _open):
     master = Mock()
     sticky = stickers("main", master)
@@ -57,7 +57,7 @@ def test_eigendom(_cups, _open):
 
 
 @patch("builtins.open")
-@patch("plugins.stickers.cups")
+@patch("plugins.stickers.brother_ql.backends.helpers")
 def test_foodlabel(_cups, _open):
     master = Mock()
     sticky = stickers("main", master)
@@ -106,7 +106,7 @@ def test_foodlabel(_cups, _open):
 
 
 @patch("builtins.open")
-@patch("plugins.stickers.cups")
+@patch("plugins.stickers.brother_ql.backends.helpers")
 def test_thtlabel(_cups, _open):
     master = Mock()
     sticky = stickers("main", master)
@@ -153,7 +153,7 @@ def test_thtlabel(_cups, _open):
 
 
 @patch("builtins.open")
-@patch("plugins.stickers.cups")
+@patch("plugins.stickers.brother_ql.backends.helpers")
 def test_barcode(_cups, _open):
     master = Mock()
     product_alias = "testproduct"
