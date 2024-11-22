@@ -3,6 +3,7 @@ import traceback
 import json
 import re
 import io
+import time
 import base64
 import urllib
 from PIL import Image, ImageDraw, ImageFont
@@ -91,6 +92,28 @@ class stickers:
             fill=self.BLACK,
             font=font,
         )
+        self.realprint(img)
+
+    def foodprint(self):
+        img = Image.new("RGB", self.SMALL, self.WHITE)
+        draw = ImageDraw.Draw(img)
+
+        # Load the logo
+        LOGO = Image.open(self.LOGOFILE)
+        LOGO = LOGO.resize(
+            self.LOGOSMALLSIZE, resample=Image.LANCZOS  # pylint: disable=no-member
+        )
+
+        # Paste the logo onto the image
+        img.paste(LOGO, (0, 0))
+
+        # Load a font
+        font = ImageFont.truetype(self.FONT, 40)
+
+        # Add text
+        draw.text((0, self.SMALL[1] - 15), self.name, fill=self.BLACK, font=font)
+        font = ImageFont.truetype(self.FONT, 50)
+        draw.text((320, 120), time.strftime("%Y-%m-%d"), fill=self.BLACK, font=font)
         self.realprint(img)
 
     def thtprint(self):
@@ -221,7 +244,12 @@ class stickers:
             draw.text((650, mystep - 1), "☐", fill=self.BLACK, font=font)
             draw.text((651, mystep - 0), "☐", fill=self.BLACK, font=font)
         if self.large:
-            # TODO: resize
+            scale = self.SMALL[0] / self.SMALL[1]
+            img = img.resize(
+                int(self.SMALL[0] * scale),
+                int(self.SMALL[1] * scale),
+                Image.Resampling.LANCZOS,
+            )
             self.realprint(img, rotate="90", copies=int(self.copies))
         else:
             self.realprint(img, copies=int(self.copies))
