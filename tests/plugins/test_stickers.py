@@ -166,8 +166,8 @@ def test_barcode(_cups, _open):
         "description": "Test Description",
     }
     master.products.products = Mock()
-    master.products.products.get.side_effect = (
-        lambda k: product_data if k == product_alias else None
+    master.products.products.get.side_effect = lambda k: (
+        product_data if k == product_alias else None
     )
 
     sticky = stickers("main", master)
