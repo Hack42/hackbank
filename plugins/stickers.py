@@ -93,7 +93,6 @@ class stickers:
         )
         self.realprint(img)
 
-
     def thtprint(self):
         # Create an image
         img = Image.new("RGB", self.SMALL, self.WHITE)
@@ -117,7 +116,7 @@ class stickers:
         draw.text((320, 120), self.datum, fill=self.BLACK, font=font)
         self.realprint(img)
 
-    def realprint(self, img, rotate="0", copies=1)
+    def realprint(self, img, rotate="0", copies=1):
         qlr = brother_ql.raster.BrotherQLRaster(self.MODEL)
         qlr.exception_on_warning = True
         printoptions = {
@@ -135,10 +134,12 @@ class stickers:
         instructions = brother_ql.conversion.convert(qlr=qlr, **printoptions)
         for _i in range(copies):
             brother_ql.backends.helpers.send(
-                instructions=instructions, printer_identifier=self.PRINTER, blocking=True
+                instructions=instructions,
+                printer_identifier=self.PRINTER,
+                blocking=True,
             )
 
-    def toolprint(self): # pylint: disable=too-many-locals
+    def toolprint(self):  # pylint: disable=too-many-locals
         FONTSIZE = 80
         LABELSIZE = 696  # 62 mm at 300 DPI
         MARGIN = 32
@@ -367,7 +368,7 @@ class stickers:
         self.name = text
         return self.messageandbuttons("toolnum", "numbers", "How many do you want?")
 
-    def input(self, text): # pylint: disable=too-many-return-statements
+    def input(self, text):  # pylint: disable=too-many-return-statements
         if text == "eigendom":
             self.large = False
             self.master.donext(self, "eigendomcount")

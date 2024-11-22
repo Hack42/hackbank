@@ -101,7 +101,7 @@ class Session:
     def donext(self, plug, function):
         self.nextcall = {"plug": plug, "function": function}
 
-    def input(self, text): # pylint: disable=too-many-branches
+    def input(self, text):  # pylint: disable=too-many-branches
         if not text:
             self.send_message(True, "message", "Enter product, command or username")
             self.send_message(True, "buttons", json.dumps({}))
