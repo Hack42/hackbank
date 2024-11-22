@@ -21,8 +21,8 @@ class stickers:
     LOGOFILE = "images/hack42.png"
     FONT = "images/arialbd.ttf"
     printer = "QL710W"
-    PRINTER = "tcp://172.16.22.149:9100"
-    MODEL = "QL-810W"
+    PRINTER = "tcp://192.168.42.167:9100"
+    MODEL = "QL-710W"
     SPACE = (
         0  # spacing around qrcode, should be 4 but our printer prints on white labels
     )
