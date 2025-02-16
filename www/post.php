@@ -7,6 +7,7 @@ if (empty($mqtt_host)) {
   $mqtt_host = "localhost";
 }
 
+use Bluerhinos\phpMQTT;
 $mqtt = new phpMQTT($mqtt_host, 1883, "barclient".rand());
 if($mqtt->connect()){
   $mqtt->publish("hack42bar/input/".$_REQUEST['topic'],$_REQUEST['msg'],1);
