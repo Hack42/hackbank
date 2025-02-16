@@ -19,7 +19,7 @@ $mqtt_host = $_ENV["MQTT_HOST"];
 if (empty($mqtt_host)) {
   $mqtt_host = "localhost";
 }
-
+use Bluerhinos\phpMQTT;
 $mqtt = new phpMQTT($mqtt_host, 1883, "barclient".rand());
 if(!$mqtt->connect()){
 	exit(1);
