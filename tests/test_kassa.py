@@ -256,7 +256,9 @@ def test_startup_handles_help_and_plugin_startup_errors():
     def import_from(_module, name):
         return plugin_classes[name]
 
-    with patch("glob.glob", return_value=[f"plugins/{name}.py" for name in plugin_classes]):
+    with patch(
+        "glob.glob", return_value=[f"plugins/{name}.py" for name in plugin_classes]
+    ):
         session.import_from = Mock(side_effect=import_from)
         session.startup()
 

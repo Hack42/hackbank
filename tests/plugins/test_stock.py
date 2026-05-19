@@ -90,6 +90,7 @@ def test_stock_hook_checkout_initializes_missing_stock_product():
 
     assert stock.stock["product1"] == -2
 
+
 def test_stock_voorraad():
     master_mock = Mock()
     stock = stock_module.stock("SID", master_mock)
