@@ -256,7 +256,7 @@ def test_toollabel_flow():
     sticky.master.donext.assert_called_with(sticky, "toolnum")
 
 
-@patch("plugins.stickers.cups")
+@patch("plugins.stickers.brother_ql.backends.helpers")
 def test_toolnum_prints_label(_cups):
     master = Mock()
     sticky = stickers("main", master)
@@ -266,7 +266,7 @@ def test_toolnum_prints_label(_cups):
     assert sticky.copies == 1
 
 
-@patch("plugins.stickers.cups")
+@patch("plugins.stickers.brother_ql.backends.helpers")
 def test_toolprint_binary_qrcode_path(_cups):
     sticky = stickers("main", Mock())
     sticky.name = "tool-42"
@@ -275,7 +275,7 @@ def test_toolprint_binary_qrcode_path(_cups):
     sticky.toolprint()
 
 
-@patch("plugins.stickers.cups")
+@patch("plugins.stickers.brother_ql.backends.helpers")
 def test_direct_print_methods_cover_binary_and_food_paths(_cups):
     master = Mock()
     sticky = stickers("main", master)
@@ -355,7 +355,7 @@ def test_large_property_label_sets_large_flag():
     sticky.master.donext.assert_called_with(sticky, "eigendomcount")
 
 
-@patch("plugins.stickers.cups")
+@patch("plugins.stickers.brother_ql.backends.helpers")
 def test_eigendomprint_large_options(_cups):
     sticky = stickers("main", Mock())
     sticky.LOGOFILE = io.BytesIO(
