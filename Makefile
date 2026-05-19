@@ -7,8 +7,6 @@ venv: .venv/make_venv_complete ## Create virtual environment
 	${PYTHON} -m venv .venv
 	. .venv/bin/activate && ${env} pip install -U pip
 	. .venv/bin/activate && ${env} pip install -U pip-tools
-	. .venv/bin/activate && ${env} ${PYTHON} -m piptools compile requirements.in
-	. .venv/bin/activate && ${env} ${PYTHON} -m piptools compile requirements-dev.in
 	. .venv/bin/activate && ${env} pip install -Ur requirements.txt
 	. .venv/bin/activate && ${env} pip install -Ur requirements-dev.txt
 	touch .venv/make_venv_complete
