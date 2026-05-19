@@ -22,6 +22,24 @@ class TestHistorie:
             result = list(self.historie.reverse_readline("testfile.txt"))
             assert result == ["Line4", "Line3", "Line2", "Line1"]
 
+    def test_reverse_readline_yields_segment_on_newline_boundary(self, tmp_path):
+        log_file = tmp_path / "revbank.log"
+        log_file.write_text("abc\ndef\n", encoding="utf-8")
+
+        assert list(self.historie.reverse_readline(log_file, buf_size=4)) == [
+            "def",
+            "abc",
+        ]
+
+    def test_reverse_readline_joins_segment_across_chunks(self, tmp_path):
+        log_file = tmp_path / "revbank.log"
+        log_file.write_text("abc\ndef", encoding="utf-8")
+
+        assert list(self.historie.reverse_readline(log_file, buf_size=4)) == [
+            "def",
+            "abc",
+        ]
+
     def test_history_valid_user(self):
         self.historie.master.accounts.accounts = {"user1": {}}
         with patch.object(
@@ -36,7 +54,7 @@ class TestHistorie:
             assert self.historie.history("abort")
             self.historie.master.callhook.assert_called_with("abort", None)
 
-    def test_history_unknown_user(self):
+    def test_history_unknown_user_without_patches(self):
         self.historie.master.accounts.accounts = {}
         with patch.object(self.historie.master, "donext"), patch.object(
             self.historie.master, "send_message"

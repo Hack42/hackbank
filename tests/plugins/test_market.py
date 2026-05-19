@@ -101,6 +101,17 @@ class TestMarket:
             assert self.market.savealias("alias1") is True
             assert self.market.savealias("bad!") is True
 
+    def test_savealias_valid_new_alias(self):
+        self.market.products = {"product1": {"aliases": []}}
+        self.market.aliasprod = "product1"
+
+        with patch.object(self.market, "readproducts"), patch.object(
+            self.market, "writeproducts"
+        ):
+            assert self.market.savealias("alias123") is True
+
+        assert self.market.products["product1"]["aliases"] == ["alias123"]
+
     def test_addalias(self):
         self.market.products = {"product1": {"aliases": []}}
         assert self.market.addalias("product1")
@@ -260,3 +271,14 @@ class TestMarket:
     def test_input_market(self):
         self.market.products = {}
         assert self.market.input("market")
+
+    def test_input_market_lists_products(self):
+        self.market.products = {
+            "product1": {"description": "Description", "price": 2.0, "space": 0.5}
+        }
+
+        assert self.market.input("market")
+        payload = self.master_mock.send_message.call_args[0][2]
+        assert json.loads(payload)["custom"] == [
+            {"text": "product1", "display": "Description", "right": "2.50 (0.50)"}
+        ]

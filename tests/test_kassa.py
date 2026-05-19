@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from unittest.mock import Mock, patch, call
 import kassa
 
@@ -187,12 +188,7 @@ def test_input_attribute_error_handling():
     # Remove the pre_input method to raise an AttributeError
     del plugin_mock.pre_input
 
-    # No exception should be raised when calling input
-    try:
-        session.input("test_input")
-        assert True  # Pass the test if no exception is raised
-    except AttributeError:
-        assert False  # Fail the test if AttributeError is raised
+    session.input("test_input")
 
 
 def test_input_generic_exception_handling():
@@ -204,12 +200,7 @@ def test_input_generic_exception_handling():
     # Setup the plugin to raise an exception
     plugin_mock.pre_input.side_effect = Exception("Test exception")
 
-    # No exception should be propagated when calling input
-    try:
-        session.input("test_input")
-        assert True  # Pass the test if no exception is raised
-    except Exception:
-        assert False  # Fail the test if any exception is propagated
+    session.input("test_input")
 
 
 def test_input_with_nextcall_successful():
@@ -300,6 +291,13 @@ def test_realcallhook_handles_plugin_hook_exception():
     session.realcallhook("test_hook", "test_arg")
 
     plugin_mock.hook_test_hook.assert_called_with("test_arg")
+
+
+def test_realcallhook_ignores_plugins_without_hook():
+    session = kassa.Session("SID", Mock())
+    session.plugins = {"plain": object()}
+
+    session.realcallhook("missing", "arg")
 
 
 def test_handle_nextcall_missing_and_exception():
@@ -404,6 +402,20 @@ def test_get_session_reuses_existing_session():
         client_mock.publish.assert_not_called()
 
 
+def test_get_session_starts_new_session():
+    client_mock = Mock()
+    session_mock = Mock()
+
+    with patch.dict(kassa.sessions, {}, clear=True), patch(
+        "kassa.Session", return_value=session_mock
+    ) as session_class:
+        assert kassa.get_session("SID", client_mock) is session_mock
+
+    session_class.assert_called_with("SID", client_mock)
+    session_mock.startup.assert_called_once()
+    client_mock.publish.assert_called_with("hack42bar/output/sessions", '["SID"]')
+
+
 def test_run_session_unhandled_action(capsys):
     kassa.run_session(Mock(), "SID", "unknown", b"data")
     assert "unhandled unknown" in capsys.readouterr().out
@@ -434,3 +446,37 @@ def test_run_sets_up_client_and_stops_on_keyboard_interrupt():
 
     client_mock.connect.assert_called_with("localhost", 1883, 60)
     client_mock.loop_start.assert_called_once()
+
+
+def test_startup_removes_module_in_second_import_pass():
+    client_mock = Mock()
+    session = kassa.Session("SID", client_mock)
+
+    class GoodPlugin:
+        def __init__(self, SID, master):
+            self.SID = SID
+            self.master = master
+
+        def help(self):
+            return {}
+
+        def startup(self):
+            return None
+
+    names = ["receipt", "accounts", "products", "stock", "log", "POS", "existing"]
+
+    with patch.dict(kassa.sys.modules, {"existing": Mock()}), patch(
+        "glob.glob", side_effect=[[], [f"plugins/{name}.py" for name in names]]
+    ):
+        session.import_from = Mock(return_value=GoodPlugin)
+        session.startup()
+
+    assert "existing" not in kassa.sys.modules
+
+
+def test_module_main_guard_calls_run_without_looping():
+    source_path = Path(kassa.__file__).resolve()
+    source = source_path.read_text(encoding="utf-8")
+    source = source.replace("    while 1:\n", "    if False:\n", 1)
+
+    exec(compile(source, str(source_path), "exec"), {"__name__": "__main__"})

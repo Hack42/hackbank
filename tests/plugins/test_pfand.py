@@ -15,6 +15,9 @@ class TestPfand:
             True, 1.0, "Pfand Description", 1, "Beni", "pfand_prod1"
         )
 
+    def test_help(self):
+        assert self.pfand.help() == {"pfand": "Return deposit"}
+
     def test_listpfand(self):
         self.pfand.products = {"prod1": 1.0}
         # Mocking the required properties of master.products
@@ -39,10 +42,17 @@ class TestPfand:
             assert self.pfand.pfand("prod2") is True
             self.pfand.listpfand.assert_called()
 
+    def test_pfand_abort(self):
+        assert self.pfand.pfand("abort") is True
+        self.master_mock.callhook.assert_called_with("abort", None)
+
     def test_input(self):
         with patch.object(self.pfand, "listpfand"):
             assert self.pfand.input("pfand") is True
             self.pfand.listpfand.assert_called()
+
+    def test_input_other(self):
+        assert self.pfand.input("other") is None
 
     def test_loadmarket(self):
         market_data = "prod1 1.0\nprod2 2.0\n"

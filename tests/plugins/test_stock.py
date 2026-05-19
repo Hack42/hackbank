@@ -8,6 +8,19 @@ def test_stock_constructor():
     stock = stock_module.stock("SID", master_mock)
     assert stock.SID == "SID"
     assert stock.master == master_mock
+    assert stock.stock == {}
+    assert stock.stockalias == {}
+
+
+def test_stock_instances_do_not_share_state():
+    first = stock_module.stock("SID1", Mock())
+    first.stock["product1"] = 1
+    first.stockalias["alias1"] = {"prod": "product1", "multi": 2}
+
+    second = stock_module.stock("SID2", Mock())
+
+    assert second.stock == {}
+    assert second.stockalias == {}
 
 
 def test_stock_help():
@@ -28,6 +41,17 @@ def test_stock_addstock():
     with patch.object(stock, "readstock"), patch.object(stock, "writestock"):
         stock.addstock("product1", 5)
         assert stock.stock["product1"] == 20
+
+
+def test_stock_addstock_initializes_missing_product():
+    master_mock = Mock()
+    stock = stock_module.stock("SID", master_mock)
+    stock.stock = {}
+
+    with patch.object(stock, "readstock"), patch.object(stock, "writestock"):
+        stock.addstock("product1", 5)
+
+    assert stock.stock["product1"] == 5
 
 
 def test_stock_setstock():
@@ -53,6 +77,19 @@ def test_stock_hook_checkout():
         assert stock.stock["product1"] == 19
 
 
+def test_stock_hook_checkout_initializes_missing_stock_product():
+    master_mock = Mock()
+    stock = stock_module.stock("SID", master_mock)
+    stock.stock = {}
+    stock.stockalias = {}
+    master_mock.receipt = Mock(receipt=[{"product": "product1", "count": 2}])
+    master_mock.products = Mock(products={"product1": "data"})
+
+    with patch.object(stock, "readstock"), patch.object(stock, "writestock"):
+        stock.hook_checkout(None)
+
+    assert stock.stock["product1"] == -2
+
 def test_stock_voorraad():
     master_mock = Mock()
     stock = stock_module.stock("SID", master_mock)
@@ -73,7 +110,7 @@ def test_stock_inkoop():
         stock.master.donext.assert_called_with(stock, "inkoop_amount")
 
 
-def test_stock_voorraad_amount_valid():
+def test_stock_voorraad_amount_valid_with_patched_setstock():
     master_mock = Mock()
     stock = stock_module.stock("SID", master_mock)
     stock.prod = "product1"
@@ -102,7 +139,7 @@ def test_stock_hook_abort():
         stock.startup.assert_called_with()
 
 
-def test_stock_startup():
+def test_stock_startup_with_patched_readstock():
     master_mock = Mock()
     stock = stock_module.stock("SID", master_mock)
 
@@ -175,7 +212,7 @@ def test_stock_input_inkoop():
     )
 
 
-def test_stock_voorraad_amount_not_a_number():
+def test_stock_voorraad_amount_not_a_number_message():
     master_mock = Mock()
     stock = stock_module.stock("SID", master_mock)
     stock.prod = "product1"
@@ -190,7 +227,7 @@ def test_stock_voorraad_amount_not_a_number():
     )
 
 
-def test_stock_voorraad_amount_abort():
+def test_stock_voorraad_amount_abort_message():
     master_mock = Mock()
     stock = stock_module.stock("SID", master_mock)
     stock.prod = "product1"
@@ -261,7 +298,7 @@ def test_stock_inkoop_abort():
     master_mock.callhook.assert_called_with("abort", None)
 
 
-def test_stock_inkoop_unknown_product():
+def test_stock_inkoop_unknown_product_message():
     master_mock = Mock()
     stock = stock_module.stock("SID", master_mock)
     master_mock.products = Mock(lookupprod=Mock(return_value=None))
@@ -387,14 +424,17 @@ def test_stock_hook_checkout_no_product():
 def test_stock_startup():
     master_mock = Mock()
     stock = stock_module.stock("SID", master_mock)
+    stock.stock = {"product1": 10, "product2": 20}
 
     with patch.object(stock, "readstock"):
         stock.startup()
         stock.readstock.assert_called()
-        for prod, product in stock.stock.items():
-            master_mock.send_message.assert_called_with(
-                True, "stock/" + prod, json.dumps(product)
-            )
+        master_mock.send_message.assert_has_calls(
+            [
+                call(True, "stock/product1", json.dumps(10)),
+                call(True, "stock/product2", json.dumps(20)),
+            ]
+        )
 
 
 def test_stock_hook_checkout_error_handling():

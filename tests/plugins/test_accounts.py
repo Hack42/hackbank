@@ -54,10 +54,8 @@ def test_readaccounts():
     def custom_mock_open(filename, _bla, _bla2):
         if filename == "data/revbank.accounts":
             return mock_open(read_data=mock_accounts_data)()
-        elif filename == "data/revbank.aliases":
+        if filename == "data/revbank.aliases":
             return mock_open(read_data=mock_aliases_data)()
-        else:
-            return mock_open()()  # Default mock
 
     with patch(
         "plugins.accounts.codecs.open", side_effect=custom_mock_open
@@ -244,10 +242,8 @@ def test_startup(mock_file):
     def custom_mock_open(filename, _bla, _bla2):
         if filename == "data/revbank.accounts":
             return mock_open(read_data=mock_accounts_data)()
-        elif filename == "data/revbank.aliases":
+        if filename == "data/revbank.aliases":
             return mock_open(read_data=mock_aliases_data)()
-        else:
-            return mock_open()()  # Default mock
 
     with patch(
         "plugins.accounts.codecs.open", side_effect=custom_mock_open

@@ -37,7 +37,7 @@ class TestDeclaratie:
             mock_donext.assert_called_with(self.declaratie, "who")
             mock_send_message.assert_called()
 
-    def test_who_abort(self):
+    def test_who_abort_original(self):
         self.master_mock.accounts.accounts = {}
         with patch.object(self.declaratie.master, "callhook") as mock_callhook:
             assert self.declaratie.who("abort")
@@ -54,7 +54,7 @@ class TestDeclaratie:
             mock_donext.assert_called_with(self.declaratie, "reason")
             mock_send_message.assert_called()
 
-    def test_amount_invalid(self):
+    def test_amount_invalid_original(self):
         self.declaratie.soort = "declaratie"
         with patch.object(
             self.declaratie.master, "donext"
@@ -65,10 +65,25 @@ class TestDeclaratie:
             mock_donext.assert_called_with(self.declaratie, "amount")
             mock_send_message.assert_called()
 
-    def test_amount_abort(self):
+    def test_amount_abort_original(self):
         with patch.object(self.declaratie.master, "callhook") as mock_callhook:
             assert self.declaratie.amount("abort")
             mock_callhook.assert_called_with("abort", None)
+
+    def test_amount_abort_inside_exception_branch(self):
+        class DelayedAbort:
+            def __init__(self):
+                self.calls = 0
+
+            def __eq__(self, other):
+                self.calls += 1
+                return self.calls > 1 and other == "abort"
+
+            def __float__(self):
+                raise ValueError("not numeric")
+
+        assert self.declaratie.amount(DelayedAbort()) is True
+        self.master_mock.callhook.assert_called_with("abort", None)
 
     def test_reason(self):
         self.declaratie.master.donext = Mock()
@@ -83,6 +98,26 @@ class TestDeclaratie:
         assert self.declaratie.askbar("")
         self.declaratie.master.donext.assert_called_with(self.declaratie, "runasbar")
         self.declaratie.master.send_message.assert_called()
+
+    def test_declaratie_specific_ask_messages(self):
+        self.declaratie.soort = "declaratie"
+
+        assert self.declaratie.askbar("")
+        self.master_mock.send_message.assert_any_call(
+            True, "message", "How much do you want on your bar account?"
+        )
+
+        self.master_mock.reset_mock()
+        assert self.declaratie.askcash("")
+        self.master_mock.send_message.assert_any_call(
+            True, "message", "How much do you want in cash?"
+        )
+
+        self.master_mock.reset_mock()
+        assert self.declaratie.askbank("")
+        self.master_mock.send_message.assert_any_call(
+            True, "message", "How much do you want in your bankaccount?"
+        )
 
     def test_runasbar_valid(self):
         self.declaratie.value = 100

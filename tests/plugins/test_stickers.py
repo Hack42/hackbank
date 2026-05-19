@@ -267,6 +267,15 @@ def test_toolnum_prints_label(_cups):
 
 
 @patch("plugins.stickers.cups")
+def test_toolprint_binary_qrcode_path(_cups):
+    sticky = stickers("main", Mock())
+    sticky.name = "tool-42"
+    sticky.copies = 1
+
+    sticky.toolprint()
+
+
+@patch("plugins.stickers.cups")
 def test_direct_print_methods_cover_binary_and_food_paths(_cups):
     master = Mock()
     sticky = stickers("main", master)
@@ -344,6 +353,21 @@ def test_large_property_label_sets_large_flag():
     assert sticky.input("eigendomlarge")
     assert sticky.large is True
     sticky.master.donext.assert_called_with(sticky, "eigendomcount")
+
+
+@patch("plugins.stickers.cups")
+def test_eigendomprint_large_options(_cups):
+    sticky = stickers("main", Mock())
+    sticky.LOGOFILE = io.BytesIO(
+        base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFhAJ/wlseKgAAAABJRU5ErkJggg=="
+        )
+    )
+    sticky.name = "BugBlue"
+    sticky.copies = 1
+    sticky.large = True
+
+    sticky.eigendomprint()
 
 
 def test_startup_is_noop():

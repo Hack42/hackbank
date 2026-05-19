@@ -9,6 +9,9 @@ class stock:
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
+        self.stock = {}
+        self.prod = ""
+        self.stockalias = {}
 
     def help(self):
         return {

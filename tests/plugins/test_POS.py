@@ -162,6 +162,7 @@ class TestPOS:
             self.POS.bon.assert_called_with(123)
 
     def test_selectbon_abort_and_missing_int(self):
+        self.POS.bonnetjes = {}
         with patch.object(self.POS, "listbons") as mock_listbons:
             assert self.POS.selectbon("abort")
             self.master_mock.callhook.assert_called_with("abort", None)

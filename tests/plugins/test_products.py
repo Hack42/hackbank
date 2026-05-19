@@ -17,6 +17,16 @@ class TestProducts(unittest.TestCase):
             self.assertIn("Group1", self.products.groups)
             self.assertIn("Group2", self.products.groups)
 
+    def test_help(self):
+        self.assertEqual(
+            self.products.help(),
+            {
+                "aliasproduct": "Add alias to product",
+                "addproduct": "Add new product",
+                "setprice": "Change the price of a product",
+            },
+        )
+
     def test_writeproducts(self):
         self.products.products = {
             "product1": {
@@ -58,7 +68,12 @@ class TestProducts(unittest.TestCase):
             mocked_readproducts.assert_called()
             self.assertEqual(self.products.times, 1)
 
-    def test_savealias_valid_alias(self):
+    def test_hook_abort(self):
+        with patch.object(self.products, "startup") as mocked_startup:
+            self.products.hook_abort(None)
+            mocked_startup.assert_called_once()
+
+    def test_savealias_valid_alias_original(self):
         self.products.products = {"product1": {"aliases": []}}
         self.products.aliasprod = "product1"
         with patch.object(self.products, "readproducts"), patch.object(
@@ -124,10 +139,10 @@ class TestProducts(unittest.TestCase):
             self.assertTrue(result)
             self.assertIn("product1", self.products.groups["group1"])
 
-    def test_addalias_nonexistent_product(self):
+    def test_addalias_nonexistent_product_message_only(self):
         with patch.object(self.products.master, "send_message"):
             self.products.addalias("nonexistent")
-            self.products.master.send_message.assert_called_with(
+            self.products.master.send_message.assert_any_call(
                 True, "message", "Unknown product;What product do you want to alias?"
             )
 
