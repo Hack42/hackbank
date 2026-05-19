@@ -2,45 +2,38 @@ name: Testing
 
 on:
   push:
-    branches: [ develop, master ]
+    branches: [develop, master]
   pull_request:
-    branches: [ develop, master ]
+    branches: [develop, master]
+
+env:
+  PYTHON: python3.11
 
 jobs:
-  code-quality:
+  test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [ 3.6 ]
-    continue-on-error: false
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
       - name: Install dependencies
         run: |
-          sudo apt-get update
           python -m pip install --upgrade pip
-          python -m pip install --upgrade pip-tools
           make venv
-      - uses: actions/cache@v2
-        id: cache-venv
-        with:
-          path: ./.venv/  # we cache: the virtualenv
-          # The cache key depends on requirements*.txt
-          key: v4-${{ runner.os }}-${{ matrix.python-version }}-venv-${{ hashFiles('**/requirements*.txt') }}
-          restore-keys: |
-            v4-${{ runner.os }}-${{ matrix.python-version }}-venv-
-      # Build a virtualenv, but only if it doesn't already exist
-      - name: Make venv
-        run: make venv
-        if: steps.cache-venv.outputs.cache-hit != 'true'
-      - name: Sync dependencies
-        run: make pip-sync-dev
-      - name: Check linting
+          make pip-sync-dev
+
+      - name: Run lint and formatting checks
         run: make lint
-      - name: Testing
+
+      - name: Run tests
         run: make test

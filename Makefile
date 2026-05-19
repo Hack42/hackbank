@@ -24,10 +24,10 @@ pip-sync-dev: ## synchronizes the .venv with the state of requirements.txt
 
 lint: venv  ## Do basic linting
 	@. .venv/bin/activate && ${env} ${PYTHON} -m pylint --persistent=no kassa.py plugins
-	@. .venv/bin/activate && ${env} ${PYTHON} -m black --check .
+	@. .venv/bin/activate && ${env} ${PYTHON} -m black --check kassa.py plugins tests
 
 check-types: venv ## Check for type issues with mypy
 	@. .venv/bin/activate && ${env} ${PYTHON} -m mypy --check .
 
 fix:
-	@. .venv/bin/activate && ${env} ${PYTHON} -m black .
+	@. .venv/bin/activate && ${env} ${PYTHON} -m black kassa.py plugins tests
