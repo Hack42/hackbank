@@ -7,6 +7,8 @@ def test_session_startup():
     client_mock = Mock()
     session = kassa.Session("SID", client_mock)
 
+    mock_plugin = Mock()
+    mock_plugin.help.return_value = {"command": "description"}
     with patch(
         "glob.glob",
         return_value=[
@@ -19,7 +21,7 @@ def test_session_startup():
             "plugins/log.py",
             "plugins/POS.py",
         ],
-    ), patch("builtins.__import__", return_value=Mock()), patch(
+    ), patch("builtins.__import__", return_value=mock_plugin), patch(
         "kassa.Session.send_message"
     ) as mock_send_message:
         session.startup()
