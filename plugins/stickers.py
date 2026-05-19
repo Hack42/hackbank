@@ -2,23 +2,27 @@
 import traceback
 import json
 import re
-import time
 import io
+import time
 import base64
+import urllib
 from PIL import Image, ImageDraw, ImageFont
 import pyqrcode
-import cups
+import brother_ql.conversion
+import brother_ql.backends.helpers
+import brother_ql.raster
 
 
 class stickers:
-    SMALL = (690, 271)
+    SMALL = (696, 271)
     LOGOSMALLSIZE = (309, 200)
     WHITE = (255, 255, 255)
     BLACK = (0, 0, 0)
     LOGOFILE = "images/hack42.png"
     FONT = "images/arialbd.ttf"
     printer = "QL710W"
-    printer = "QL710W"
+    PRINTER = "tcp://192.168.42.167:9100"
+    MODEL = "QL-710W"
     SPACE = (
         0  # spacing around qrcode, should be 4 but our printer prints on white labels
     )
@@ -88,17 +92,29 @@ class stickers:
             fill=self.BLACK,
             font=font,
         )
+        self.realprint(img)
 
-        # Save the image
-        img.save("data/barcode.jpg", "JPEG", dpi=(300, 300))
+    def foodprint(self):
+        img = Image.new("RGB", self.SMALL, self.WHITE)
+        draw = ImageDraw.Draw(img)
 
-        # Print the file
-        cups.Connection().printFile(  # pylint: disable=no-member
-            self.printer,
-            "data/barcode.jpg",
-            "Eigendom",
-            {"copies": str(self.copies), "page-ranges": "1"},
+        # Load the logo
+        LOGO = Image.open(self.LOGOFILE)
+        LOGO = LOGO.resize(
+            self.LOGOSMALLSIZE, resample=Image.LANCZOS  # pylint: disable=no-member
         )
+
+        # Paste the logo onto the image
+        img.paste(LOGO, (0, 0))
+
+        # Load a font
+        font = ImageFont.truetype(self.FONT, 40)
+
+        # Add text
+        draw.text((0, self.SMALL[1] - 15), self.name, fill=self.BLACK, font=font)
+        font = ImageFont.truetype(self.FONT, 50)
+        draw.text((320, 120), time.strftime("%Y-%m-%d"), fill=self.BLACK, font=font)
+        self.realprint(img)
 
     def thtprint(self):
         # Create an image
@@ -121,16 +137,37 @@ class stickers:
         draw.text((0, self.SMALL[1] - 15), "THT Datum", fill=self.BLACK, font=font)
         font = ImageFont.truetype(self.FONT, 50)
         draw.text((320, 120), self.datum, fill=self.BLACK, font=font)
+        self.realprint(img)
 
-        # Save the image
-        img.save("data/foodout.png")
+    def realprint(self, img, rotate="0", copies=1):
+        qlr = brother_ql.raster.BrotherQLRaster(self.MODEL)
+        qlr.exception_on_warning = True
+        printoptions = {
+            "rotate": rotate,
+            "label": "62",
+            "images": (img,),
+            "threshold": 70.0,
+            "dither": False,
+            "compress": False,
+            "red": False,
+            "dpi_600": False,
+            "lq": False,
+            "cut": True,
+        }
+        instructions = brother_ql.conversion.convert(qlr=qlr, **printoptions)
+        for _i in range(copies):
+            brother_ql.backends.helpers.send(
+                instructions=instructions,
+                printer_identifier=self.PRINTER,
+                blocking=True,
+            )
 
-        # Print the file
-        cups.Connection().printFile(  # pylint: disable=no-member
-            self.printer,
-            "data/foodout.png",
-            title="Voedsel",
-            options={"copies": str(self.copies), "page-ranges": "1"},
+    def toolprint(self):  # pylint: disable=too-many-locals
+        FONTSIZE = 80
+        LABELSIZE = 696  # 62 mm at 300 DPI
+        MARGIN = 32
+        qrname = "https://hack42.nl/wiki/Tool:" + urllib.parse.quote(
+            self.name.replace(" ", "_")
         )
 
     def foodprint(self):
@@ -164,20 +201,21 @@ class stickers:
     def toolprint(self):
         if re.compile("^[0-9A-Z]+$").match(self.name):
             print("Qrcode: alphanum")
-            qrcode_image = pyqrcode.create(
-                self.name, error="L", version=1, mode="alphanumeric"
-            ).png_as_base64_str(scale=5)
+            qrcode_image = pyqrcode.create(qrname, error="L", mode="alphanumeric")
         else:
             print("Qrcode: binary")
-            qrcode_image = pyqrcode.create(
-                self.name, error="L", version=2, mode="binary"
-            ).png_as_base64_str(scale=5)
-
-        # Create an image object
-        img = Image.new("RGB", self.SMALL, self.WHITE)
+            qrcode_image = pyqrcode.create(qrname, error="L", mode="binary")
+        qrcode_image = qrcode_image.png_as_base64_str(
+            scale=int((LABELSIZE - MARGIN) / qrcode_image.get_png_size())
+        )
+        font = ImageFont.truetype(self.FONT, FONTSIZE)
+        txtsize = font.getbbox(self.name)
+        imagewidth = (
+            LABELSIZE if txtsize[2] < (LABELSIZE - MARGIN) else txtsize[2] + MARGIN,
+            LABELSIZE,
+        )
+        img = Image.new("RGB", imagewidth, self.WHITE)
         draw = ImageDraw.Draw(img)
-
-        # Load the QR code as an image
         qrcode_img = Image.open(io.BytesIO(base64.b64decode(qrcode_image)))
 
         # Calculate size for QR code

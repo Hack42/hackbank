@@ -1,10 +1,4 @@
-paho-mqtt
-PyQRCode
-Pillow
-cups
-serial
 pytest
-pypng
 pytest-cov
 black
 pip-tools
