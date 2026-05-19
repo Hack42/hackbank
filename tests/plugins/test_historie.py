@@ -60,3 +60,29 @@ class TestHistorie:
         self.master_mock.accounts.accounts = {}
         result = self.historie.history("nonexistent_user")
         assert result is True
+
+    def test_help_and_startup(self):
+        assert self.historie.help() == {"history": "User History"}
+        assert self.historie.startup() is None
+
+    def test_reversesearch_returns_after_201_matches(self):
+        with patch.object(
+            self.historie,
+            "reverse_readline",
+            return_value=[f"{i} needle" for i in range(250)],
+        ):
+            lines = self.historie.reversesearch("needle")
+
+        assert len(lines) == 201
+        assert lines[0] == "200 needle"
+        assert lines[-1] == "0 needle"
+
+    def test_reversesearch_ignores_lines_without_match_after_position_zero(self):
+        with patch.object(
+            self.historie,
+            "reverse_readline",
+            return_value=["needle at zero", "x needle", "nope"],
+        ):
+            lines = self.historie.reversesearch("needle")
+
+        assert lines == ["x needle"]

@@ -13,15 +13,24 @@ class accounts:
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
+        self.accounts = {}
+        self.aliases = {}
+        self.members = []
+        self.newaccount = ""
+        self.adduseralias = ""
 
     def help(self):
         return {"adduseralias": "Add user key alias"}
 
     def get_last_updated_accounts(self):
         # Sort the accounts based on last update time, in descending order
-        sorted_accounts = sorted(self.accounts.items(), key=lambda x: x[1]['lastupdate'], reverse=True)
+        sorted_accounts = sorted(
+            self.accounts.items(), key=lambda x: x[1]["lastupdate"], reverse=True
+        )
         # Extract the account names from the sorted list
-        account_names = [account[0] for account in sorted_accounts if account[0] not in self.members][0:125]
+        account_names = [
+            account[0] for account in sorted_accounts if account[0] not in self.members
+        ][0:125]
         self.master.send_message(True, "nonmembers", json.dumps(account_names))
 
     # Internal functions
@@ -89,7 +98,10 @@ class accounts:
 
     def createnew(self, text):
         if text == "yes":
-            self.accounts[self.newaccount] = {"amount": 0, "lastupdate": 0}
+            self.accounts[self.newaccount] = {
+                "amount": 0,
+                "lastupdate": time.strftime("%Y-%m-%d_%H:%M:%S"),
+            }
             return self.input(self.newaccount)
         if text == "no":
             return True
@@ -115,12 +127,12 @@ class accounts:
 
     def startup(self):
         self.readaccounts()
-        self.get_last_updated_accounts()
-        for name, account in self.accounts.items():
-            self.master.send_message(True, "accounts/" + name, json.dumps(account))
         with open("data/revbank.members", encoding="utf-8") as f:
             self.members = f.readlines()
         self.members = [m.rstrip() for m in self.members]
+        self.get_last_updated_accounts()
+        for name, account in self.accounts.items():
+            self.master.send_message(True, "accounts/" + name, json.dumps(account))
         self.master.send_message(True, "members", json.dumps(self.members))
 
     def hook_pre_checkout(self, _text):

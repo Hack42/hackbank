@@ -67,6 +67,16 @@ class market:
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
+        self.products = {}
+        self.aliases = {}
+        self.groups = {}
+        self.times = 1
+        self.aliasprod = ""
+        self.priceprod = 0
+        self.newprodprice = 0
+        self.newprodgroup = ""
+        self.newproddesc = ""
+        self.newprod = ""
 
     def lookupprod(self, text):
         prod = None
@@ -175,7 +185,7 @@ class market:
             )
             return True
         self.newprodgroup = text
-        if not self.newprodgroup in self.groups:
+        if self.newprodgroup not in self.groups:
             self.groups[self.newprodgroup] = [self.newprod]
             self.products[self.newprod] = {
                 "price": self.newprodprice,

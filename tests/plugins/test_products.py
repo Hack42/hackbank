@@ -172,3 +172,114 @@ class TestProducts(unittest.TestCase):
             assert self.products.saveprice("3.0")
             print("hooi", self.products.products)
             assert self.products.products["product1"]["price"] == 3.0
+
+    def test_abort_paths_call_abort_hook(self):
+        with patch.object(self.products, "readproducts"):
+            for method_name in (
+                "savealias",
+                "addalias",
+                "setprice",
+                "saveprice",
+                "addproductgroup",
+                "addproductprice",
+                "addproductdesc",
+                "addproduct",
+            ):
+                self.master_mock.reset_mock()
+                result = getattr(self.products, method_name)("abort")
+                self.master_mock.callhook.assert_called_with("abort", None)
+                assert result == self.master_mock.callhook.return_value
+
+    def test_savealias_existing_alias(self):
+        self.products.products = {"product1": {"aliases": []}}
+        self.products.aliases = {"alias1": "product1"}
+        with patch.object(self.products, "readproducts"):
+            assert self.products.savealias("alias1")
+        self.master_mock.donext.assert_called_with(self.products, "savealias")
+
+    def test_saveprice_out_of_range(self):
+        self.products.products = {"product1": {"price": 2.5}}
+        self.products.priceprod = "product1"
+        assert self.products.saveprice("1000")
+        assert self.master_mock.send_message.call_args_list == [
+            call(True, "message", "Price should be between 0 and 1000"),
+            call(True, "buttons", '{"special": "numbers"}'),
+        ]
+
+    def test_addproductgroup_short_name(self):
+        self.products.groups = {"group1": []}
+        assert self.products.addproductgroup("abc")
+        self.master_mock.donext.assert_called_with(self.products, "addproductgroup")
+        assert self.master_mock.send_message.call_args_list == [
+            call(True, "message", "Too short,what productgroup to add the product to?"),
+            call(
+                True,
+                "buttons",
+                '{"special": "custom", "custom": [{"text": "group1", "display": "group1"}]}',
+            ),
+        ]
+
+    def test_addproductprice_valid_and_invalid(self):
+        self.products.groups = {"group1": []}
+        self.products.newprod = "product1"
+        assert self.products.addproductprice("2.5")
+        assert self.products.newprodprice == 2.5
+        self.master_mock.donext.assert_called_with(self.products, "addproductgroup")
+
+        self.master_mock.reset_mock()
+        assert self.products.addproductprice("1000")
+        self.master_mock.donext.assert_called_with(self.products, "addproductprice")
+
+        self.master_mock.reset_mock()
+        assert self.products.addproductprice("not-a-number")
+        self.master_mock.donext.assert_called_with(self.products, "addproductprice")
+
+    def test_addproductdesc_short_and_valid(self):
+        self.products.newprod = "product1"
+        assert self.products.addproductdesc("abc")
+        self.master_mock.donext.assert_called_with(self.products, "addproductdesc")
+
+        self.master_mock.reset_mock()
+        assert self.products.addproductdesc("valid description")
+        assert self.products.newproddesc == "valid description"
+        self.master_mock.donext.assert_called_with(self.products, "addproductprice")
+
+    def test_addproduct_existing_invalid_and_valid(self):
+        self.products.products = {"product1": {}}
+        assert self.products.addproduct("product1")
+        self.master_mock.donext.assert_called_with(self.products, "addproduct")
+
+        self.master_mock.reset_mock()
+        assert self.products.addproduct("bad name")
+        self.master_mock.donext.assert_called_with(self.products, "addproduct")
+
+        self.master_mock.reset_mock()
+        assert self.products.addproduct("product2")
+        assert self.products.newprod == "product2"
+        self.master_mock.donext.assert_called_with(self.products, "addproductdesc")
+
+    def test_input_product_commands_and_multiplier(self):
+        self.products.products = {
+            "product1": {"price": 2.5, "description": "Description1", "aliases": []}
+        }
+
+        assert self.products.input("2*")
+        assert self.products.times == 2
+
+        assert self.products.input("product1")
+        self.master_mock.receipt.add.assert_called_with(
+            True, 2.5, "Description1", 2.0, None, "product1"
+        )
+        assert self.products.times == 1
+
+        for command, nextcall in (
+            ("aliasproduct", "addalias"),
+            ("addproduct", "addproduct"),
+            ("setprice", "setprice"),
+        ):
+            self.master_mock.reset_mock()
+            assert self.products.input(command)
+            self.master_mock.donext.assert_called_with(self.products, nextcall)
+
+        assert self.products.input("0*") is None
+        assert self.products.input("not-a-number*") is None

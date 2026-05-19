@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import glob
+import os
 import time
 import json
 import sys
@@ -43,13 +44,13 @@ class Session:
     def startup(self):
         print("Startup", self.SID)
         for fname in glob.glob("plugins/*.py"):
-            plugname = fname.split("/")[1].rstrip(".py")
+            plugname = os.path.splitext(os.path.basename(fname))[0]
             if plugname != "__init__" and not plugname in self.plugins:
                 if plugname in sys.modules:
                     del sys.modules[plugname]
         print(self.plugins)
         for fname in glob.glob("plugins/*.py"):
-            plugname = fname.split("/")[1].rstrip(".py")
+            plugname = os.path.splitext(os.path.basename(fname))[0]
             print(plugname)
             if plugname != "__init__" and not plugname in self.plugins:
                 if plugname in sys.modules:
@@ -101,68 +102,62 @@ class Session:
     def donext(self, plug, function):
         self.nextcall = {"plug": plug, "function": function}
 
-
-    def input(self, text):
-        if not text:
-            self.send_message(True, "message", "Enter product, command or username")
-            self.send_message(True, "buttons", json.dumps({}))
-            return
-    
-        self.buttons = {}
-        done = 0
-    
-        for plug, plugin in self.plugins.items():
+    def pre_input(self, text):
+        for _plug, plugin in self.plugins.items():
             try:
                 plugin.pre_input(text)
             except AttributeError:
                 pass
             except:
                 print(traceback.format_exc())
-    
+
+    def handle_nextcall(self, text):
+        if not self.nextcall:
+            return False
+        try:
+            plug = self.nextcall["plug"]
+            func = self.nextcall["function"]
+            self.nextcall = {}
+            print(text)
+            print(self.nextcall)
+            print(getattr(plug, func))
+            return bool(getattr(plug, func)(text))
+        except:
+            print(traceback.format_exc())
+            return False
+
+    def input(self, text):
+        if not text:
+            self.send_message(True, "message", "Enter product, command or username")
+            self.send_message(True, "buttons", json.dumps({}))
+            return
+
+        self.buttons = {}
+        self.pre_input(text)
+
         self.prompt = ""
-    
-        if self.nextcall:
-            try:
-                plug = self.nextcall["plug"]
-                func = self.nextcall["function"]
-                self.nextcall = {}
-                print(text)
-                print(self.nextcall)
-                print(getattr(plug, func))
-                if getattr(plug, func)(text):
-                    done = 1
-            except:
-                print(traceback.format_exc())
-    
-        if done == 0:
+
+        done = self.handle_nextcall(text)
+        if not done:
             parts = text.split()
             for part in parts:
                 if part:
                     done = self.handle_part(part)  # Call handle_part for each part
-    
-        if done == 1 and not self.prompt:
+
+        if done and not self.prompt:
             self.send_message(True, "message", "Enter product, command or username")
         elif not self.prompt:
             self.send_message(True, "message", "Unknown product, command or username")
             self.callhook("wrong", ())
-    
+
         if not self.nextcall and not self.buttons:
             self.send_message(True, "buttons", json.dumps({}))
-    
+
     def handle_part(self, part):
-        done = 0
-        if self.nextcall:
-            try:
-                plug = self.nextcall["plug"]
-                func = self.nextcall["function"]
-                self.nextcall = {}
-                if getattr(plug, func)(part):
-                    done = 1
-            except:
-                print(traceback.format_exc())
-    
-        if done == 0:
-            for plug, plugin in self.plugins.items():
+        done = self.handle_nextcall(part)
+
+        if not done:
+            for _plug, plugin in self.plugins.items():
                 try:
                     if plugin.input(part):
                         done = 1
@@ -171,13 +166,13 @@ class Session:
                     print(traceback.format_exc())
                 except:
                     print(traceback.format_exc())
-    
-        if done == 0:
+
+        if not done:
             if self.plugins.get("withdraw") and self.plugins["withdraw"].withdraw(part):
                 done = 1
             if self.plugins.get("accounts") and self.plugins["accounts"].newuser(part):
                 done = 1
-    
+
         return done
 
     def send_message(self, retain, topic, message):

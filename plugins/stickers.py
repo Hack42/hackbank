@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
 import traceback
 import json
 import re
@@ -134,6 +133,34 @@ class stickers:
             options={"copies": str(self.copies), "page-ranges": "1"},
         )
 
+    def foodprint(self):
+        img = Image.new("RGB", self.SMALL, self.WHITE)
+        draw = ImageDraw.Draw(img)
+
+        LOGO = Image.open(self.LOGOFILE)
+        LOGO = LOGO.resize(
+            self.LOGOSMALLSIZE, resample=Image.LANCZOS  # pylint: disable=no-member
+        )
+        img.paste(LOGO, (0, 0))
+
+        font = ImageFont.truetype(self.FONT, 40)
+        draw.text((0, self.SMALL[1] - 15), self.name, fill=self.BLACK, font=font)
+        font = ImageFont.truetype(self.FONT, 50)
+        draw.text(
+            (320, 120),
+            time.strftime("%Y-%m-%d"),
+            fill=self.BLACK,
+            font=font,
+        )
+
+        img.save("data/foodout.png")
+        cups.Connection().printFile(  # pylint: disable=no-member
+            self.printer,
+            "data/foodout.png",
+            title="Voedsel",
+            options={"copies": str(self.copies), "page-ranges": "1"},
+        )
+
     def toolprint(self):
         if re.compile("^[0-9A-Z]+$").match(self.name):
             print("Qrcode: alphanum")
@@ -173,15 +200,17 @@ class stickers:
         img.save("data/toollabel.jpg", "JPEG", dpi=(300, 300))
 
         # Print the file
-        options={"copies": str(self.copies), "page-ranges": "1", "media": "media=custom_61.98x100mm_61.98x100mm"}
+        options = {
+            "copies": str(self.copies),
+            "page-ranges": "1",
+            "media": "media=custom_61.98x100mm_61.98x100mm",
+        }
         cups.Connection().printFile(  # pylint: disable=no-member
             self.printer,
             "data/toollabel.jpg",
             title="Toollabel",
             options=options,
         )
-
-
 
     def eigendomprint(self):
         img = Image.new("RGB", self.SMALL, self.WHITE)
@@ -195,34 +224,49 @@ class stickers:
 
         first = 10
         last = 190
-        step = (last-first)/5
+        step = (last - first) / 5
 
-        steps = [10+step*i for i in range(0,6)]
-
+        steps = [10 + step * i for i in range(0, 6)]
 
         font = ImageFont.truetype(self.FONT, 40)
         draw.text((0, self.SMALL[1] - 55), self.name, fill=self.BLACK, font=font)
         font = ImageFont.truetype(self.FONT, 30)
-        draw.text((320, steps[0]-1), "Don't                           Ask", fill=self.BLACK, font=font)
-        draw.text((320, steps[0]-0), "Don't                           Ask", fill=self.BLACK, font=font)
-        draw.text((320, steps[1]-1), "☐          Look ", fill=self.BLACK, font=font)
-        draw.text((321, steps[1]-0), "☐", fill=self.BLACK, font=font)
-        draw.text((320, steps[2]-1), "☐          Hack ", fill=self.BLACK, font=font)
-        draw.text((321, steps[2]-0), "☐", fill=self.BLACK, font=font) 
-        draw.text((320, steps[3]-1), "☐          Repair ", fill=self.BLACK, font=font)
-        draw.text((321, steps[3]-0), "☐", fill=self.BLACK, font=font)
-        draw.text((320, steps[4]-1), "☐          Destroy ", fill=self.BLACK, font=font)
-        draw.text((321, steps[4]-0), "☐", fill=self.BLACK, font=font)
-        draw.text((320, steps[5]-1), "☐          Steal  ", fill=self.BLACK, font=font)
-        draw.text((321, steps[5]-0), "☐", fill=self.BLACK, font=font)
+        draw.text(
+            (320, steps[0] - 1),
+            "Don't                           Ask",
+            fill=self.BLACK,
+            font=font,
+        )
+        draw.text(
+            (320, steps[0] - 0),
+            "Don't                           Ask",
+            fill=self.BLACK,
+            font=font,
+        )
+        draw.text((320, steps[1] - 1), "☐          Look ", fill=self.BLACK, font=font)
+        draw.text((321, steps[1] - 0), "☐", fill=self.BLACK, font=font)
+        draw.text((320, steps[2] - 1), "☐          Hack ", fill=self.BLACK, font=font)
+        draw.text((321, steps[2] - 0), "☐", fill=self.BLACK, font=font)
+        draw.text((320, steps[3] - 1), "☐          Repair ", fill=self.BLACK, font=font)
+        draw.text((321, steps[3] - 0), "☐", fill=self.BLACK, font=font)
+        draw.text(
+            (320, steps[4] - 1), "☐          Destroy ", fill=self.BLACK, font=font
+        )
+        draw.text((321, steps[4] - 0), "☐", fill=self.BLACK, font=font)
+        draw.text((320, steps[5] - 1), "☐          Steal  ", fill=self.BLACK, font=font)
+        draw.text((321, steps[5] - 0), "☐", fill=self.BLACK, font=font)
         for mystep in steps[1:]:
-            draw.text((650, mystep-1), "☐", fill=self.BLACK, font=font)
-            draw.text((651, mystep-0), "☐", fill=self.BLACK, font=font)
+            draw.text((650, mystep - 1), "☐", fill=self.BLACK, font=font)
+            draw.text((651, mystep - 0), "☐", fill=self.BLACK, font=font)
         img.save("data/output.jpg", "JPEG", dpi=(300, 300))
         if self.large:
-            options={"copies": str(self.copies), "page-ranges": "1", "media": "media=custom_61.98x100mm_61.98x100mm"}
+            options = {
+                "copies": str(self.copies),
+                "page-ranges": "1",
+                "media": "media=custom_61.98x100mm_61.98x100mm",
+            }
         else:
-            options={"copies": str(self.copies), "page-ranges": "1"}
+            options = {"copies": str(self.copies), "page-ranges": "1"}
         cups.Connection().printFile(  # pylint: disable=no-member
             self.printer,
             "data/output.jpg",
@@ -372,53 +416,38 @@ class stickers:
         self.name = text
         return self.messageandbuttons("toolnum", "numbers", "How many do you want?")
 
+    def ask_label_input(self, nextcall, message, buttons=None, large=None):
+        if large is not None:
+            self.large = large
+        self.master.donext(self, nextcall)
+        self.master.send_message(True, "message", message)
+        if buttons:
+            self.master.send_message(True, "buttons", json.dumps({"special": buttons}))
+        return True
+
     def input(self, text):
-        if text == "eigendom":
-            self.large = False
-            self.master.donext(self, "eigendomcount")
-            self.master.send_message(True, "message", "Who are you?")
-            self.master.send_message(
-                True, "buttons", json.dumps({"special": "accounts"})
-            )
-            return True
-        if text == "eigendomlarge":
-            self.large = True
-            self.master.donext(self, "eigendomcount")
-            self.master.send_message(True, "message", "Who are you?")
-            self.master.send_message(
-                True, "buttons", json.dumps({"special": "accounts"})
-            )
-            return True
-        if text == "foodlabel":
-            self.master.donext(self, "foodname")
-            self.master.send_message(True, "message", "Who are you?")
-            self.master.send_message(
-                True, "buttons", json.dumps({"special": "accounts"})
-            )
-            return True
-        if text == "thtlabel":
-            self.master.donext(self, "thtname")
-            self.master.send_message(True, "message", "What is the date?")
-            self.master.send_message(
-                True, "buttons", json.dumps({"special": "accounts"})
-            )
-            return True
-        if text == "toollabel":
-            self.master.donext(self, "toolname")
-            self.master.send_message(True, "message", "What is the Toolname?")
-            return True
+        label_commands = {
+            "eigendom": ("eigendomcount", "Who are you?", "accounts", False),
+            "eigendomlarge": ("eigendomcount", "Who are you?", "accounts", True),
+            "foodlabel": ("foodname", "Who are you?", "accounts", None),
+            "thtlabel": ("thtname", "What is the date?", "accounts", None),
+            "toollabel": ("toolname", "What is the Toolname?", None, None),
+        }
+        if text in label_commands:
+            return self.ask_label_input(*label_commands[text])
         if text == "barcode":
             return self.messageandbuttons(
                 "barcodecount", "products", "What product do you want a barcode for?"
             )
         if text == "stickers":
-            custom = []
-            custom.append({"text": "barcode", "display": "Barcode label"})
-            custom.append({"text": "eigendom", "display": "Property label"})
-            custom.append({"text": "eigendomlarge", "display": "Large Property label"})
-            custom.append({"text": "foodlabel", "display": "Food label"})
-            custom.append({"text": "thtlabel", "display": "THT label"})
-            custom.append({"text": "toollabel", "display": "Tool label"})
+            custom = [
+                {"text": "barcode", "display": "Barcode label"},
+                {"text": "eigendom", "display": "Property label"},
+                {"text": "eigendomlarge", "display": "Large Property label"},
+                {"text": "foodlabel", "display": "Food label"},
+                {"text": "thtlabel", "display": "THT label"},
+                {"text": "toollabel", "display": "Tool label"},
+            ]
             self.master.send_message(
                 True, "buttons", json.dumps({"special": "custom", "custom": custom})
             )
