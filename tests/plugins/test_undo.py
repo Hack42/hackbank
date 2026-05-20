@@ -190,6 +190,9 @@ def test_undo_listundo():
     master_mock = Mock()
     undo = undo_module.undo("SID", master_mock)
     undo.undo = {123: {"totals": {"user": 10}, "receipt": [], "beni": "text"}}
+    expected_time = undo_module.time.strftime(
+        "%Y-%m-%d %H:%M:%S", undo_module.time.localtime(123 + 1300000000)
+    )
 
     undo.listundo()
     calls = [
@@ -202,7 +205,7 @@ def test_undo_listundo():
                     "custom": [
                         {
                             "text": 123,
-                            "display": "user \u20ac10.00 2011-03-13 08:08:43",
+                            "display": f"user \u20ac10.00 {expected_time}",
                         }
                     ],
                     "sort": "text",
