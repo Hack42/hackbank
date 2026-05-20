@@ -6,7 +6,7 @@
 #
 astroid==3.0.1
     # via pylint
-black==23.11.0
+black==26.3.1
     # via -r requirements-dev.in
 build==1.0.3
     # via pip-tools
@@ -32,7 +32,7 @@ packaging==23.2
     #   black
     #   build
     #   pytest
-pathspec==0.11.2
+pathspec==1.1.1
     # via black
 pip-tools==7.3.0
     # via -r requirements-dev.in
@@ -52,6 +52,8 @@ pytest==7.4.3
     #   pytest-cov
 pytest-cov==4.1.0
     # via -r requirements-dev.in
+pytokens==0.4.1
+    # via black
 tomlkit==0.12.3
     # via pylint
 wheel==0.42.0
