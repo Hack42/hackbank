@@ -27,7 +27,7 @@ mccabe==0.7.0
     # via pylint
 mypy-extensions==1.0.0
     # via black
-packaging==23.2
+packaging==26.2
     # via
     #   black
     #   build
@@ -58,7 +58,7 @@ pytest-cov==4.1.0
     # via -r requirements-dev.in
 tomlkit==0.12.3
     # via pylint
-wheel==0.42.0
+wheel==0.46.2
     # via pip-tools
 
 # The following packages are considered to be unsafe in a requirements file:
