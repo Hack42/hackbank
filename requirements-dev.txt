@@ -40,13 +40,15 @@ platformdirs==4.1.0
     # via
     #   black
     #   pylint
-pluggy==1.3.0
+pluggy==1.6.0
+    # via pytest
+pygments==2.20.0
     # via pytest
 pylint==3.0.2
     # via -r requirements-dev.in
 pyproject-hooks==1.0.0
     # via build
-pytest==7.4.3
+pytest==9.0.3
     # via
     #   -r requirements-dev.in
     #   pytest-cov
