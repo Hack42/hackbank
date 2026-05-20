@@ -5,26 +5,26 @@ import time
 import pickle
 import serial
 
-DISPLAY = b"\x1B=\x02\x1B@"
-PRINTER = b"\x1B=\x01\x1B@"
-LARGE = b"\x1D!\x11"
-NORMAL = b"\x1D!\x00"
-SMALL = b"\x1B!\x01"
+DISPLAY = b"\x1b=\x02\x1b@"
+PRINTER = b"\x1b=\x01\x1b@"
+LARGE = b"\x1d!\x11"
+NORMAL = b"\x1d!\x00"
+SMALL = b"\x1b!\x01"
 
-CENTER = b"\x1Ba1"
-RIGHT = b"\x1Ba2"
-LEFT = b"\x1Ba0"
-LOGO = b"\x1Cp\x01\x03"
+CENTER = b"\x1ba1"
+RIGHT = b"\x1ba2"
+LEFT = b"\x1ba0"
+LOGO = b"\x1cp\x01\x03"
 FEED = b"\n\n\n\n\n"
-BARCODE_T = b"\x1DH\x00"  # text around the barcode
-BARCODE_H = b"\x1Dh\x60"  # 40 height
-BARCODE_W = b"\x1Dw\x60"  # 2 Width
+BARCODE_T = b"\x1dH\x00"  # text around the barcode
+BARCODE_H = b"\x1dh\x60"  # 40 height
+BARCODE_W = b"\x1dw\x60"  # 2 Width
 
-BARCODE = b"\x1Dk\x47%cA%dA\n"
+BARCODE = b"\x1dk\x47%cA%dA\n"
 
-CUT = b"\x1Bm\n"
+CUT = b"\x1bm\n"
 
-DRAWER = b"\x1B\x700AA"
+DRAWER = b"\x1b\x700AA"
 
 
 class POS:
@@ -88,7 +88,7 @@ class POS:
         self.ser.write(PRINTER + DRAWER)
 
     def hook_undo(self, args):
-        (transID, _void1, _void2, _void3) = args
+        transID, _void1, _void2, _void3 = args
         self.loadbons()
         if transID in self.bonnetjes:
             self.bonnetjes[transID]["bon"] = (
@@ -156,7 +156,7 @@ class POS:
         return BON
 
     def printdeclaratie(self, args):
-        (Name, Type, Reason, Bar, Cash, Bank) = args
+        Name, Type, Reason, Bar, Cash, Bank = args
         BON = PRINTER + LARGE + CENTER + LOGO
         BON += (
             NORMAL

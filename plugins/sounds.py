@@ -18,12 +18,12 @@ class sounds:
         self.master.send_message(False, "sound", "katsjing.wav")
 
     def hook_balance(self, args):
-        (_usr, _had, has, _transID) = args
+        _usr, _had, has, _transID = args
         if has < -13.37:
             self.master.send_message(False, "sound", "sinterklaas.wav")
 
     def hook_undo(self, args):
-        (_transID, _totals, _receipt, _beni) = args
+        _transID, _totals, _receipt, _beni = args
 
     def showsounds(self):
         custom = []
