@@ -79,7 +79,7 @@ class accounts:
 
     # Hooks
     def hook_balance(self, args):
-        (usr, _had, _has, _transID) = args
+        usr, _had, _has, _transID = args
         self.master.send_message(
             False, "infobox/account/" + usr, json.dumps(self.accounts[usr])
         )

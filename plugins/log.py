@@ -21,7 +21,7 @@ class log:
         self.master.send_message(False, "log", action + " >> " + text)
 
     def hook_balance(self, args):
-        (usr, had, has, trxID) = args
+        usr, had, has, trxID = args
         if had > has:
             self.log(
                 "BALANCE",

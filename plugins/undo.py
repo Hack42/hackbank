@@ -30,7 +30,7 @@ class undo:
         self.writeundo()
 
     def hook_undo(self, args):
-        (transID, totals, _receipt, beni) = args
+        transID, totals, _receipt, beni = args
         self.loadundo()
         if transID in self.undo:
             del self.undo[transID]

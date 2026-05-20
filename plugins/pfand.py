@@ -13,7 +13,7 @@ class pfand:
         return {"pfand": "Return deposit"}
 
     def hook_addremove(self, args):
-        (_Lose, _Value, Description, Count, Beni, Prod) = args
+        _Lose, _Value, Description, Count, Beni, Prod = args
         if Prod in self.products:
             self.master.receipt.add(
                 True,
