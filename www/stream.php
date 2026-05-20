@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: text/event-stream');
 header('Cache-Control: no-cache');
+header('X-Accel-Buffering: no');
 @ini_set('zlib.output_compression',0);
 @ini_set('implicit_flush',1);
 @ob_end_clean();
@@ -26,13 +27,23 @@ if(!$mqtt->connect()){
 }
 $topics['hack42bar/output/session/'.$_REQUEST['session'].'/#'] = array("qos"=>0, "function"=>"procmsg");
 $mqtt->subscribe($topics,0);
+echo "retry: 1000\n";
 echo "data: ".json_encode(array("startup","1"))."\n\n";
 @flush();
 @ob_flush();
+$last_ping = time();
 while($mqtt->proc()){
-		
+  if (connection_aborted()) {
+    break;
+  }
+  if ($last_ping < time() - 15) {
+    echo ": keepalive\n\n";
+    @flush();
+    @ob_flush();
+    $last_ping = time();
+  }
 }
-echo "data: closed\n\n";
+echo ": closed\n\n";
 $mqtt->close();
 
 ?>
