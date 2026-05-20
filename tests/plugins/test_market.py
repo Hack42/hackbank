@@ -1,4 +1,4 @@
-from unittest.mock import patch, mock_open, MagicMock
+from unittest.mock import patch, mock_open, MagicMock, call
 import plugins.market as market_module
 import json
 import re
@@ -19,23 +19,51 @@ class TestMarket:
             assert self.market.products["product1"]["price"] == 2.50
             assert self.market.products["product1"]["description"] == "description1"
 
+    def test_instances_do_not_share_state(self):
+        self.market.products["product1"] = {}
+        self.market.aliases["alias1"] = "product1"
+        self.market.groups["group1"] = ["product1"]
+
+        other = market_module.market("SID2", MagicMock())
+
+        assert other.products == {}
+        assert other.aliases == {}
+        assert other.groups == {}
+
+    def test_help(self):
+        assert self.market.help() == {
+            "addmarket": "Market: Add alias",
+            "delmarket": "Market: Remove a product",
+            "changemarket": "Market: Change Price",
+            "market": "Market: Products",
+        }
+
     def test_writeproducts(self):
-        self.market.groups = {
-            "group1": {
-                "product1": {
-                    "aliases": ["alias1"],
-                    "price": 2.50,
-                    "description": "description1",
-                }
+        self.market.products = {
+            "product1": {
+                "aliases": ["alias1"],
+                "price": 2.50,
+                "description": "description1",
             }
         }
+        self.market.groups = {"group1": ["product1"]}
         mo = mock_open()
         with patch("builtins.open", mo):
             self.market.writeproducts()
             mo.assert_called_with("data/revbank.market", "w", encoding="utf-8")
             handle = mo()
-            expected_data = "\n"
-            handle.write.assert_called_with(expected_data)
+            expected_product = "%-58s %7.2f  %s\n" % (
+                "product1,alias1",
+                2.50,
+                "description1",
+            )
+            handle.write.assert_has_calls(
+                [
+                    call("# group1\n"),
+                    call(expected_product),
+                    call("\n"),
+                ]
+            )
 
     def test_lookupprod(self):
         self.market.products = {"product1": "details1"}
@@ -61,17 +89,48 @@ class TestMarket:
         with patch("builtins.open", mo):
             assert self.market.savealias("alias1")
 
+    def test_savealias_abort_existing_and_invalid(self):
+        self.market.products = {"product1": {"aliases": []}}
+        self.market.aliases = {"alias1": "product1"}
+
+        with patch.object(self.market, "readproducts"):
+            assert (
+                self.market.savealias("abort") is self.master_mock.callhook.return_value
+            )
+            self.master_mock.callhook.assert_called_with("abort", None)
+            assert self.market.savealias("alias1") is True
+            assert self.market.savealias("bad!") is True
+
+    def test_savealias_valid_new_alias(self):
+        self.market.products = {"product1": {"aliases": []}}
+        self.market.aliasprod = "product1"
+
+        with patch.object(self.market, "readproducts"), patch.object(
+            self.market, "writeproducts"
+        ):
+            assert self.market.savealias("alias123") is True
+
+        assert self.market.products["product1"]["aliases"] == ["alias123"]
+
     def test_addalias(self):
         self.market.products = {"product1": {"aliases": []}}
         assert self.market.addalias("product1")
         self.market.aliasprod = "product1"
         assert self.market.addalias("unknownprod")
 
+    def test_addalias_abort(self):
+        assert self.market.addalias("abort") is self.master_mock.callhook.return_value
+        self.master_mock.callhook.assert_called_with("abort", None)
+
     def test_setprice(self):
         self.market.products = {"product1": {"price": 2.5}}
         assert self.market.setprice("product1")
         self.market.priceprod = "product1"
         assert self.market.setprice("unknownprod")
+
+    def test_setprice_abort(self):
+        assert self.market.setprice("abort") is self.master_mock.callhook.return_value
+        self.master_mock.callhook.assert_called_with("abort", None)
 
     def test_saveprice(self):
         self.market.priceprod = "product1"
@@ -142,11 +201,23 @@ class TestMarket:
         self.market.priceprod = "product1"
         assert self.market.saveprice("invalid")
 
+    def test_saveprice_abort_and_out_of_range(self):
+        assert self.market.saveprice("abort") is self.master_mock.callhook.return_value
+        self.master_mock.callhook.assert_called_with("abort", None)
+        assert self.market.saveprice("0") is True
+
     def test_addproductgroup_short_group_name(self):
         self.market.newprod = "product1"
         self.market.newprodprice = 2.5
         self.market.newproddesc = "description"
         assert self.market.addproductgroup("sh")
+
+    def test_addproductgroup_abort(self):
+        assert (
+            self.market.addproductgroup("abort")
+            is self.master_mock.callhook.return_value
+        )
+        self.master_mock.callhook.assert_called_with("abort", None)
 
     def test_addproductgroup_new_group(self):
         market_data = "user1 product1,alias1,alias2 2.50 1.00 description1\n"
@@ -165,13 +236,33 @@ class TestMarket:
         self.market.newproddesc = "description"
         assert self.market.addproductprice("invalid")
 
+    def test_addproductprice_abort_and_out_of_range(self):
+        assert (
+            self.market.addproductprice("abort")
+            is self.master_mock.callhook.return_value
+        )
+        self.master_mock.callhook.assert_called_with("abort", None)
+        assert self.market.addproductprice("1000") is True
+
     def test_addproductdesc_short_description(self):
         self.market.newprod = "product1"
         assert self.market.addproductdesc("sh")
 
+    def test_addproductdesc_abort(self):
+        assert (
+            self.market.addproductdesc("abort")
+            is self.master_mock.callhook.return_value
+        )
+        self.master_mock.callhook.assert_called_with("abort", None)
+
     def test_addproduct_existing_product(self):
         self.market.products = {"product1": {}}
         assert self.market.addproduct("product1")
+
+    def test_addproduct_abort_and_invalid_name(self):
+        assert self.market.addproduct("abort") is self.master_mock.callhook.return_value
+        self.master_mock.callhook.assert_called_with("abort", None)
+        assert self.market.addproduct("bad!") is True
 
     def test_input_unknown_product(self):
         self.market.products = {}
@@ -180,3 +271,14 @@ class TestMarket:
     def test_input_market(self):
         self.market.products = {}
         assert self.market.input("market")
+
+    def test_input_market_lists_products(self):
+        self.market.products = {
+            "product1": {"description": "Description", "price": 2.0, "space": 0.5}
+        }
+
+        assert self.market.input("market")
+        payload = self.master_mock.send_message.call_args[0][2]
+        assert json.loads(payload)["custom"] == [
+            {"text": "product1", "display": "Description", "right": "2.50 (0.50)"}
+        ]

@@ -223,3 +223,153 @@ def test_stickers_generic():
 
     # Assert that the input method returns True
     assert result == None
+
+
+def test_help_and_stickers_menu():
+    master = Mock()
+    sticky = stickers("main", master)
+
+    assert sticky.help() == {"stickers": "All sticker commands"}
+    assert sticky.input("stickers")
+    assert master.send_message.call_args_list == [
+        call(
+            True,
+            "buttons",
+            '{"special": "custom", "custom": [{"text": "barcode", "display": "Barcode label"}, {"text": "eigendom", "display": "Property label"}, {"text": "eigendomlarge", "display": "Large Property label"}, {"text": "foodlabel", "display": "Food label"}, {"text": "thtlabel", "display": "THT label"}, {"text": "toollabel", "display": "Tool label"}]}',
+        ),
+        call(True, "message", "Please select a command"),
+    ]
+
+
+def test_toollabel_flow():
+    master = Mock()
+    sticky = stickers("main", master)
+
+    assert sticky.input("toollabel")
+    sticky.master.donext.assert_called_with(sticky, "toolname")
+    assert sticky.master.send_message.call_args_list == [
+        call(True, "message", "What is the Toolname?")
+    ]
+
+    sticky.master = Mock()
+    assert sticky.toolname("TOOL42")
+    sticky.master.donext.assert_called_with(sticky, "toolnum")
+
+
+@patch("plugins.stickers.brother_ql.backends.helpers")
+def test_toolnum_prints_label(_cups):
+    master = Mock()
+    sticky = stickers("main", master)
+    sticky.name = "TOOL42"
+
+    assert sticky.toolnum("1")
+    assert sticky.copies == 1
+
+
+@patch("plugins.stickers.brother_ql.backends.helpers")
+def test_toolprint_binary_qrcode_path(_cups):
+    sticky = stickers("main", Mock())
+    sticky.name = "tool-42"
+    sticky.copies = 1
+
+    sticky.toolprint()
+
+
+@patch("plugins.stickers.brother_ql.backends.helpers")
+def test_direct_print_methods_cover_binary_and_food_paths(_cups):
+    master = Mock()
+    sticky = stickers("main", master)
+    sticky.LOGOFILE = io.BytesIO(
+        base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFhAJ/wlseKgAAAABJRU5ErkJggg=="
+        )
+    )
+    sticky.copies = 1
+    sticky.barcode = "lowercase"
+    sticky.name = "BugBlue"
+    sticky.price = "EUR 1.00"
+    sticky.description = "Description"
+    sticky.datum = "2026-05-19"
+
+    sticky.barcodeprint()
+    sticky.foodprint()
+    sticky.thtprint()
+
+
+def test_barcodecount_unknown_and_shortest_alias_fallback():
+    master = Mock()
+    master.products.lookupprod.return_value = None
+    sticky = stickers("main", master)
+
+    assert sticky.barcodecount("unknown")
+    sticky.master.donext.assert_called_with(sticky, "barcodecount")
+
+    master = Mock()
+    master.products.lookupprod.return_value = "product1"
+    master.products.products.get.return_value = {
+        "aliases": ["longalias", "shrt"],
+        "price": 2.5,
+        "description": "Description",
+    }
+    sticky = stickers("main", master)
+
+    assert sticky.barcodecount("product1")
+    assert sticky.barcode == "shrt"
+
+
+def test_number_and_name_abort_and_invalid_paths():
+    master = Mock()
+    sticky = stickers("main", master)
+
+    for method_name in (
+        "barcodenum",
+        "eigendomnum",
+        "foodnum",
+        "thtnum",
+        "toolnum",
+        "eigendomcount",
+        "foodname",
+        "thtname",
+        "toolname",
+    ):
+        master.reset_mock()
+        assert getattr(sticky, method_name)("abort") == master.callhook.return_value
+        master.callhook.assert_called_with("abort", None)
+
+    for method_name in ("barcodenum", "eigendomnum", "foodnum", "thtnum", "toolnum"):
+        sticky.master = Mock()
+        assert getattr(sticky, method_name)("0")
+        sticky.master.donext.assert_called_with(sticky, method_name)
+
+        sticky.master = Mock()
+        assert getattr(sticky, method_name)("not-a-number")
+        sticky.master.donext.assert_called_with(sticky, method_name)
+
+
+def test_large_property_label_sets_large_flag():
+    master = Mock()
+    sticky = stickers("main", master)
+
+    assert sticky.input("eigendomlarge")
+    assert sticky.large is True
+    sticky.master.donext.assert_called_with(sticky, "eigendomcount")
+
+
+@patch("plugins.stickers.brother_ql.backends.helpers")
+def test_eigendomprint_large_options(_cups):
+    sticky = stickers("main", Mock())
+    sticky.LOGOFILE = io.BytesIO(
+        base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFhAJ/wlseKgAAAABJRU5ErkJggg=="
+        )
+    )
+    sticky.name = "BugBlue"
+    sticky.copies = 1
+    sticky.large = True
+
+    sticky.eigendomprint()
+
+
+def test_startup_is_noop():
+    sticky = stickers("main", Mock())
+    assert sticky.startup() is None

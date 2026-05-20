@@ -5,7 +5,7 @@ import re
 import io
 import time
 import base64
-import urllib
+import urllib.parse
 from PIL import Image, ImageDraw, ImageFont
 import pyqrcode
 import brother_ql.conversion
@@ -13,7 +13,7 @@ import brother_ql.backends.helpers
 import brother_ql.raster
 
 
-class stickers:
+class stickers:  # pylint: disable=too-many-public-methods
     SMALL = (696, 271)
     LOGOSMALLSIZE = (309, 200)
     WHITE = (255, 255, 255)
@@ -92,7 +92,7 @@ class stickers:
             fill=self.BLACK,
             font=font,
         )
-        self.realprint(img)
+        self.realprint(img, copies=int(self.copies))
 
     def foodprint(self):
         img = Image.new("RGB", self.SMALL, self.WHITE)
@@ -114,7 +114,7 @@ class stickers:
         draw.text((0, self.SMALL[1] - 15), self.name, fill=self.BLACK, font=font)
         font = ImageFont.truetype(self.FONT, 50)
         draw.text((320, 120), time.strftime("%Y-%m-%d"), fill=self.BLACK, font=font)
-        self.realprint(img)
+        self.realprint(img, copies=int(self.copies))
 
     def thtprint(self):
         # Create an image
@@ -137,7 +137,7 @@ class stickers:
         draw.text((0, self.SMALL[1] - 15), "THT Datum", fill=self.BLACK, font=font)
         font = ImageFont.truetype(self.FONT, 50)
         draw.text((320, 120), self.datum, fill=self.BLACK, font=font)
-        self.realprint(img)
+        self.realprint(img, copies=int(self.copies))
 
     def realprint(self, img, rotate="0", copies=1):
         qlr = brother_ql.raster.BrotherQLRaster(self.MODEL)
@@ -163,39 +163,35 @@ class stickers:
             )
 
     def toolprint(self):  # pylint: disable=too-many-locals
-        FONTSIZE = 80
-        LABELSIZE = 696  # 62 mm at 300 DPI
-        MARGIN = 32
+        font_size = 80
+        label_size = 696  # 62 mm at 300 DPI
+        margin = 32
         qrname = "https://hack42.nl/wiki/Tool:" + urllib.parse.quote(
             self.name.replace(" ", "_")
         )
-        if re.compile("^[0-9A-Z]+$").match(qrname):
-            print("Qrcode: alphanum")
-            qrcode_image = pyqrcode.create(qrname, error="L", mode="alphanumeric")
-        else:
-            print("Qrcode: binary")
-            qrcode_image = pyqrcode.create(qrname, error="L", mode="binary")
+        print("Qrcode: binary")
+        qrcode_image = pyqrcode.create(qrname, error="L", mode="binary")
         qrcode_image = qrcode_image.png_as_base64_str(
-            scale=int((LABELSIZE - MARGIN) / qrcode_image.get_png_size())
+            scale=int((label_size - margin) / qrcode_image.get_png_size())
         )
-        font = ImageFont.truetype(self.FONT, FONTSIZE)
+        font = ImageFont.truetype(self.FONT, font_size)
         txtsize = font.getbbox(self.name)
         imagewidth = (
-            LABELSIZE if txtsize[2] < (LABELSIZE - MARGIN) else txtsize[2] + MARGIN,
-            LABELSIZE,
+            label_size if txtsize[2] < (label_size - margin) else txtsize[2] + margin,
+            label_size,
         )
         img = Image.new("RGB", imagewidth, self.WHITE)
         draw = ImageDraw.Draw(img)
         qrcode_img = Image.open(io.BytesIO(base64.b64decode(qrcode_image)))
-        img.paste(qrcode_img, (int((imagewidth[0] - (LABELSIZE - MARGIN)) / 2), 10))
-        txtstart = int((LABELSIZE - txtsize[2]) / 2)
+        img.paste(qrcode_img, (int((imagewidth[0] - (label_size - margin)) / 2), 10))
+        txtstart = int((label_size - txtsize[2]) / 2)
         draw.text(
-            (txtstart, int(LABELSIZE - 20 - FONTSIZE)),
+            (txtstart, int(label_size - 20 - font_size)),
             self.name,
             fill=self.BLACK,
             font=font,
         )
-        self.realprint(img, "90")
+        self.realprint(img, rotate="90", copies=int(self.copies))
 
     def eigendomprint(self):
         img = Image.new("RGB", self.SMALL, self.WHITE)
@@ -246,8 +242,7 @@ class stickers:
         if self.large:
             scale = self.SMALL[0] / self.SMALL[1]
             img = img.resize(
-                int(self.SMALL[0] * scale),
-                int(self.SMALL[1] * scale),
+                (int(self.SMALL[0] * scale), int(self.SMALL[1] * scale)),
                 Image.Resampling.LANCZOS,
             )
             self.realprint(img, rotate="90", copies=int(self.copies))
@@ -396,53 +391,38 @@ class stickers:
         self.name = text
         return self.messageandbuttons("toolnum", "numbers", "How many do you want?")
 
-    def input(self, text):  # pylint: disable=too-many-return-statements
-        if text == "eigendom":
-            self.large = False
-            self.master.donext(self, "eigendomcount")
-            self.master.send_message(True, "message", "Who are you?")
-            self.master.send_message(
-                True, "buttons", json.dumps({"special": "accounts"})
-            )
-            return True
-        if text == "eigendomlarge":
-            self.large = True
-            self.master.donext(self, "eigendomcount")
-            self.master.send_message(True, "message", "Who are you?")
-            self.master.send_message(
-                True, "buttons", json.dumps({"special": "accounts"})
-            )
-            return True
-        if text == "foodlabel":
-            self.master.donext(self, "foodname")
-            self.master.send_message(True, "message", "Who are you?")
-            self.master.send_message(
-                True, "buttons", json.dumps({"special": "accounts"})
-            )
-            return True
-        if text == "thtlabel":
-            self.master.donext(self, "thtname")
-            self.master.send_message(True, "message", "What is the date?")
-            self.master.send_message(
-                True, "buttons", json.dumps({"special": "accounts"})
-            )
-            return True
-        if text == "toollabel":
-            self.master.donext(self, "toolname")
-            self.master.send_message(True, "message", "What is the Toolname?")
-            return True
+    def ask_label_input(self, nextcall, message, buttons=None, large=None):
+        if large is not None:
+            self.large = large
+        self.master.donext(self, nextcall)
+        self.master.send_message(True, "message", message)
+        if buttons:
+            self.master.send_message(True, "buttons", json.dumps({"special": buttons}))
+        return True
+
+    def input(self, text):
+        label_commands = {
+            "eigendom": ("eigendomcount", "Who are you?", "accounts", False),
+            "eigendomlarge": ("eigendomcount", "Who are you?", "accounts", True),
+            "foodlabel": ("foodname", "Who are you?", "accounts", None),
+            "thtlabel": ("thtname", "What is the date?", "accounts", None),
+            "toollabel": ("toolname", "What is the Toolname?", None, None),
+        }
+        if text in label_commands:
+            return self.ask_label_input(*label_commands[text])
         if text == "barcode":
             return self.messageandbuttons(
                 "barcodecount", "products", "What product do you want a barcode for?"
             )
         if text == "stickers":
-            custom = []
-            custom.append({"text": "barcode", "display": "Barcode label"})
-            custom.append({"text": "eigendom", "display": "Property label"})
-            custom.append({"text": "eigendomlarge", "display": "Large Property label"})
-            custom.append({"text": "foodlabel", "display": "Food label"})
-            custom.append({"text": "thtlabel", "display": "THT label"})
-            custom.append({"text": "toollabel", "display": "Tool label"})
+            custom = [
+                {"text": "barcode", "display": "Barcode label"},
+                {"text": "eigendom", "display": "Property label"},
+                {"text": "eigendomlarge", "display": "Large Property label"},
+                {"text": "foodlabel", "display": "Food label"},
+                {"text": "thtlabel", "display": "THT label"},
+                {"text": "toollabel", "display": "Tool label"},
+            ]
             self.master.send_message(
                 True, "buttons", json.dumps({"special": "custom", "custom": custom})
             )

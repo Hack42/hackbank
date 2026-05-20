@@ -14,6 +14,22 @@ class TestPOS:
             self.POS.open()
             assert self.POS.ser is not None
 
+    def test_open_when_already_open(self):
+        self.POS.ser = Mock()
+
+        self.POS.open()
+
+        self.POS.ser.write.assert_not_called()
+
+    def test_help_and_hook_addremove(self):
+        assert self.POS.help() == {
+            "bon": "Print Receipt",
+            "bons": "Receipts to print",
+            "kassala": "Open cash drawer",
+            "printstock": "Print stock overview",
+        }
+        assert self.POS.hook_addremove(()) is None
+
     def test_printstock(self):
         self.master_mock.stock = Mock(stock={"item1": 10, "item2": 20})
         with patch.object(self.POS, "open"), patch.object(self.POS, "slowwrite"):
@@ -58,6 +74,26 @@ class TestPOS:
         bon = self.POS.makebon("user")
         assert b"test" in bon
 
+    def test_makebon_low_balance_warning(self):
+        self.POS.master.receipt = Mock(
+            receipt=[
+                {
+                    "product": "test",
+                    "beni": "user",
+                    "count": 1,
+                    "total": 1.0,
+                    "description": "test",
+                }
+            ],
+            totals={"user": -10},
+        )
+        self.POS.master.transID = 42
+        self.POS.master.accounts.accounts = {"user": {"amount": -5}}
+
+        bon = self.POS.makebon("user")
+
+        assert b"SALDO TE LAAG" in bon
+
     def test_hook_checkout(self):
         with patch.object(self.POS, "drawer"):
             self.POS.hook_checkout("cash")
@@ -81,6 +117,31 @@ class TestPOS:
             self.POS.writebons.assert_called()
             self.POS.drawer.assert_called()
 
+    def test_hook_post_checkout_deposit_opens_drawer_for_non_cash(self):
+        self.POS.master.receipt = Mock(
+            totals={"user1": 1.0},
+            receipt=[{"product": "deposit"}, {"product": "other"}],
+        )
+        self.POS.master.transID = 123
+        with patch.object(self.POS, "loadbons"), patch.object(
+            self.POS, "writebons"
+        ), patch.object(self.POS, "makebon", return_value=b"Test"), patch.object(
+            self.POS, "drawer"
+        ):
+            self.POS.hook_post_checkout("user1")
+            self.POS.drawer.assert_called_once()
+
+    def test_hook_post_checkout_non_cash_without_deposit_keeps_drawer_closed(self):
+        self.POS.master.receipt = Mock(totals={"user1": 1.0}, receipt=[])
+        self.POS.master.transID = 123
+        with patch.object(self.POS, "loadbons"), patch.object(
+            self.POS, "writebons"
+        ), patch.object(self.POS, "makebon", return_value=b"Test"), patch.object(
+            self.POS, "drawer"
+        ):
+            self.POS.hook_post_checkout("user1")
+            self.POS.drawer.assert_not_called()
+
     def test_slowwrite(self):
         with patch("plugins.POS.serial", return_value=Mock()):
             self.POS.open()
@@ -99,6 +160,14 @@ class TestPOS:
         with patch.object(self.POS, "bon"):
             assert self.POS.selectbon("123")
             self.POS.bon.assert_called_with(123)
+
+    def test_selectbon_abort_and_missing_int(self):
+        self.POS.bonnetjes = {}
+        with patch.object(self.POS, "listbons") as mock_listbons:
+            assert self.POS.selectbon("abort")
+            self.master_mock.callhook.assert_called_with("abort", None)
+            assert self.POS.selectbon("123")
+            mock_listbons.assert_called_once()
 
     def test_writebons(self):
         with patch("builtins.open", new_callable=mock_open):
@@ -129,6 +198,12 @@ class TestPOS:
             assert self.POS.input("bons")
             assert self.POS.input("kassala")
             assert self.POS.input("printstock")
+            assert self.POS.input("other") is None
+
+    def test_startup_loads_bons(self):
+        with patch.object(self.POS, "loadbons") as mock_loadbons:
+            self.POS.startup()
+            mock_loadbons.assert_called_once()
 
     def test_printstock_content(self):
         self.master_mock.stock = Mock(stock={"item1": 10, "item2": 20})

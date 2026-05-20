@@ -13,6 +13,10 @@ class TestLog:
             self.log.startup()
             mock_send_message.assert_called_with(False, "log", "Log has startup")
 
+    def test_help_and_input(self):
+        assert self.log.help() == {}
+        assert self.log.input("anything") is None
+
     def test_log(self):
         test_action = "TEST_ACTION"
         test_text = "Test text"
@@ -38,6 +42,15 @@ class TestLog:
             mo.assert_called_with("data/revbank.log", "a", encoding="utf-8")
             handle = mo()
             expected_log = f"{time.strftime('%Y-%m-%d_%H:%M:%S')} BALANCE 123        user had +100.00, lost -10.00, now has +90.00\n"
+            handle.write.assert_called_with(expected_log)
+
+    def test_hook_balance_gain(self):
+        test_args = ("user", 90.0, 100.0, 123)
+        mo = mock_open()
+        with patch("builtins.open", mo):
+            self.log.hook_balance(test_args)
+            handle = mo()
+            expected_log = f"{time.strftime('%Y-%m-%d_%H:%M:%S')} BALANCE 123        user had +90.00, gained +10.00, now has +100.00\n"
             handle.write.assert_called_with(expected_log)
 
     def test_hook_post_checkout(self):

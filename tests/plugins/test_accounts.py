@@ -34,6 +34,15 @@ def test_updateaccount(mock_strftime):
     )
 
 
+def test_updateaccount_ignores_cash():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+
+    assert acc.updateaccount("cash", 50.0) is None
+
+    master_mock.callhook.assert_not_called()
+
+
 def test_readaccounts():
     master_mock = Mock()
     acc = accounts("SID", master_mock)
@@ -45,10 +54,8 @@ def test_readaccounts():
     def custom_mock_open(filename, _bla, _bla2):
         if filename == "data/revbank.accounts":
             return mock_open(read_data=mock_accounts_data)()
-        elif filename == "data/revbank.aliases":
+        if filename == "data/revbank.aliases":
             return mock_open(read_data=mock_aliases_data)()
-        else:
-            return mock_open()()  # Default mock
 
     with patch(
         "plugins.accounts.codecs.open", side_effect=custom_mock_open
@@ -181,7 +188,8 @@ def test_hook_post_checkout(mock_updateaccount):
     assert master_mock.send_message.call_args_list == expected_calls
 
 
-def test_createnew():
+@patch("time.strftime", return_value="2021-01-01_12:00:00")
+def test_createnew(_mock_strftime):
     master_mock = Mock()
     acc = accounts("SID", master_mock)
     acc.newaccount = "new_user"
@@ -189,8 +197,10 @@ def test_createnew():
     # Test with 'yes'
     assert acc.createnew("yes") == True
     assert "new_user" in acc.accounts
-    assert acc.accounts["new_user"] == {"amount": 0, "lastupdate": 0}
-    acc.accounts["new_user"]["lastupdate"] = "1970-01-01"
+    assert acc.accounts["new_user"] == {
+        "amount": 0,
+        "lastupdate": "2021-01-01_12:00:00",
+    }
 
     # Test with 'no'
     assert acc.createnew("no") == True
@@ -202,7 +212,11 @@ def test_createnew():
     # Test with invalid input
     acc.createnew("invalid")
     expected_calls = [
-        call(False, "infobox/account", '{"amount": 0, "lastupdate": 0}'),
+        call(
+            False,
+            "infobox/account",
+            '{"amount": 0, "lastupdate": "2021-01-01_12:00:00"}',
+        ),
         call(True, "buttons", '{"special": "infobox"}'),
         call(
             True,
@@ -228,10 +242,8 @@ def test_startup(mock_file):
     def custom_mock_open(filename, _bla, _bla2):
         if filename == "data/revbank.accounts":
             return mock_open(read_data=mock_accounts_data)()
-        elif filename == "data/revbank.aliases":
+        if filename == "data/revbank.aliases":
             return mock_open(read_data=mock_aliases_data)()
-        else:
-            return mock_open()()  # Default mock
 
     with patch(
         "plugins.accounts.codecs.open", side_effect=custom_mock_open
@@ -240,10 +252,9 @@ def test_startup(mock_file):
 
     assert acc.members == ["user1", "user2"]
     expected_calls = [
-        call(True, "nonmembers", '["user2", "user1", "new_user"]'),
+        call(True, "nonmembers", "[]"),
         call(True, "accounts/user1", '{"amount": 100.0, "lastupdate": "2021-01-01"}'),
         call(True, "accounts/user2", '{"amount": 200.0, "lastupdate": "2021-01-02"}'),
-        call(True, "accounts/new_user", '{"amount": 0, "lastupdate": "1970-01-01"}'),
         call(True, "members", '["user1", "user2"]'),
     ]
     assert master_mock.send_message.call_args_list == expected_calls
@@ -282,6 +293,19 @@ def test_addalias(_open):
 
 
 @patch("builtins.open")
+def test_addalias_invalid_existing_or_short(_open):
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+    acc.adduseralias = "user1"
+    acc.accounts = {"user1": {"amount": 0, "lastupdate": "now"}}
+    acc.aliases = {"existing_alias": "user1"}
+
+    assert acc.addalias("usr") is None
+    assert acc.addalias("user1") is None
+    assert acc.addalias("existing_alias") is None
+
+
+@patch("builtins.open")
 def test_askalias(_open):
     master_mock = Mock()
     acc = accounts("SID", master_mock)
@@ -300,6 +324,14 @@ def test_askalias(_open):
     master_mock.callhook.assert_called_with("abort", None)
 
 
+def test_askalias_unknown_user():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+    acc.accounts = {}
+
+    assert acc.askalias("missing") is None
+
+
 def test_input_existing_account():
     master_mock = Mock()
     acc = accounts("SID", master_mock)
@@ -313,6 +345,38 @@ def test_input_existing_account():
         call(True, "buttons", '{"special": "infobox"}'),
     ]
     assert master_mock.send_message.call_args_list == expected_calls
+
+
+def test_input_alias_empty_receipt_and_checkout_paths():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+    acc.accounts = {"user1": {"amount": 12.0}}
+    acc.aliases = {"alias1": "user1"}
+
+    master_mock.receipt.is_empty.return_value = True
+    assert acc.input("alias1") is True
+    master_mock.send_message.assert_has_calls(
+        [
+            call(False, "infobox/account", '{"amount": 12.0}'),
+            call(True, "buttons", '{"special": "infobox"}'),
+        ]
+    )
+
+    master_mock.reset_mock()
+    master_mock.receipt.is_empty.return_value = False
+    assert acc.input("alias1") is True
+    master_mock.callhook.assert_has_calls(
+        [call("checkout", "user1"), call("endsession", "user1")]
+    )
+
+
+def test_input_adduseralias_and_unknown():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+
+    assert acc.input("adduseralias") is True
+    master_mock.donext.assert_called_with(acc, "askalias")
+    assert acc.input("missing") is None
 
 
 def test_newuser():
@@ -331,3 +395,14 @@ def test_newuser():
         ),
     ]
     assert master_mock.send_message.call_args_list == expected_calls
+
+
+def test_newuser_no_positive_gain():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+    acc.master.receipt.receipt = [
+        {"value": -1, "Lose": False},
+        {"value": 10, "Lose": True},
+    ]
+
+    assert acc.newuser("new_user") is None
