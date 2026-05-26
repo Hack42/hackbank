@@ -268,7 +268,6 @@ def test_stock_inkoop_amount_too_large_number():
 
     assert stock.inkoop_amount("5000") == True
     master_mock.donext.assert_called_with(stock, "inkoop_amount")
-    print(master_mock.send_message.call_args_list)
     master_mock.send_message.assert_has_calls(
         [
             call(

@@ -229,7 +229,6 @@ class TestProducts(unittest.TestCase):
             self.products, "writeproducts"
         ):
             assert self.products.saveprice("3.0")
-            print("hooi", self.products.products)
             assert self.products.products["product1"]["price"] == 3.0
 
     def test_abort_paths_call_abort_hook(self):

@@ -26,7 +26,6 @@ class TestMarket:
         mo = mock_open(read_data=market_data)
         with patch("builtins.open", mo):
             self.market.readproducts()
-            print("hooi", self.market.products)
             assert "product1" in self.market.products
             assert "product3" in self.market.products
             assert self.market.products["product3"]["aliases"] == []
@@ -192,7 +191,6 @@ class TestMarket:
             self.market, "writeproducts"
         ):
             self.market.saveprice("3.0")
-            print(self.market.products)
             assert self.market.products["product1"]["price"] == 3.0
 
     def test_addproductgroup(self):
