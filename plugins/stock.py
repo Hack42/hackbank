@@ -20,6 +20,8 @@ class stock:
         }
 
     def readstock(self):
+        self.stock = {}
+        self.stockalias = {}
         with open("data/revbank.stock", "r", encoding="utf-8") as f:
             lines = f.readlines()
         for line in lines:
@@ -28,7 +30,6 @@ class stock:
                 name = parts[0]
                 self.stock[name] = int(parts[1])
         f.close()
-        self.stockalias = {}
         with open("data/revbank.stockalias", "r", encoding="utf-8") as f:
             lines = f.readlines()
         for line in lines:

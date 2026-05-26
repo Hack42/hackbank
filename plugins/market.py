@@ -23,6 +23,8 @@ class market:
         }
 
     def readproducts(self):
+        self.products = {}
+        self.aliases = {}
         with open("data/revbank.market", "r", encoding="utf-8") as f:
             lines = f.readlines()
         print("ok", lines)

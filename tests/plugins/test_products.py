@@ -9,6 +9,9 @@ class TestProducts(unittest.TestCase):
         self.products = ProductsModule.products("SID", self.master_mock)
 
     def test_readproducts(self):
+        self.products.products = {"stale_product": {}}
+        self.products.aliases = {"stale_alias": "stale_product"}
+        self.products.groups = {"StaleGroup": ["stale_product"]}
         product_data = "# Group1\nproduct1,alias1 2.50 Description1\n# Group2\nproduct2 1.50 Description2\n"
         with patch("builtins.open", mock_open(read_data=product_data)):
             self.products.readproducts()
@@ -16,6 +19,9 @@ class TestProducts(unittest.TestCase):
             self.assertIn("product2", self.products.products)
             self.assertIn("Group1", self.products.groups)
             self.assertIn("Group2", self.products.groups)
+            self.assertNotIn("stale_product", self.products.products)
+            self.assertNotIn("stale_alias", self.products.aliases)
+            self.assertNotIn("StaleGroup", self.products.groups)
 
     def test_help(self):
         self.assertEqual(
@@ -178,14 +184,18 @@ class TestProducts(unittest.TestCase):
             "product1": {"aliases": [], "price": 42, "description": "aa"}
         }
         self.products.aliasprod = "product1"
-        with patch("builtins.open", mock_open()):
+        with patch.object(self.products, "readproducts"), patch.object(
+            self.products, "writeproducts"
+        ):
             assert self.products.savealias("alias2")
             assert "alias2" in self.products.products["product1"]["aliases"]
 
     def test_saveprice_valid_price(self):
         self.products.products = {"product1": {"price": 2.5}}
         self.products.priceprod = "product1"
-        with patch("builtins.open", mock_open()):
+        with patch.object(self.products, "readproducts"), patch.object(
+            self.products, "writeproducts"
+        ):
             assert self.products.saveprice("3.0")
             print("hooi", self.products.products)
             assert self.products.products["product1"]["price"] == 3.0

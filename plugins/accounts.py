@@ -36,6 +36,8 @@ class accounts:
 
     # Internal functions
     def readaccounts(self):
+        self.accounts = {}
+        self.aliases = {}
         with codecs.open("data/revbank.accounts", "r", "utf-8") as f:
             lines = f.readlines()
         for line in lines:
@@ -46,7 +48,6 @@ class accounts:
             }
         with codecs.open("data/revbank.aliases", "r", "utf-8") as f:
             y = f.readlines()
-            self.aliases = {}
             for x in y:
                 s = x.split(" ")
                 if len(s) == 2:

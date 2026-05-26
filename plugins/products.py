@@ -23,6 +23,9 @@ class products:
         }
 
     def readproducts(self):
+        self.products = {}
+        self.aliases = {}
+        self.groups = {}
         groupname = ""
         with open("data/revbank.products", "r", encoding="utf-8") as f:
             lines = f.readlines()

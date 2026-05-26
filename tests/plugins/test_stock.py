@@ -152,6 +152,8 @@ def test_stock_startup_with_patched_readstock():
 def test_stock_readstock():
     master_mock = Mock()
     stock = stock_module.stock("SID", master_mock)
+    stock.stock = {"stale_product": 99}
+    stock.stockalias = {"stale_alias": {"prod": "stale_product", "multi": 1}}
     stock_data = "product1 10\nproduct2 20"
     stock_alias_data = "alias1 product1 2\nalias2 product2 3"
 
@@ -168,6 +170,8 @@ def test_stock_readstock():
             "alias1": {"prod": "product1", "multi": 2},
             "alias2": {"prod": "product2", "multi": 3},
         }
+        assert "stale_product" not in stock.stock
+        assert "stale_alias" not in stock.stockalias
 
 
 def test_stock_writestock():

@@ -46,6 +46,8 @@ def test_updateaccount_ignores_cash():
 def test_readaccounts():
     master_mock = Mock()
     acc = accounts("SID", master_mock)
+    acc.accounts = {"stale_user": {"amount": 1.0, "lastupdate": "old"}}
+    acc.aliases = {"stale_alias": "stale_user"}
 
     # Correctly formatted mock data
     mock_accounts_data = "user1 100.0 2021-01-01\nuser2 200.0 2021-01-02"
@@ -69,6 +71,8 @@ def test_readaccounts():
         # Assertions for aliases file
         assert acc.aliases["alias1"] == "user1"
         assert acc.aliases["alias2"] == "user2"
+        assert "stale_user" not in acc.accounts
+        assert "stale_alias" not in acc.aliases
 
 
 def test_writeaccount():

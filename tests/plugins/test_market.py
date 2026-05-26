@@ -10,6 +10,8 @@ class TestMarket:
         self.market = market_module.market("SID", self.master_mock)
 
     def test_readproducts(self):
+        self.market.products = {"stale_product": {}}
+        self.market.aliases = {"stale_alias": "stale_product"}
         market_data = "user1 product1 2.50 1.00 description1\n"
         mo = mock_open(read_data=market_data)
         with patch("builtins.open", mo):
@@ -18,6 +20,8 @@ class TestMarket:
             assert "product1" in self.market.products
             assert self.market.products["product1"]["price"] == 2.50
             assert self.market.products["product1"]["description"] == "description1"
+            assert "stale_product" not in self.market.products
+            assert "stale_alias" not in self.market.aliases
 
     def test_instances_do_not_share_state(self):
         self.market.products["product1"] = {}
