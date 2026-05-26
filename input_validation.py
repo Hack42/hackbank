@@ -1,4 +1,8 @@
+import re
+
+
 RESERVED_INPUTS = {"abort", "ok"}
+INPUT_TOKEN_RE = re.compile(r"^[A-Za-z0-9]+$")
 
 
 def reserved_inputs(master=None, plugin_help=None):
@@ -21,3 +25,19 @@ def filter_reserved_aliases(aliases, master=None, plugin_help=None):
         for alias in aliases
         if not is_reserved_input(alias, master=master, plugin_help=plugin_help)
     ]
+
+
+def is_valid_input_token(text, min_length):
+    return (
+        isinstance(text, str)
+        and len(text) >= min_length
+        and INPUT_TOKEN_RE.fullmatch(text) is not None
+    )
+
+
+def is_valid_alias(text):
+    return is_valid_input_token(text, min_length=6)
+
+
+def is_valid_product_name(text):
+    return is_valid_input_token(text, min_length=4)

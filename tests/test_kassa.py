@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from unittest.mock import Mock, patch, call
 import kassa
+from plugins.products import products
 
 
 def test_session_startup():
@@ -393,6 +394,36 @@ def test_handle_part_falls_back_to_newuser():
 
     assert session.handle_part("newuser") == 1
     accounts_mock.newuser.assert_called_with("newuser")
+
+
+def test_session_product_add_flow_rejects_invalid_name():
+    client_mock = Mock()
+    session = kassa.Session("SID", client_mock)
+    products_plugin = products("SID", session)
+    withdraw_mock = Mock()
+    withdraw_mock.input.return_value = False
+    withdraw_mock.withdraw.return_value = False
+    accounts_mock = Mock()
+    accounts_mock.input.return_value = False
+    accounts_mock.newuser.return_value = False
+    session.plugins = {
+        "products": products_plugin,
+        "withdraw": withdraw_mock,
+        "accounts": accounts_mock,
+    }
+    session.products = products_plugin
+
+    session.input("addproduct")
+    session.input("bad_name")
+
+    assert products_plugin.newprod == ""
+    assert session.nextcall == {"plug": products_plugin, "function": "addproduct"}
+    client_mock.publish.assert_any_call(
+        "hack42bar/output/session/SID/message",
+        "only [A-z0-9] is allowed as product name, what name do you want to add?",
+        1,
+        True,
+    )
 
 
 def test_send_message_updates_prompt_buttons_and_skips_cached_long_topic():

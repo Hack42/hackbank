@@ -270,6 +270,19 @@ class TestProducts(unittest.TestCase):
         assert self.products.products["product1"]["aliases"] == []
         self.master_mock.donext.assert_called_with(self.products, "savealias")
 
+    def test_savealias_rejects_non_alnum_alias(self):
+        self.products.products = {"product1": {"aliases": []}}
+        self.products.aliasprod = "product1"
+
+        with patch.object(self.products, "readproducts"), patch.object(
+            self.products, "writeproducts"
+        ) as mock_writeproducts:
+            assert self.products.savealias("bad_alias")
+
+        mock_writeproducts.assert_not_called()
+        assert self.products.products["product1"]["aliases"] == []
+        self.master_mock.donext.assert_called_with(self.products, "savealias")
+
     def test_saveprice_out_of_range(self):
         self.products.products = {"product1": {"price": 2.5}}
         self.products.priceprod = "product1"
@@ -324,6 +337,10 @@ class TestProducts(unittest.TestCase):
 
         self.master_mock.reset_mock()
         assert self.products.addproduct("bad name")
+        self.master_mock.donext.assert_called_with(self.products, "addproduct")
+
+        self.master_mock.reset_mock()
+        assert self.products.addproduct("bad_name")
         self.master_mock.donext.assert_called_with(self.products, "addproduct")
 
         self.master_mock.reset_mock()

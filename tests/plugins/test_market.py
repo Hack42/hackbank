@@ -151,6 +151,19 @@ class TestMarket:
         assert self.market.products["product1"]["aliases"] == []
         self.master_mock.donext.assert_called_with(self.market, "savealias")
 
+    def test_savealias_rejects_non_alnum_alias(self):
+        self.market.products = {"product1": {"aliases": []}}
+        self.market.aliasprod = "product1"
+
+        with patch.object(self.market, "readproducts"), patch.object(
+            self.market, "writeproducts"
+        ) as mock_writeproducts:
+            assert self.market.savealias("bad_alias") is True
+
+        mock_writeproducts.assert_not_called()
+        assert self.market.products["product1"]["aliases"] == []
+        self.master_mock.donext.assert_called_with(self.market, "savealias")
+
     def test_addalias(self):
         self.market.products = {"product1": {"aliases": []}}
         assert self.market.addalias("product1")
@@ -315,6 +328,9 @@ class TestMarket:
         assert self.market.addproduct("abort") is self.master_mock.callhook.return_value
         self.master_mock.callhook.assert_called_with("abort", None)
         assert self.market.addproduct("bad!") is True
+        self.master_mock.reset_mock()
+        assert self.market.addproduct("bad_name") is True
+        self.master_mock.donext.assert_called_with(self.market, "addproduct")
 
     def test_addproduct_rejects_command_name(self):
         self.master_mock.help = {"deposit": "Deposit Money"}

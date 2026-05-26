@@ -1,9 +1,13 @@
 import json
 import os
-import re
 import tempfile
 import threading
-from input_validation import filter_reserved_aliases, is_reserved_input
+from input_validation import (
+    filter_reserved_aliases,
+    is_reserved_input,
+    is_valid_alias,
+    is_valid_product_name,
+)
 
 
 def _atomic_write(path, lines):
@@ -151,7 +155,7 @@ class market:
                 "keyboard",
                 "That alias is a command; choose another alias.",
             )
-        if len(text) < 6 or not re.compile("^[A-z0-9]+$").match(text):
+        if not is_valid_alias(text):
             return self.messageandbuttons(
                 "savealias",
                 "keyboard",
@@ -338,7 +342,7 @@ class market:
                 "keyboard",
                 "That product name is a command; choose another name.",
             )
-        if len(text) < 4 or not re.compile("^[A-z0-9]+$").match(text):
+        if not is_valid_product_name(text):
             return self.messageandbuttons(
                 "addproduct",
                 "keyboard",
