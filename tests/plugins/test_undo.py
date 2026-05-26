@@ -30,6 +30,34 @@ def test_undo_hook_checkout():
         }
 
 
+def test_undo_hook_checkout_stores_snapshot():
+    master_mock = Mock()
+    undo = undo_module.undo("SID", master_mock)
+    master_mock.transID = 123
+    master_mock.receipt = Mock(
+        totals={"user": -2.5},
+        receipt=[
+            {
+                "Lose": True,
+                "value": 2.5,
+                "description": "Product",
+                "count": 1,
+                "beni": "user",
+                "product": "product1",
+            }
+        ],
+    )
+
+    with patch.object(undo, "loadundo"), patch.object(undo, "writeundo"):
+        undo.hook_checkout("user")
+
+    master_mock.receipt.totals["user"] = 0
+    master_mock.receipt.receipt[0]["count"] = 99
+
+    assert undo.undo[123]["totals"] == {"user": -2.5}
+    assert undo.undo[123]["receipt"][0]["count"] == 1
+
+
 def test_undo_hook_undo():
     master_mock = Mock()
     undo = undo_module.undo("SID", master_mock)

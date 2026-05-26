@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+import copy
 import pickle
 import time
 import traceback
@@ -23,8 +24,8 @@ class undo:
     def hook_checkout(self, text):
         self.loadundo()
         self.undo[self.master.transID] = {
-            "totals": self.master.receipt.totals,
-            "receipt": self.master.receipt.receipt,
+            "totals": copy.deepcopy(self.master.receipt.totals),
+            "receipt": copy.deepcopy(self.master.receipt.receipt),
             "beni": text,
         }
         self.writeundo()
