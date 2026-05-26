@@ -51,9 +51,11 @@ class market:
             lines = f.readlines()
         print("ok", lines)
         for line in lines:
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
             parts = " ".join(line.split()).split(" ", 4)
             print(parts)
-            if len(parts) == 5 and not line.startswith("#"):
+            if len(parts) == 5:
                 aliases = parts[1].split(",")
                 name = aliases.pop(0)
                 self.products[name] = {

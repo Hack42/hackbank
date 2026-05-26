@@ -52,9 +52,13 @@ class products:
         with open("data/revbank.products", "r", encoding="utf-8") as f:
             lines = f.readlines()
         for line in lines:
+            if not line.strip():
+                continue
             parts = " ".join(line.split()).split(" ", 2)
             if line.startswith("#"):
                 groupname = line.replace("#", "").strip(" \t\n\r")
+                if not groupname:
+                    continue
                 self.groups[groupname] = []
             elif len(parts) == 3:
                 aliases = parts[0].split(",")

@@ -12,7 +12,16 @@ class TestProducts(unittest.TestCase):
         self.products.products = {"stale_product": {}}
         self.products.aliases = {"stale_alias": "stale_product"}
         self.products.groups = {"StaleGroup": ["stale_product"]}
-        product_data = "# Group1\nproduct1,alias1 2.50 Description1\n# Group2\nproduct2 1.50 Description2\n"
+        product_data = (
+            "\n"
+            "# Group1\n"
+            "product1,alias1   2.50   Description1\n"
+            "\n"
+            "# Group2\n"
+            "product2\t1.50\tDescription2\n"
+            "#\n"
+            "malformed\n"
+        )
         with patch("builtins.open", mock_open(read_data=product_data)):
             self.products.readproducts()
             self.assertIn("product1", self.products.products)

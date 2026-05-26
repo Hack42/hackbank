@@ -76,6 +76,8 @@ class pfand:
         with open("data/revbank.pfand", "r", encoding="utf-8") as f:
             lines = f.readlines()
         for line in lines:
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
             parts = " ".join(line.split()).split(" ", 2)
             if len(parts) == 2:
                 name = parts[0]

@@ -12,7 +12,12 @@ class TestMarket:
     def test_readproducts(self):
         self.market.products = {"stale_product": {}}
         self.market.aliases = {"stale_alias": "stale_product"}
-        market_data = "user1 product1 2.50 1.00 description1\n"
+        market_data = (
+            "# comment\n"
+            "\n"
+            "user1   product1   2.50   1.00   description1\n"
+            "malformed\n"
+        )
         mo = mock_open(read_data=market_data)
         with patch("builtins.open", mo):
             self.market.readproducts()
