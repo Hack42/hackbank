@@ -1,5 +1,6 @@
 from unittest.mock import Mock, patch
 import plugins.withdraw as withdraw_module
+import pytest
 
 
 def test_withdraw_constructor():
@@ -37,6 +38,15 @@ def test_withdraw_non_numeric_input():
     withdraw = withdraw_module.withdraw("SID", master_mock)
 
     assert withdraw.withdraw("not_a_number") is None
+
+
+def test_withdraw_receipt_errors_are_not_swallowed():
+    master_mock = Mock()
+    withdraw = withdraw_module.withdraw("SID", master_mock)
+    master_mock.receipt.add.side_effect = RuntimeError("receipt failed")
+
+    with pytest.raises(RuntimeError, match="receipt failed"):
+        withdraw.withdraw("5")
 
 
 def test_withdraw_input():

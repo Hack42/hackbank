@@ -166,6 +166,18 @@ class TestReceipt(TestCase):
         with patch.object(self.receipt_instance.master, "send_message"):
             self.assertTrue(self.receipt_instance.remove("invalid"))
 
+    def test_remove_out_of_range_does_not_update_receipt(self):
+        self.receipt_instance.receipt = [
+            {"description": "item1"},
+            {"description": "item2"},
+        ]
+
+        with patch.object(self.receipt_instance.master, "send_message") as send_message:
+            self.assertTrue(self.receipt_instance.remove("99"))
+
+        send_message.assert_not_called()
+        self.receipt_instance.master.callhook.assert_not_called()
+
     def test_startup(self):
         with patch.object(self.receipt_instance, "updatetotals") as mock_updatetotals:
             self.receipt_instance.startup()

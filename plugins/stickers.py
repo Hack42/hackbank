@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import traceback
 import json
 import re
 import io
@@ -273,21 +272,11 @@ class stickers:  # pylint: disable=too-many-public-methods
     def barcodenum(self, text):
         if text == "abort":
             return self.master.callhook("abort", None)
-        try:
-            self.copies = int(text)
-            if not 0 < self.copies < 100:
-                return self.messageandbuttons(
-                    "barcodenum",
-                    "numbers",
-                    "Only 1 <> 99 allowed; How many do you want?",
-                )
-            self.barcodeprint()
-            return True
-        except:
-            traceback.print_exc()
-            return self.messageandbuttons(
-                "barcodenum", "numbers", "NaN ; How many do you want?"
-            )
+        result = self.read_copy_count(text, "barcodenum")
+        if result is not None:
+            return result
+        self.barcodeprint()
+        return True
 
     def barcodecount(self, text):
         prod = self.master.products.lookupprod(text)
@@ -318,24 +307,30 @@ class stickers:  # pylint: disable=too-many-public-methods
         self.master.send_message(True, "buttons", json.dumps({"special": buttons}))
         return True
 
+    def read_copy_count(self, text, nextcall):
+        try:
+            copies = int(text)
+        except (TypeError, ValueError):
+            return self.messageandbuttons(
+                nextcall, "numbers", "NaN ; How many do you want?"
+            )
+        if not 0 < copies < 100:
+            return self.messageandbuttons(
+                nextcall,
+                "numbers",
+                "Only 1 <> 99 allowed; How many do you want?",
+            )
+        self.copies = copies
+        return None
+
     def eigendomnum(self, text):
         if text == "abort":
             return self.master.callhook("abort", None)
-        try:
-            self.copies = int(text)
-            if not 0 < self.copies < 100:
-                return self.messageandbuttons(
-                    "eigendomnum",
-                    "numbers",
-                    "Only 1 <> 99 allowed; How many do you want?",
-                )
-            self.eigendomprint()
-            return True
-        except:
-            traceback.print_exc()
-            return self.messageandbuttons(
-                "eigendomnum", "numbers", "NaN ; How many do you want?"
-            )
+        result = self.read_copy_count(text, "eigendomnum")
+        if result is not None:
+            return result
+        self.eigendomprint()
+        return True
 
     def eigendomcount(self, text):
         if text == "abort":
@@ -346,53 +341,29 @@ class stickers:  # pylint: disable=too-many-public-methods
     def foodnum(self, text):
         if text == "abort":
             return self.master.callhook("abort", None)
-        try:
-            self.copies = int(text)
-            if not 0 < self.copies < 100:
-                return self.messageandbuttons(
-                    "foodnum", "numbers", "Only 1 <> 99 allowed; How many do you want?"
-                )
-            self.foodprint()
-            return True
-        except:
-            traceback.print_exc()
-            return self.messageandbuttons(
-                "foodnum", "numbers", "NaN ; How many do you want?"
-            )
+        result = self.read_copy_count(text, "foodnum")
+        if result is not None:
+            return result
+        self.foodprint()
+        return True
 
     def thtnum(self, text):
         if text == "abort":
             return self.master.callhook("abort", None)
-        try:
-            self.copies = int(text)
-            if not 0 < self.copies < 100:
-                return self.messageandbuttons(
-                    "thtnum", "numbers", "Only 1 <> 99 allowed; How many do you want?"
-                )
-            self.thtprint()
-            return True
-        except:
-            traceback.print_exc()
-            return self.messageandbuttons(
-                "thtnum", "numbers", "NaN ; How many do you want?"
-            )
+        result = self.read_copy_count(text, "thtnum")
+        if result is not None:
+            return result
+        self.thtprint()
+        return True
 
     def toolnum(self, text):
         if text == "abort":
             return self.master.callhook("abort", None)
-        try:
-            self.copies = int(text)
-            if not 0 < self.copies < 100:
-                return self.messageandbuttons(
-                    "toolnum", "numbers", "Only 1 <> 99 allowed; How many do you want?"
-                )
-            self.toolprint()
-            return True
-        except:
-            traceback.print_exc()
-            return self.messageandbuttons(
-                "toolnum", "numbers", "NaN ; How many do you want?"
-            )
+        result = self.read_copy_count(text, "toolnum")
+        if result is not None:
+            return result
+        self.toolprint()
+        return True
 
     def foodname(self, text):
         if text == "abort":

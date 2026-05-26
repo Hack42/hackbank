@@ -9,20 +9,19 @@ class withdraw:
     def withdraw(self, text):
         try:
             value = float(text)
-            if 0 < value < 1000:
-                self.master.receipt.add(
-                    True, value, "Withdrawal or unlisted product", 1, None, "withdraw"
-                )
-                return True
-            self.master.send_message(
-                True,
-                "message",
-                "Enter an amount between 0.01 and 999.99 or scan a product",
+        except (TypeError, ValueError):
+            return None
+        if 0 < value < 1000:
+            self.master.receipt.add(
+                True, value, "Withdrawal or unlisted product", 1, None, "withdraw"
             )
             return True
-        except:
-            pass
-        return None
+        self.master.send_message(
+            True,
+            "message",
+            "Enter an amount between 0.01 and 999.99 or scan a product",
+        )
+        return True
 
     def input(self, text):
         pass

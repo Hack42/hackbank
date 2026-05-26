@@ -129,12 +129,12 @@ class receipt:
         try:
             num = int(text)
             self.receipt.pop(num)
-            self.master.send_message(True, "receipt", json.dumps(self.receipt))
-            self.updatetotals()
-            self.master.callhook("addremove", ())
+        except (TypeError, ValueError, IndexError):
             return True
-        except:
-            return True
+        self.master.send_message(True, "receipt", json.dumps(self.receipt))
+        self.updatetotals()
+        self.master.callhook("addremove", ())
+        return True
 
     def startup(self):
         self.updatetotals()
