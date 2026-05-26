@@ -329,10 +329,17 @@ class TestPOS:
             assert len(self.POS.bonnetjes) == 50
 
     def test_loadbons_file_error(self):
-        self.POS.bonnetjes = {}
+        self.POS.bonnetjes = {123: {"bon": "stale"}}
         with patch("builtins.open", new_callable=mock_open(), side_effect=Exception):
             self.POS.loadbons()
-            assert self.POS.bonnetjes == {}  # remains empty
+            assert self.POS.bonnetjes == {}
+
+    def test_loadbons_invalid_data_clears_stale_bons(self):
+        self.POS.bonnetjes = {123: {"bon": "stale"}}
+        with patch("builtins.open", mock_open(read_data=b"not json or pickle")):
+            self.POS.loadbons()
+
+        assert self.POS.bonnetjes == {}
 
     def test_listbons_max_receipts(self):
         self.POS.bonnetjes = {

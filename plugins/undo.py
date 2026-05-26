@@ -57,6 +57,7 @@ class undo:
             json.dump(self.undo, output)
 
     def loadundo(self):
+        self.undo = {}
         try:
             with open("data/revbank.UNDO", "rb") as f:
                 data = f.read()

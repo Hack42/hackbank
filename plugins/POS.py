@@ -245,14 +245,15 @@ class POS:
             json.dump(self.serialize_bons(self.bonnetjes), output)
 
     def loadbons(self):
+        self.bonnetjes = {}
         try:
             with open("data/revbank.POS", "rb") as f:
                 data = f.read()
             try:
                 loaded = json.loads(data.decode("utf-8"))
-                self.bonnetjes = self.deserialize_bons(loaded)
             except (UnicodeDecodeError, json.JSONDecodeError):
-                self.bonnetjes = pickle.loads(data)
+                loaded = pickle.loads(data)
+            self.bonnetjes = self.deserialize_bons(loaded)
         except:
             pass
 

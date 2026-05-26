@@ -124,7 +124,7 @@ def test_undo_loadundo_json():
         assert undo.undo == {1: "data"}
 
 
-def test_undo_loadundo_ignores_errors():
+def test_undo_loadundo_clears_stale_state_on_errors():
     master_mock = Mock()
     undo = undo_module.undo("SID", master_mock)
     undo.undo = {1: "old"}
@@ -132,7 +132,18 @@ def test_undo_loadundo_ignores_errors():
     with patch("builtins.open", side_effect=OSError("missing")):
         undo.loadundo()
 
-    assert undo.undo == {1: "old"}
+    assert undo.undo == {}
+
+
+def test_undo_loadundo_invalid_data_clears_stale_state():
+    master_mock = Mock()
+    undo = undo_module.undo("SID", master_mock)
+    undo.undo = {1: "old"}
+
+    with patch("builtins.open", mock_open(read_data=b"not json or pickle")):
+        undo.loadundo()
+
+    assert undo.undo == {}
 
 
 def test_undo_doundo_abort():
@@ -235,7 +246,8 @@ def test_undo_listundo():
         "%Y-%m-%d %H:%M:%S", undo_module.time.localtime(123 + 1300000000)
     )
 
-    undo.listundo()
+    with patch.object(undo, "loadundo"):
+        undo.listundo()
     calls = [
         call(
             True,
@@ -265,7 +277,8 @@ def test_undo_listundo_restore_and_limit():
         i: {"totals": {"user": i}, "receipt": [], "beni": "text"} for i in range(60)
     }
 
-    undo.listundo(restore=True)
+    with patch.object(undo, "loadundo"):
+        undo.listundo(restore=True)
 
     master_mock.send_message.assert_any_call(
         True, "message", "Select a transaction to restore"
