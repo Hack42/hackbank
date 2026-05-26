@@ -94,6 +94,28 @@ class TestPOS:
 
         assert b"SALDO TE LAAG" in bon
 
+    def test_makebon_cash_does_not_require_account(self):
+        self.POS.master.receipt = Mock(
+            receipt=[
+                {
+                    "product": "test",
+                    "beni": "cash",
+                    "count": 1,
+                    "total": 1.0,
+                    "description": "cash sale",
+                }
+            ],
+            totals={"cash": -100},
+        )
+        self.POS.master.transID = 42
+        self.POS.master.accounts.accounts = {}
+
+        bon = self.POS.makebon("cash")
+
+        assert b"cash sale" in bon
+        assert b"Nieuw saldo" not in bon
+        assert b"SALDO TE LAAG" not in bon
+
     def test_hook_checkout(self):
         with patch.object(self.POS, "drawer"):
             self.POS.hook_checkout("cash")

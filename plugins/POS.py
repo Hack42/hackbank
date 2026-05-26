@@ -101,7 +101,10 @@ class POS:
 
     def makebon(self, user):
         BON = PRINTER + LARGE + CENTER + LOGO
+        is_cash = user == "cash"
         if (
+            not is_cash
+            and
             self.master.accounts.accounts[user]["amount"]
             + self.master.receipt.totals[user]
         ) < -13.37:
@@ -141,7 +144,7 @@ class POS:
         BON += b" " + b"-" * 38 + b"\n"
         BON += b" %-26s% 12.2f\n" % (b"Totaal", self.master.receipt.totals[user])
         BON += b"\nU bent geholpen door: %s\n" % user.encode()
-        if user != b"cash":
+        if not is_cash:
             BON += b"\n         Nieuw saldo: %5.2f\n" % (
                 self.master.accounts.accounts[user]["amount"]
             )
