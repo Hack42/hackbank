@@ -16,6 +16,8 @@ class TestMarket:
             "# comment\n"
             "\n"
             "user1   product1   2.50   1.00   description1\n"
+            "user1   badprice   nope   1.00   description\n"
+            "user1   badspace   2.50   nope   description\n"
             "malformed\n"
         )
         mo = mock_open(read_data=market_data)
@@ -25,6 +27,8 @@ class TestMarket:
             assert "product1" in self.market.products
             assert self.market.products["product1"]["price"] == 2.50
             assert self.market.products["product1"]["description"] == "description1"
+            assert "badprice" not in self.market.products
+            assert "badspace" not in self.market.products
             assert "stale_product" not in self.market.products
             assert "stale_alias" not in self.market.aliases
 

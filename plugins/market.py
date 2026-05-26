@@ -58,9 +58,14 @@ class market:
             if len(parts) == 5:
                 aliases = parts[1].split(",")
                 name = aliases.pop(0)
+                try:
+                    price = float(parts[2])
+                    space = float(parts[3])
+                except ValueError:
+                    continue
                 self.products[name] = {
-                    "price": float(parts[2]),
-                    "space": float(parts[3]),
+                    "price": price,
+                    "space": space,
                     "description": parts[4],
                     "aliases": aliases,
                     "user": parts[0],

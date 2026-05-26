@@ -81,7 +81,10 @@ class pfand:
             parts = " ".join(line.split()).split(" ", 2)
             if len(parts) == 2:
                 name = parts[0]
-                self.products[name] = float(parts[1])
+                try:
+                    self.products[name] = float(parts[1])
+                except ValueError:
+                    continue
 
     def hook_abort(self, _void):
         self.startup()

@@ -52,7 +52,10 @@ class stock:
             parts = " ".join(line.split()).split(" ", 2)
             if len(parts) == 2:
                 name = parts[0]
-                self.stock[name] = int(parts[1])
+                try:
+                    self.stock[name] = int(parts[1])
+                except ValueError:
+                    continue
         f.close()
         with open("data/revbank.stockalias", "r", encoding="utf-8") as f:
             lines = f.readlines()
@@ -62,7 +65,11 @@ class stock:
             parts = " ".join(line.split()).split(" ", 3)
             if len(parts) == 3:
                 name = parts[0]
-                self.stockalias[name] = {"prod": parts[1], "multi": int(parts[2])}
+                try:
+                    multiplier = int(parts[2])
+                except ValueError:
+                    continue
+                self.stockalias[name] = {"prod": parts[1], "multi": multiplier}
 
     def setstock(self, prod, count):
         self.readstock()

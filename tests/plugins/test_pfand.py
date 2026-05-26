@@ -56,7 +56,7 @@ class TestPfand:
 
     def test_loadmarket(self):
         self.pfand.products = {"stale": 9.0}
-        market_data = "# comment\n\nprod1   1.0\nprod2\t2.0\nmalformed\n"
+        market_data = "# comment\n\nprod1   1.0\nprod2\t2.0\nbad nope\nmalformed\n"
         mo = patch("builtins.open", mock_open(read_data=market_data))
         with mo:
             self.pfand.loadmarket()

@@ -154,8 +154,14 @@ def test_stock_readstock():
     stock = stock_module.stock("SID", master_mock)
     stock.stock = {"stale_product": 99}
     stock.stockalias = {"stale_alias": {"prod": "stale_product", "multi": 1}}
-    stock_data = "# comment\n\nproduct1   10\nproduct2\t20\nmalformed\n"
-    stock_alias_data = "# comment\n\nalias1   product1   2\nalias2\tproduct2\t3\nbad line"
+    stock_data = "# comment\n\nproduct1   10\nproduct2\t20\nbad nope\nmalformed\n"
+    stock_alias_data = (
+        "# comment\n\n"
+        "alias1   product1   2\n"
+        "alias2\tproduct2\t3\n"
+        "badalias product1 nope\n"
+        "bad line"
+    )
 
     def custom_mock_open_read(filename, *args, **kwargs):
         if filename == "data/revbank.stock":

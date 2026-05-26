@@ -63,11 +63,15 @@ class products:
             elif len(parts) == 3:
                 aliases = parts[0].split(",")
                 name = aliases.pop(0)
+                try:
+                    price = float(parts[1])
+                except ValueError:
+                    continue
                 self.groups[groupname].append(name)
                 for alias in aliases:
                     self.aliases[alias] = name
                 self.products[name] = {
-                    "price": float(parts[1]),
+                    "price": price,
                     "description": parts[2],
                     "group": groupname,
                     "aliases": aliases,

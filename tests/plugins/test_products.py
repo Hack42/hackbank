@@ -19,6 +19,7 @@ class TestProducts(unittest.TestCase):
             "\n"
             "# Group2\n"
             "product2\t1.50\tDescription2\n"
+            "badprice nope Bad description\n"
             "#\n"
             "malformed\n"
         )
@@ -26,6 +27,7 @@ class TestProducts(unittest.TestCase):
             self.products.readproducts()
             self.assertIn("product1", self.products.products)
             self.assertIn("product2", self.products.products)
+            self.assertNotIn("badprice", self.products.products)
             self.assertIn("Group1", self.products.groups)
             self.assertIn("Group2", self.products.groups)
             self.assertNotIn("stale_product", self.products.products)
