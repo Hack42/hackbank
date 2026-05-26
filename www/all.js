@@ -47,7 +47,18 @@ $(function() {
   var locked=0;
 
   function postmsg(topic,msg) {
-    $.post( "post.php", { topic: 'session/'+session+'/'+topic, msg: msg } );
+    fetch("post.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        topic: 'session/'+session+'/'+topic,
+        msg: msg,
+      }),
+    }).catch(function(error) {
+      console.error("Post failed", error);
+    });
   }
   function fillVisibleText(selector) {
     $(selector).each(function() {
@@ -184,8 +195,8 @@ $(function() {
   function accountstobuttons(accounts,type) {
     var buttons=[];
     Object.keys(accounts).sort(mycomparator).forEach(function(v) {
-      var isMember = $.inArray(v,members) !== -1;
-      var isNonMember = $.inArray(v,nonmembers) !== -1;
+      var isMember = members.indexOf(v) !== -1;
+      var isNonMember = nonmembers.indexOf(v) !== -1;
       if((isMember && type === 'm') || (isNonMember && type === 'o') || (!isMember && !isNonMember && type === 'x')) {
         var extraclass=v;
         if(accounts[v].amount < -13.37) {
