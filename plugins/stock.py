@@ -47,6 +47,8 @@ class stock:
         with open("data/revbank.stock", "r", encoding="utf-8") as f:
             lines = f.readlines()
         for line in lines:
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
             parts = " ".join(line.split()).split(" ", 2)
             if len(parts) == 2:
                 name = parts[0]
@@ -55,6 +57,8 @@ class stock:
         with open("data/revbank.stockalias", "r", encoding="utf-8") as f:
             lines = f.readlines()
         for line in lines:
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
             parts = " ".join(line.split()).split(" ", 3)
             if len(parts) == 3:
                 name = parts[0]
