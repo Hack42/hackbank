@@ -81,6 +81,14 @@ class accounts:
                 if len(s) == 2:
                     self.aliases[s[0]] = s[1]
 
+    def readmembers(self):
+        with open("data/revbank.members", encoding="utf-8") as f:
+            self.members = [
+                member.strip()
+                for member in f.readlines()
+                if member.strip() and not member.lstrip().startswith("#")
+            ]
+
     def updateaccount(self, usr, value):
         print("Updating account", usr)
         if usr == "cash":
@@ -160,9 +168,7 @@ class accounts:
 
     def startup(self):
         self.readaccounts()
-        with open("data/revbank.members", encoding="utf-8") as f:
-            self.members = f.readlines()
-        self.members = [m.rstrip() for m in self.members]
+        self.readmembers()
         self.get_last_updated_accounts()
         for name, account in self.accounts.items():
             self.master.send_message(True, "accounts/" + name, json.dumps(account))

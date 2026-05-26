@@ -262,7 +262,11 @@ def test_createnew(_mock_strftime):
     assert master_mock.send_message.call_args_list == expected_calls
 
 
-@patch("builtins.open", new_callable=mock_open, read_data="user1\nuser2\n")
+@patch(
+    "builtins.open",
+    new_callable=mock_open,
+    read_data="# comment\n\nuser1\n  user2  \n",
+)
 def test_startup(mock_file):
     master_mock = Mock()
     acc = accounts("SID", master_mock)
