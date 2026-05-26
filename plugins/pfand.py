@@ -8,6 +8,7 @@ class pfand:
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
+        self.products = {}
 
     def help(self):
         return {"pfand": "Return deposit"}
@@ -71,6 +72,7 @@ class pfand:
         return None
 
     def loadmarket(self):
+        self.products = {}
         with open("data/revbank.pfand", "r", encoding="utf-8") as f:
             lines = f.readlines()
         for line in lines:
