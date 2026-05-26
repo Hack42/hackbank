@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
 import time
-import traceback
 
 
 class declaratie:
@@ -63,6 +62,23 @@ class declaratie:
             return True
         try:
             value = float(text)
+        except ValueError:
+            self.master.donext(self, "amount")
+            if self.soort == "verkoop":
+                self.master.send_message(
+                    True, "message", "Not a valid number! How much money did you get?"
+                )
+            else:
+                self.master.send_message(
+                    True,
+                    "message",
+                    "Not a valid number! How much money do you want back?",
+                )
+            self.master.send_message(
+                True, "buttons", json.dumps({"special": "numbers"})
+            )
+            return True
+        else:
             if -5000 < value < 5000:
                 self.value = value
                 if self.soort == "verkoop":
@@ -91,27 +107,6 @@ class declaratie:
                 self.master.send_message(
                     True, "buttons", json.dumps({"special": "numbers"})
                 )
-            return True
-        except:
-            traceback.print_exc()
-
-            if text == "abort":
-                self.master.callhook("abort", None)
-                return True
-            self.master.donext(self, "amount")
-            if self.soort == "verkoop":
-                self.master.send_message(
-                    True, "message", "Not a valid number! How much money did you get?"
-                )
-            else:
-                self.master.send_message(
-                    True,
-                    "message",
-                    "Not a valid number! How much money do you want back?",
-                )
-            self.master.send_message(
-                True, "buttons", json.dumps({"special": "numbers"})
-            )
             return True
 
     def reason(self, text):
@@ -146,6 +141,10 @@ class declaratie:
             return True
         try:
             value = float(text)
+        except ValueError:
+            self.askbar("")
+            return True
+        else:
             if -5000 < value < 5000:
                 if value > self.value:
                     return self.askbar(
@@ -156,10 +155,6 @@ class declaratie:
                     return self.final()
                 return self.askcash("")
             return self.askbar("Not between 0.01 and 4999.99; ")
-        except:
-            traceback.print_exc()
-            self.askbar("")
-            return True
 
     def askcash(self, error):
         self.master.donext(self, "runascash")
@@ -191,6 +186,9 @@ class declaratie:
             return True
         try:
             value = float(text)
+        except ValueError:
+            return self.askcash("")
+        else:
             if 0 <= value < 5000:
                 if value > (self.value - self.asbar):
                     return self.askcash(
@@ -202,9 +200,6 @@ class declaratie:
                     return self.final()
                 return self.askbank("")
             return self.askcash("Not between 0 and 4999.99; ")
-        except:
-            traceback.print_exc()
-            return self.askcash("")
 
     def askbank(self, error):
         self.master.donext(self, "runasbank")
@@ -237,6 +232,9 @@ class declaratie:
             return True
         try:
             value = float(text)
+        except ValueError:
+            return self.askbank("")
+        else:
             if -5000 < value < 5000:
                 if value > (self.value - self.asbar - self.ascash):
                     return self.askbank(
@@ -248,9 +246,6 @@ class declaratie:
                     return self.final()
                 return self.askbank("The numbers do not match; ")
             return self.askbank("Not between 0.01 and 4999.99; ")
-        except:
-            traceback.print_exc()
-            return self.askbank("")
 
     def bon(self):
         self.master.POS.printdeclaratie(

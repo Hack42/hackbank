@@ -36,8 +36,25 @@ class give:
         return True
 
     def amount(self, text):
+        if text == "abort":
+            self.master.callhook("abort", None)
+            return True
         try:
             value = float(text)
+        except ValueError:
+            self.master.donext(self, "amount")
+            self.master.send_message(
+                True,
+                "message",
+                "Not a valid number! How much do you want to give to "
+                + self.userto
+                + "?",
+            )
+            self.master.send_message(
+                True, "buttons", json.dumps({"special": "numbers"})
+            )
+            return True
+        else:
             if 0 < value < 1000:
                 self.value = value
                 self.master.donext(self, "reason")
@@ -61,22 +78,6 @@ class give:
                 self.master.send_message(
                     True, "buttons", json.dumps({"special": "numbers"})
                 )
-            return True
-        except:
-            if text == "abort":
-                self.master.callhook("abort", None)
-                return True
-            self.master.donext(self, "amount")
-            self.master.send_message(
-                True,
-                "message",
-                "Not a valid number! How much do you want to give to "
-                + self.userto
-                + "?",
-            )
-            self.master.send_message(
-                True, "buttons", json.dumps({"special": "numbers"})
-            )
             return True
 
     def reason(self, text):

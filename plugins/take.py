@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 import json
 import math
-import traceback
 
 
 class take:
@@ -43,6 +42,9 @@ class take:
         if len(self.totakefrom) > 0:
             try:
                 value = round(float(text), 2)
+            except ValueError:
+                pass
+            else:
                 if 0 < value < 1000:
                     self.value = value
                     self.peruser = (
@@ -72,8 +74,6 @@ class take:
                         True, "buttons", json.dumps({"special": "numbers"})
                     )
                 return True
-            except:
-                traceback.print_exc()
         self.master.donext(self, "who")
         self.master.send_message(
             True,
