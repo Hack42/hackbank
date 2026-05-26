@@ -214,4 +214,4 @@ def test_cash_checkout_updates_stock_opens_drawer_and_skips_account():
     assert pos_plugin.bonnetjes[124]["totals"] == {"cash": -2.5}
     assert b"Nieuw saldo" not in pos_plugin.bonnetjes[124]["bon"]
     assert receipt_plugin.receipt == []
-    assert drawer.call_count == 2
+    drawer.assert_called_once()

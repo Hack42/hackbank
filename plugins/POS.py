@@ -85,8 +85,7 @@ class POS:
         self.ser.write(out)
 
     def hook_checkout(self, user):
-        if user == "cash":
-            self.drawer()
+        pass
 
     def hook_addremove(self, args):
         # Update display

@@ -144,9 +144,9 @@ class TestPOS:
         assert b"SALDO TE LAAG" not in bon
 
     def test_hook_checkout(self):
-        with patch.object(self.POS, "drawer"):
+        with patch.object(self.POS, "drawer") as mock_drawer:
             self.POS.hook_checkout("cash")
-            self.POS.drawer.assert_called()
+            mock_drawer.assert_not_called()
 
     def test_printdeclaratie(self):
         with patch.object(self.POS, "open"), patch.object(self.POS, "slowwrite"):
@@ -164,7 +164,7 @@ class TestPOS:
             self.POS.hook_post_checkout("cash")
             self.POS.loadbons.assert_called()
             self.POS.writebons.assert_called()
-            self.POS.drawer.assert_called()
+            self.POS.drawer.assert_called_once()
 
     def test_hook_post_checkout_deposit_opens_drawer_for_non_cash(self):
         self.POS.master.receipt = Mock(
