@@ -9,6 +9,7 @@ class TestProducts(unittest.TestCase):
         self.products = ProductsModule.products("SID", self.master_mock)
 
     def test_readproducts(self):
+        self.master_mock.help = {"deposit": "Deposit Money"}
         self.products.products = {"stale_product": {}}
         self.products.aliases = {"stale_alias": "stale_product"}
         self.products.groups = {"StaleGroup": ["stale_product"]}
@@ -16,6 +17,8 @@ class TestProducts(unittest.TestCase):
             "\n"
             "# Group1\n"
             "product1,alias1   2.50   Description1\n"
+            "deposit,oldalias   1.00   Reserved product\n"
+            "product3,deposit,ok   3.00   Reserved aliases\n"
             "\n"
             "# Group2\n"
             "product2\t1.50\tDescription2\n"
@@ -27,7 +30,12 @@ class TestProducts(unittest.TestCase):
             self.products.readproducts()
             self.assertIn("product1", self.products.products)
             self.assertIn("product2", self.products.products)
+            self.assertIn("product3", self.products.products)
+            self.assertEqual(self.products.products["product3"]["aliases"], [])
             self.assertNotIn("badprice", self.products.products)
+            self.assertNotIn("deposit", self.products.products)
+            self.assertNotIn("deposit", self.products.aliases)
+            self.assertNotIn("ok", self.products.aliases)
             self.assertIn("Group1", self.products.groups)
             self.assertIn("Group2", self.products.groups)
             self.assertNotIn("stale_product", self.products.products)
@@ -78,10 +86,12 @@ class TestProducts(unittest.TestCase):
         self.assertEqual(self.products.products["product2"]["aliases"], [])
 
     def test_lookupprod(self):
+        self.master_mock.help = {"deposit": "Deposit Money"}
         self.products.products = {"product1": {}}
-        self.products.aliases = {"alias1": "product1"}
+        self.products.aliases = {"alias1": "product1", "deposit": "product1"}
         self.assertEqual(self.products.lookupprod("product1"), "product1")
         self.assertEqual(self.products.lookupprod("alias1"), "product1")
+        self.assertIsNone(self.products.lookupprod("deposit"))
         self.assertIsNone(self.products.lookupprod("nonexistent"))
 
     def test_messageandbuttons(self):
@@ -246,6 +256,20 @@ class TestProducts(unittest.TestCase):
             assert self.products.savealias("alias1")
         self.master_mock.donext.assert_called_with(self.products, "savealias")
 
+    def test_savealias_rejects_command_alias(self):
+        self.master_mock.help = {"deposit": "Deposit Money"}
+        self.products.products = {"product1": {"aliases": []}}
+        self.products.aliasprod = "product1"
+
+        with patch.object(self.products, "readproducts"), patch.object(
+            self.products, "writeproducts"
+        ) as mock_writeproducts:
+            assert self.products.savealias("deposit")
+
+        mock_writeproducts.assert_not_called()
+        assert self.products.products["product1"]["aliases"] == []
+        self.master_mock.donext.assert_called_with(self.products, "savealias")
+
     def test_saveprice_out_of_range(self):
         self.products.products = {"product1": {"price": 2.5}}
         self.products.priceprod = "product1"
@@ -307,10 +331,21 @@ class TestProducts(unittest.TestCase):
         assert self.products.newprod == "product2"
         self.master_mock.donext.assert_called_with(self.products, "addproductdesc")
 
+    def test_addproduct_rejects_command_name(self):
+        self.master_mock.help = {"deposit": "Deposit Money"}
+
+        assert self.products.addproduct("deposit")
+
+        assert self.products.newprod == ""
+        self.master_mock.donext.assert_called_with(self.products, "addproduct")
+
     def test_input_product_commands_and_multiplier(self):
+        self.master_mock.help = {"deposit": "Deposit Money"}
         self.products.products = {
-            "product1": {"price": 2.5, "description": "Description1", "aliases": []}
+            "product1": {"price": 2.5, "description": "Description1", "aliases": []},
+            "deposit": {"price": 1.0, "description": "Reserved", "aliases": []},
         }
+        self.products.aliases = {"deposit": "product1"}
 
         assert self.products.input("2*")
         assert self.products.times == 2
@@ -320,6 +355,10 @@ class TestProducts(unittest.TestCase):
             True, 2.5, "Description1", 2.0, None, "product1"
         )
         assert self.products.times == 1
+
+        self.master_mock.reset_mock()
+        assert self.products.input("deposit") is None
+        self.master_mock.receipt.add.assert_not_called()
 
         for command, nextcall in (
             ("aliasproduct", "addalias"),

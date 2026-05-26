@@ -10,12 +10,15 @@ class TestMarket:
         self.market = market_module.market("SID", self.master_mock)
 
     def test_readproducts(self):
+        self.master_mock.help = {"deposit": "Deposit Money"}
         self.market.products = {"stale_product": {}}
         self.market.aliases = {"stale_alias": "stale_product"}
         market_data = (
             "# comment\n"
             "\n"
             "user1   product1   2.50   1.00   description1\n"
+            "user1   deposit,oldalias   1.00   0.00   reserved product\n"
+            "user1   product3,deposit,ok   3.00   0.50   reserved aliases\n"
             "user1   badprice   nope   1.00   description\n"
             "user1   badspace   2.50   nope   description\n"
             "malformed\n"
@@ -25,8 +28,13 @@ class TestMarket:
             self.market.readproducts()
             print("hooi", self.market.products)
             assert "product1" in self.market.products
+            assert "product3" in self.market.products
+            assert self.market.products["product3"]["aliases"] == []
             assert self.market.products["product1"]["price"] == 2.50
             assert self.market.products["product1"]["description"] == "description1"
+            assert "deposit" not in self.market.products
+            assert "deposit" not in self.market.aliases
+            assert "ok" not in self.market.aliases
             assert "badprice" not in self.market.products
             assert "badspace" not in self.market.products
             assert "stale_product" not in self.market.products
@@ -81,10 +89,12 @@ class TestMarket:
         assert self.market.products["product1"]["aliases"] == ["alias1"]
 
     def test_lookupprod(self):
+        self.master_mock.help = {"deposit": "Deposit Money"}
         self.market.products = {"product1": "details1"}
-        self.market.aliases = {"alias1": "product1"}
+        self.market.aliases = {"alias1": "product1", "deposit": "product1"}
         assert self.market.lookupprod("product1") == "product1"
         assert self.market.lookupprod("alias1") == "product1"
+        assert self.market.lookupprod("deposit") is None
         assert self.market.lookupprod("unknown") is None
 
     def test_messageandbuttons(self):
@@ -126,6 +136,20 @@ class TestMarket:
             assert self.market.savealias("alias123") is True
 
         assert self.market.products["product1"]["aliases"] == ["alias123"]
+
+    def test_savealias_rejects_command_alias(self):
+        self.master_mock.help = {"deposit": "Deposit Money"}
+        self.market.products = {"product1": {"aliases": []}}
+        self.market.aliasprod = "product1"
+
+        with patch.object(self.market, "readproducts"), patch.object(
+            self.market, "writeproducts"
+        ) as mock_writeproducts:
+            assert self.market.savealias("deposit") is True
+
+        mock_writeproducts.assert_not_called()
+        assert self.market.products["product1"]["aliases"] == []
+        self.master_mock.donext.assert_called_with(self.market, "savealias")
 
     def test_addalias(self):
         self.market.products = {"product1": {"aliases": []}}
@@ -292,13 +316,29 @@ class TestMarket:
         self.master_mock.callhook.assert_called_with("abort", None)
         assert self.market.addproduct("bad!") is True
 
+    def test_addproduct_rejects_command_name(self):
+        self.master_mock.help = {"deposit": "Deposit Money"}
+
+        assert self.market.addproduct("deposit") is True
+
+        assert self.market.newprod == ""
+        self.master_mock.donext.assert_called_with(self.market, "addproduct")
+
     def test_input_unknown_product(self):
         self.market.products = {}
         assert not self.market.input("unknownprod")
 
     def test_input_market(self):
-        self.market.products = {}
+        self.market.products = {
+            "market": {
+                "price": 2.0,
+                "user": "user1",
+                "description": "reserved name",
+                "space": 0.5,
+            }
+        }
         assert self.market.input("market")
+        self.master_mock.receipt.add.assert_not_called()
 
     def test_input_market_lists_products(self):
         self.market.products = {

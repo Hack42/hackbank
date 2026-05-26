@@ -4,6 +4,8 @@ import re
 import tempfile
 import threading
 
+RESERVED_INPUTS = {"abort", "ok"}
+
 
 def _atomic_write(path, lines):
     directory = os.path.dirname(path) or "."
@@ -44,6 +46,17 @@ class market:
             "market": "Market: Products",
         }
 
+    def reserved_inputs(self):
+        reserved = set(RESERVED_INPUTS)
+        reserved.update(self.help().keys())
+        master_help = getattr(self.master, "help", {})
+        if isinstance(master_help, dict):
+            reserved.update(master_help.keys())
+        return reserved
+
+    def is_reserved_input(self, text):
+        return text in self.reserved_inputs()
+
     def readproducts(self):
         self.products = {}
         self.aliases = {}
@@ -58,6 +71,11 @@ class market:
             if len(parts) == 5:
                 aliases = parts[1].split(",")
                 name = aliases.pop(0)
+                if self.is_reserved_input(name):
+                    continue
+                aliases = [
+                    alias for alias in aliases if not self.is_reserved_input(alias)
+                ]
                 try:
                     price = float(parts[2])
                     space = float(parts[3])
@@ -110,6 +128,8 @@ class market:
         self.newprod = ""
 
     def lookupprod(self, text):
+        if self.is_reserved_input(text):
+            return None
         prod = None
         if text in self.products:
             prod = text
@@ -133,6 +153,12 @@ class market:
                 "savealias",
                 "keyboard",
                 "Already known alias " + text + " for " + prod + "! Try again.",
+            )
+        if self.is_reserved_input(text):
+            return self.messageandbuttons(
+                "savealias",
+                "keyboard",
+                "That alias is a command; choose another alias.",
             )
         if len(text) < 6 or not re.compile("^[A-z0-9]+$").match(text):
             return self.messageandbuttons(
@@ -314,6 +340,12 @@ class market:
         if prod:
             return self.messageandbuttons(
                 "addproduct", "keyboard", "Product already exists? What product to add?"
+            )
+        if self.is_reserved_input(text):
+            return self.messageandbuttons(
+                "addproduct",
+                "keyboard",
+                "That product name is a command; choose another name.",
             )
         if len(text) < 4 or not re.compile("^[A-z0-9]+$").match(text):
             return self.messageandbuttons(
