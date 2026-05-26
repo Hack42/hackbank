@@ -63,7 +63,11 @@ class accounts:
         with codecs.open("data/revbank.accounts", "r", "utf-8") as f:
             lines = f.readlines()
         for line in lines:
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
             parts = line.split()
+            if len(parts) < 3:
+                continue
             self.accounts[parts[0]] = {
                 "amount": float(parts[1]),
                 "lastupdate": parts[2],
@@ -71,9 +75,11 @@ class accounts:
         with codecs.open("data/revbank.aliases", "r", "utf-8") as f:
             y = f.readlines()
             for x in y:
-                s = x.split(" ")
+                if not x.strip() or x.lstrip().startswith("#"):
+                    continue
+                s = x.split()
                 if len(s) == 2:
-                    self.aliases[s[0]] = s[1].rstrip()
+                    self.aliases[s[0]] = s[1]
 
     def updateaccount(self, usr, value):
         print("Updating account", usr)

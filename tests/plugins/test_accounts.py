@@ -75,6 +75,41 @@ def test_readaccounts():
         assert "stale_alias" not in acc.aliases
 
 
+def test_readaccounts_tolerates_comments_blanks_and_whitespace():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+
+    mock_accounts_data = (
+        "# comment\n"
+        "\n"
+        "user1     +100.00   2021-01-01\n"
+        "malformed\n"
+        "user2\t-20.50\t2021-01-02 extra-field\n"
+    )
+    mock_aliases_data = (
+        "# comment\n"
+        "\n"
+        "alias1     user1\n"
+        "bad alias line\n"
+        "alias2\tuser2\n"
+    )
+
+    def custom_mock_open(filename, _bla, _bla2):
+        if filename == "data/revbank.accounts":
+            return mock_open(read_data=mock_accounts_data)()
+        if filename == "data/revbank.aliases":
+            return mock_open(read_data=mock_aliases_data)()
+
+    with patch("plugins.accounts.codecs.open", side_effect=custom_mock_open):
+        acc.readaccounts()
+
+    assert acc.accounts == {
+        "user1": {"amount": 100.0, "lastupdate": "2021-01-01"},
+        "user2": {"amount": -20.5, "lastupdate": "2021-01-02"},
+    }
+    assert acc.aliases == {"alias1": "user1", "alias2": "user2"}
+
+
 def test_writeaccount():
     master_mock = Mock()
     acc = accounts("SID", master_mock)
