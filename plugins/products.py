@@ -54,8 +54,7 @@ class products:
             for group in self.groups:  # pylint: disable=consider-using-dict-items
                 f.write("# " + group + "\n")
                 for prod in self.groups[group]:
-                    names = self.products[prod]["aliases"]
-                    names.insert(0, prod)
+                    names = [prod] + self.products[prod]["aliases"]
                     f.write(
                         "%-58s %7.2f  %s\n"
                         % (

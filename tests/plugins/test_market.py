@@ -64,6 +64,7 @@ class TestMarket:
                     call("\n"),
                 ]
             )
+        assert self.market.products["product1"]["aliases"] == ["alias1"]
 
     def test_lookupprod(self):
         self.market.products = {"product1": "details1"}

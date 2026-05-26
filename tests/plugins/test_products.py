@@ -46,6 +46,8 @@ class TestProducts(unittest.TestCase):
         with patch("builtins.open", mock_open()) as mocked_file:
             self.products.writeproducts()
             mocked_file().write.assert_called()
+        self.assertEqual(self.products.products["product1"]["aliases"], ["alias1"])
+        self.assertEqual(self.products.products["product2"]["aliases"], [])
 
     def test_lookupprod(self):
         self.products.products = {"product1": {}}

@@ -51,8 +51,7 @@ class market:
                 f.write("# " + group + "\n")
                 for prod in groupvalue:
                     product = self.products[prod]
-                    names = product["aliases"]
-                    names.insert(0, prod)
+                    names = [prod] + product["aliases"]
                     f.write(
                         "%-58s %7.2f  %s\n"
                         % (
