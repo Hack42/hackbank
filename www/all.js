@@ -1,9 +1,9 @@
+/* global dolog, runtext, showusers */
 var cachepixels={};
 var cachetop={};
-;(function($) {
+(function($) {
     $.fn.textfill = function(options) {
         var fontSize = options.maxFontPixels;
-        var ourText = $('span:visible:first', this);
         var maxHeight = $(this).parent().height();
         var maxWidth = $(this).parent().width();
         var textHeight;
@@ -21,16 +21,16 @@ var cachetop={};
             fontSize = fontSize - 0.9;
         } while ((textHeight > maxHeight || textWidth > maxWidth) && fontSize > 0.5);
         textHeight = this.height();
-        var mytop=(maxHeight-textHeight)/2
+        var mytop=(maxHeight-textHeight)/2;
         this.css('top',mytop);
         cachetop[this.text()]=mytop;
         return this;
-    }
+    };
 })(jQuery);
 
 $( document ).ready(function() {
   var session='main';
-  if (window.location.hash!='') {
+  if (window.location.hash !== '') {
     session=window.location.hash.replace('#','');
   }
   var prods={};
@@ -56,23 +56,23 @@ $( document ).ready(function() {
     $.each(parts, function(idx,stuff) {
       counter++;
       $('#Receipt').append(
-                    $('<div>',{class: 'Itemline'})
-		      .append($('<span>',{class: 'Product', text: stuff.description}))
-		      .append($('<span>',{class: 'Times', text: stuff.count}))
-		      .append($('<span>',{class: 'LoseOrGain', text: stuff.Lose ? "LOSE" : "GAIN"}))
-		      .append($('<span>',{class: 'ItemEuro'}))
-		      .append($('<div>',{class: 'ItemAmount', text: stuff.total.toFixed(2)}))
-		    );
+        $('<div>',{class: 'Itemline'})
+          .append($('<span>',{class: 'Product', text: stuff.description}))
+          .append($('<span>',{class: 'Times', text: stuff.count}))
+          .append($('<span>',{class: 'LoseOrGain', text: stuff.Lose ? "LOSE" : "GAIN"}))
+          .append($('<span>',{class: 'ItemEuro'}))
+          .append($('<div>',{class: 'ItemAmount', text: stuff.total.toFixed(2)}))
+      );
     });
     $('#Receipt').scrollTop($('#Receipt')[0].scrollHeight);
-    if(counter==0) {
+    if(counter === 0) {
       $('#Receipt').append($('<div>',{class: 'welcome', html: "Welcome to Hack42 Bank HTML5 Interface"}));
     }
     $('#Receipt2').empty();
     $('.Itemline').clone().appendTo('#Receipt2');
     $('#Receipt2').scrollTop($('#Receipt2')[0].scrollHeight);
     if ($('#Receipt2').is(':empty')){
-       $('#Receipt2').append($('<img>',{src: 'images/Hack42.png', width: '100%'}).css({'top': '12vh','position': 'absolute'}))
+       $('#Receipt2').append($('<img>',{src: 'images/Hack42.png', width: '100%'}).css({'top': '12vh','position': 'absolute'}));
     }
   }
   function build_totals(msg) {
@@ -82,21 +82,21 @@ $( document ).ready(function() {
     $.each(parts, function(idx,stuff) {
       counter++;
       $('#Totals').append(
-                    $('<div>',{class: 'Userline Total_'+stuff.user})
-		      .append($('<span>',{class: 'UserName', text: stuff.user ? stuff.user : '-$you-' }))
-		      .append($('<span>',{class: 'GainOrLose',text: (stuff.amount<0) ? 'LOSE' : 'GAIN'}))
-		      .append($('<span>',{class: 'TotalEuro'}))
-		      .append($('<span>',{class: 'Totalamount',text: (stuff.amount ? stuff.amount : 0-stuff.amount).toFixed(2) }))
-		    );
+        $('<div>',{class: 'Userline Total_'+stuff.user})
+          .append($('<span>',{class: 'UserName', text: stuff.user ? stuff.user : '-$you-' }))
+          .append($('<span>',{class: 'GainOrLose',text: (stuff.amount<0) ? 'LOSE' : 'GAIN'}))
+          .append($('<span>',{class: 'TotalEuro'}))
+          .append($('<span>',{class: 'Totalamount',text: (stuff.amount ? stuff.amount : 0-stuff.amount).toFixed(2) }))
+      );
     });
     $('#Totals').scrollTop($('#Totals')[0].scrollHeight);
-    if(counter==0) {
+    if(counter === 0) {
       $('#Totals').append($('<div>',{class: 'welcome', html: "Scan a product or choose a button from below"}));
     }
   }
   function run_infobox(name,msg) {
-    json=JSON.parse(msg);
-    newsaldo=json.amount;
+    var json=JSON.parse(msg);
+    var newsaldo=json.amount;
     $('.infoboxes .Total_'+name).append($('<span>',{class: 'NowHas',text: "Now Has"}));
     $('.infoboxes .Total_'+name).append($('<span>',{class: 'NewSaldo',text: newsaldo.toFixed(2)}));
   }
@@ -107,32 +107,32 @@ $( document ).ready(function() {
     commands=JSON.parse(msg);
   }
   function setupstock(name,msg) {
-    stock[name]=msg
+    stock[name]=msg;
   }
   function setupproducts(name,msg) {
     prods[name]=JSON.parse(msg);
     groups={};
     $.each(prods, function(idx,stuff) {
-      groups[stuff.group]++;
-      barcode=0;
+      groups[stuff.group]=(groups[stuff.group] || 0) + 1;
+      var barcode=0;
       $.each(stuff.aliases, function(idx2,stuff2) {
-        if(stuff2>9999999) barcode=1;
-      })
-      if(barcode==0) {
+        if(stuff2 > 9999999) barcode=1;
+      });
+      if(barcode === 0) {
         nobcgroup[name]=prods[name];
       }
     });
   }
   function productstobuttons(products) {
     var buttons=[];
-    Object.keys(products).sort().forEach(function(v, i) {
+    Object.keys(products).sort().forEach(function(v) {
       buttons.push({'text': v,'display': v, class: v});
     });
     return buttons;
   }
   function commandstobuttons() {
     var buttons=[];
-    Object.keys(commands).sort().forEach(function(v, i) {
+    Object.keys(commands).sort().forEach(function(v) {
       buttons.push({'text': v,'display': commands[v], class: v});
     });
     return buttons;
@@ -140,14 +140,6 @@ $( document ).ready(function() {
   function mycomparator(a,b) {
     var alc = a.toLowerCase(), blc = b.toLowerCase();
     return alc > blc ? 1 : alc < blc ? -1 : 0;
-  }
-  function compare_text(a,b) {
-    if (a.text < b.text)
-      return -1;
-    else if (a.text > b.text)
-      return 1;
-    else 
-      return 0;
   }
   function compare_text_rev(a,b) {
     if (a.text > b.text)
@@ -165,18 +157,12 @@ $( document ).ready(function() {
     else 
       return 0;
   }
-  function compare_display_rev(a,b) {
-    if (a.display > b.display)
-      return -1;
-    else if (a.display < b.display)
-      return 1;
-    else 
-      return 0;
-  }
   function accountstobuttons(accounts,type) {
     var buttons=[];
-    Object.keys(accounts).sort(mycomparator).forEach(function(v, i) {
-      if($.inArray(v,members)!=-1 & type=='m' || ( $.inArray(v,nonmembers)!=-1 & type=='o' || ($.inArray(v,nonmembers)==-1 & $.inArray(v,members)==-1 & type=='x'))) {
+    Object.keys(accounts).sort(mycomparator).forEach(function(v) {
+      var isMember = $.inArray(v,members) !== -1;
+      var isNonMember = $.inArray(v,nonmembers) !== -1;
+      if((isMember && type === 'm') || (isNonMember && type === 'o') || (!isMember && !isNonMember && type === 'x')) {
         var extraclass=v;
         if(accounts[v].amount < -13.37) {
           extraclass=v+" rood";
@@ -191,9 +177,9 @@ $( document ).ready(function() {
   }
   function allproductstobuttons() {
     var buttons=[];
-    $.each(prods,function(v,i) {
-      button={'text': v,'display': prods[v].description,'right': prods[v].price.toFixed(2), rightclass:"green", class: v, aliases: prods[v].aliases}
-      if(stock[v]!=undefined && stock[v]!=0) {
+    $.each(prods,function(v) {
+      var button={'text': v,'display': prods[v].description,'right': prods[v].price.toFixed(2), rightclass:"green", class: v, aliases: prods[v].aliases};
+      if(stock[v] !== undefined && Number(stock[v]) !== 0) {
         button['left']=stock[v];
         button['leftclass']='orange';
       }
@@ -205,11 +191,11 @@ $( document ).ready(function() {
     var buttons=[];
     var thisprods={};
     $.each(prods, function(idx,stuff) {
-      if(stuff.group==group) thisprods[idx]=1;
+      if(stuff.group === group) thisprods[idx]=1;
     });
-    Object.keys(thisprods).sort().forEach(function(v,i) {
-      button={'text': v,'display': prods[v].description,'right': prods[v].price.toFixed(2), rightclass:"green", class: v}
-      if(stock[v]!=undefined && stock[v]!=0) {
+    Object.keys(thisprods).sort().forEach(function(v) {
+      var button={'text': v,'display': prods[v].description,'right': prods[v].price.toFixed(2), rightclass:"green", class: v};
+      if(stock[v] !== undefined && Number(stock[v]) !== 0) {
         button['left']=stock[v];
         button['leftclass']='orange';
       }
@@ -228,13 +214,13 @@ $( document ).ready(function() {
     $('#TopButtons').append($('<div>',{class: "Knopje Button normal restore",id: 'restore'}).append($('<span>',{class: "Knopjetext",text: "Undo + Restore"})));
     $('#TopButtons').append($('<div>',{class: "Knopje Button normal bon",id: 'bon'}).append($('<span>',{class: "Knopjetext",text: "Bon"})));
     $('#TopButtons').append($('<div>',{class: "Knopje Button normal kassala",id: 'kassala'}).append($('<span>',{class: "Knopjetext",text: "Kassala"})));
-    $( "#TopButtons .Knopjetext:visible" ).each(function( index, element ) {
+    $( "#TopButtons .Knopjetext:visible" ).each(function() {
        $(this).textfill({maxFontPixels: 5});
     });
   }
   function dokeys(keys) {
     $.each(keys, function(idx,val) {
-      $('#keys')    .append($('<div>',{class: "Knopje Knop invoer small",id: val ,text: val}));
+      $('#keys').append($('<div>',{class: "Knopje Knop invoer small",id: val ,text: val}));
     });
   }
   function makepage_keyboard() {
@@ -242,40 +228,40 @@ $( document ).ready(function() {
     $('#TopButtons').empty();
     $('#MainButtons').append($('<div>',{class: "keys", id: "keys"}));
 
-    keys=['!','@','#','$','%','^','&','*','(',')'];
+    var keys=['!','@','#','$','%','^','&','*','(',')'];
     dokeys(keys);
-    $('#keys').append($('<br>'))
+    $('#keys').append($('<br>'));
 
     keys=['1','2','3','4','5','6','7','8','9','0'];
     dokeys(keys);
-    $('#keys').append($('<br>'))
+    $('#keys').append($('<br>'));
 
     keys=['q','w','e','r','t','y','u','i','o','p'];
     dokeys(keys);
     $('#keys').append($('<div>',{class: "Knopje Knop invoer enter small",id: "backspace" ,text: "←"}));
-    $('#keys').append($('<br>'))
+    $('#keys').append($('<br>'));
 
     keys=['a','s','d','f','g','h','j','k','l'];
     dokeys(keys);
     $('#keys').append($('<div>',{class: "Knopje Knop invoer enter small",id: "leeg" ,text: " "}));
     $('#keys').append($('<div>',{class: "Knopje Knop invoer enter small",id: "enter" ,text: "⏎"}));
-    $('#keys').append($('<br>'))
+    $('#keys').append($('<br>'));
 
     keys=['z','x','c','v','b','n','m'];
     $('#keys').append($('<div>',{class: "Knopje Knop invoer enter small",id: "leeg" ,text: " "}));
     dokeys(keys);
-    $('#keys').append($('<br>'))
+    $('#keys').append($('<br>'));
     $('#keys').append($('<div>',{class: "Knopje Knop invoer enter small",id: "leeg" ,text: " "}));
-    $('#keys').append($('<div>',{class: "Knopje Knop invoer enter small",id: "space" ,text: " "}))
-    $('#keys').append($('<br>'))
+    $('#keys').append($('<div>',{class: "Knopje Knop invoer enter small",id: "space" ,text: " "}));
+    $('#keys').append($('<br>'));
 
     keys=['-','=','+','_','`','~',',','.','/','<','>'];
     dokeys(keys);
-    $('#keys').append($('<br>'))
+    $('#keys').append($('<br>'));
 
     keys=["?",";","'",'\\',':','"','|','[',']','{','}'];
     dokeys(keys);
-    $('#keys').append($('<br>'))
+    $('#keys').append($('<br>'));
     showquestion();
     
   }
@@ -322,8 +308,8 @@ $( document ).ready(function() {
     var first=1;
     var lastchar="";
     $.each(buttons, function(idx, stuff) {
-      if(donewpage==1) {
-        $('#'+pagecount+' .Paginatext').html($('#'+pagecount+' .Paginatext').html()+' - '+lastchar)
+      if(donewpage === 1) {
+        $('#'+pagecount+' .Paginatext').html($('#'+pagecount+' .Paginatext').html()+' - '+lastchar);
         pagecount++;
         $('#MainButtons').append($('<div>',{id: 'Page'+pagecount, class: 'Pagina'}).hide());
         $('#TopButtons').append($('<div>',{class: "Knopje Button page",id: pagecount}).append($('<span>',{class: "Paginatext",text: "Page "+pagecount})));
@@ -331,14 +317,14 @@ $( document ).ready(function() {
         donewpage=0;
         first=1;
       }
-      if(first==1) {
-        $('#'+pagecount+' .Paginatext').html($('#'+pagecount+' .Paginatext').html()+'<br>'+stuff.display.charAt(0).toUpperCase())
+      if(first === 1) {
+        $('#'+pagecount+' .Paginatext').html($('#'+pagecount+' .Paginatext').html()+'<br>'+stuff.display.charAt(0).toUpperCase());
         first=0;
       }
-      txt=$('<span>',{class: "Buttontext ",text: stuff.display})
-      knopje=$('<div>',{class: "Knopje Knop "+stuff.text+" "+extraclass + " " + stuff.class,id: stuff.text }).append(txt);
+      var txt=$('<span>',{class: "Buttontext ",text: stuff.display});
+      var knopje=$('<div>',{class: "Knopje Knop "+stuff.text+" "+extraclass + " " + stuff.class,id: stuff.text }).append(txt);
       if(stuff.right) {
-        fullwidth=''
+        var fullwidth='';
         if(!stuff.left && stuff.fill) {
           fullwidth=' fullwidthButton ';
         }
@@ -348,29 +334,29 @@ $( document ).ready(function() {
         knopje.append($('<span>',{class: "left extra "+stuff.leftclass,text: stuff.left}));
       }
       lastchar=stuff.display.charAt(0).toUpperCase();
-      $('#Page'+pagecount).append(knopje)
+      $('#Page'+pagecount).append(knopje);
       counter++;
-      w=5;
-      h=5;
+      var w=5;
+      var h=5;
       if(counter>=w*h) {
         donewpage=1;
       }
     });
-    if(pagecount==1) {
+    if(pagecount === 1) {
       $(".page").remove();
-      $( ".Buttontext:visible" ).each(function( index, element ) {
+      $( ".Buttontext:visible" ).each(function() {
          $(this).textfill({maxFontPixels: 5});
       });
       showquestion();
     } else {
-      $('#'+pagecount+' .Paginatext').html($('#'+pagecount+' .Paginatext').html()+' - '+lastchar)
-      $( ".Paginatext:visible" ).each(function( index, element ) {
+      $('#'+pagecount+' .Paginatext').html($('#'+pagecount+' .Paginatext').html()+' - '+lastchar);
+      $( ".Paginatext:visible" ).each(function() {
          $(this).textfill({maxFontPixels: 5});
       });
-      $(".Pagina").each(function(index,element) {
+      $(".Pagina").each(function() {
         $('.Pagina').hide();
         $(this).show();
-        $( ".Buttontext:visible" ).each(function( index, element ) {
+        $( ".Buttontext:visible" ).each(function() {
            $(this).textfill({maxFontPixels: 5});
         });
         $('.Pagina').hide();
@@ -379,21 +365,21 @@ $( document ).ready(function() {
     }
   }
   function dobuttons(msg) {
-    buttons=JSON.parse(msg);
-    if(msg=='{}' && locked==0) {
+    var buttons=JSON.parse(msg);
+    if(msg === '{}' && locked === 0) {
       $('.topknop').removeClass('activetop'); $('#members').addClass('activetop');
       $('#Secondscreen').show();
       makepages('normal',accountstobuttons(accounts,'m'));
       $('#TopButtons').prepend($('<div>',{class: "Knopje Button normal cash",id: 'cash'}).append($('<span>',{class: "Paginatext",text: "cash"})));
-      $( ".Paginatext:visible" ).each(function( index, element ) {
+      $( ".Paginatext:visible" ).each(function() {
          $(this).textfill({maxFontPixels: 5});
       });
       focus();
       tabenable=1;
-    } else if (buttons['special']=='custom') {
+    } else if (buttons['special'] === 'custom') {
       $('.topknop').removeClass('activetop'); $('#commands').addClass('activetop');
       $('#Secondscreen').show();
-      if(buttons['sort']=="text") {
+      if(buttons['sort'] === "text") {
         buttons['custom'].sort(compare_text_rev);
       } else {
         buttons['custom'].sort(compare_display);
@@ -401,56 +387,56 @@ $( document ).ready(function() {
       makepages('normal',buttons['custom']);
       focus();
       tabenable=0;
-    } else if (buttons['special']=='accounts') {
+    } else if (buttons['special'] === 'accounts') {
       $('.topknop').removeClass('activetop'); $('#members').addClass('activetop');
       $('#Secondscreen').show();
       makepages('normal',accountstobuttons(accounts,'m'));
       $('#TopButtons').prepend($('<div>',{class: "Knopje Button normal cash",id: 'cash'}).append($('<span>',{class: "Paginatext",text: "cash"})));
-      $( ".Paginatext:visible" ).each(function( index, element ) {
+      $( ".Paginatext:visible" ).each(function() {
          $(this).textfill({maxFontPixels: 5});
       });
       focus();
       tabenable=2;
-    } else if (buttons['special']=='accountsamount') {
+    } else if (buttons['special'] === 'accountsamount') {
       $('.topknop').removeClass('activetop'); $('#members').addClass('activetop');
       $('#Secondscreen').show();
       makepages('normal',accountstobuttons(accounts,'m'));
       $('#TopButtons').prepend($('<div>',{class: "Knopje Button shownumbers",id: 'shownumbers'}).append($('<span>',{class: "Paginatext",text: "Enter amount"})));
       $('#TopButtons').prepend($('<div>',{class: "Knopje Button normal cash",id: 'cash'}).append($('<span>',{class: "Paginatext",text: "cash"})));
-      $( ".Paginatext:visible" ).each(function( index, element ) {
+      $( ".Paginatext:visible" ).each(function() {
          $(this).textfill({maxFontPixels: 5});
       });
       focus();
       tabenable=2;
 
-    } else if (buttons['special']=='numbers') {
+    } else if (buttons['special'] === 'numbers') {
       $('.topknop').removeClass('activetop'); 
       $('#Secondscreen').show();
       makepage_numbers();
       focus();
       tabenable=0;
-    } else if (buttons['special']=='keyboard') {
+    } else if (buttons['special'] === 'keyboard') {
       $('.topknop').removeClass('activetop'); 
       $('#Secondscreen').show();
       $('#Secondscreen').show();
       makepage_keyboard();
       focus();
       tabenable=0;
-    } else if (buttons['special']=='infobox') {
+    } else if (buttons['special'] === 'infobox') {
       $('.topknop').removeClass('activetop'); 
       $('#Secondscreen').show();
       $('#Secondscreen').show();
       makepage_infobox();
       focus();
       tabenable=0;
-    } else if (buttons['special']=='history') {
+    } else if (buttons['special'] === 'history') {
       $('.topknop').removeClass('activetop'); $('#commands').addClass('activetop');
       $('#Secondscreen').show();
       $('#Secondscreen').show();
       makepage_history();
       focus();
       tabenable=0;
-    } else if (buttons['special']=='products') {
+    } else if (buttons['special'] === 'products') {
       $('.topknop').removeClass('activetop'); $('#products').addClass('activetop');
       $('#Secondscreen').show();
       $('#Secondscreen').show();
@@ -471,12 +457,12 @@ $( document ).ready(function() {
 
   function showquestion() {
     if ($('#TopButtons').is(':empty')){
-       $('#TopButtons').append($('<div>',{class: "Question",id: 'Question', text: question}))
+       $('#TopButtons').append($('<div>',{class: "Question",id: 'Question', text: question}));
     }
   }
 
-  function runsession(SID,action,msg) {
-     if(SID!=session) return;
+  function runsession(SID,action,msg,pathParts) {
+     if(SID !== session) return;
      switch(action) {
          case 'message':
             $("#Zoek")[0].placeholder=msg;
@@ -498,17 +484,17 @@ $( document ).ready(function() {
             $('#Log').scrollTop($('#Log')[0].scrollHeight);
             break;
          case 'infobox':
-            run_infobox(elms[6],msg);
+            run_infobox(pathParts[6],msg);
             $("#MainButtons").css("background-color","#d7ffd7");
             break;
          case 'accounts':
-            setupaccounts(elms[5],msg);
+            setupaccounts(pathParts[5],msg);
             break;
          case 'products':
-            setupproducts(elms[5],msg);
+            setupproducts(pathParts[5],msg);
             break;
          case 'stock':
-            setupstock(elms[5],msg);
+            setupstock(pathParts[5],msg);
             break;
          case 'history':
             history=JSON.parse(msg);
@@ -532,15 +518,15 @@ $( document ).ready(function() {
      }
   }
   function runmsg(path,msg) {
-    elms=path.split("/");
+    var elms=path.split("/");
     //console.log(elms);
-    if(elms.length<3) return;
+    if(elms.length < 3) return;
     switch(elms[2]) {
       case 'session':
-         if(elms.length<5) return;
-         sessionID=elms[3];
-         action=elms[4];
-         runsession(sessionID,action,msg);
+         if(elms.length < 5) return;
+         var sessionID=elms[3];
+         var action=elms[4];
+         runsession(sessionID,action,msg,elms);
          break;
        case 'log':
          dolog(msg);
@@ -572,7 +558,7 @@ $( document ).ready(function() {
       streamReconnectDelay = 1000;
     };
     source.onmessage = function(event) {
-      if(event.data == "closed") {
+      if(event.data === "closed") {
         scheduleStreamReconnect();
         return;
       }
@@ -625,7 +611,7 @@ $( document ).ready(function() {
   $('#Buttons').append($('<div>',{class: "Knopje undo",id: 'undo'}).append($('<span>',{class: "Knopjetext",text: "Undo"})));
   $('#Buttons').append($('<div>',{class: "Knopje ok",id: 'ok'}).append($('<span>',{class: "Knopjetext",text: "OK"})));
   $('#Buttons').append($('<div>',{class: "Knopje knopjes",id: 'knopjes'}).append($('<span>',{class: "Knopjetext",text: "Show Buttons"})));
-  $( ".Knopjetext:visible" ).each(function( index, element ) {
+  $( ".Knopjetext:visible" ).each(function() {
          $(this).textfill({maxFontPixels: 5});
   });
 
@@ -652,7 +638,7 @@ $( document ).ready(function() {
            buttons.push(v);
        }
     });
-    if(tabenable==1) {
+    if(tabenable === 1) {
       $.each(commandstobuttons(),function(i,v) {
          if(v.text.toLowerCase().startsWith(zoek) || v.display.toLowerCase().startsWith(zoek)) {
              buttons.push(v);
@@ -664,7 +650,7 @@ $( document ).ready(function() {
          } else {
            var done2=0;
            $.each(v.aliases,function(i2,v2) {
-             if(v2.toLowerCase().startsWith(zoek) && ! done2) {
+             if(String(v2).toLowerCase().startsWith(zoek) && ! done2) {
                buttons.push(v);
                done2=1;
              }
@@ -673,7 +659,7 @@ $( document ).ready(function() {
       });
     }
     makepages('normal',buttons);
-    if(buttons.length==1 && fill) {
+    if(buttons.length === 1 && fill) {
         dingen[dingen.length-1]=buttons[0].text+" ";
         $('#Zoek')[0].value=dingen.join(" ");
     }
@@ -703,12 +689,14 @@ $( document ).ready(function() {
     focus();
   });
   $("body" ).on( "click",'div.invoer', function() {
-    if(this.id=="enter") {
+    if(this.id === "enter") {
       verwerkinput();
-    } else if(this.id=="backspace") {
+    } else if(this.id === "backspace") {
       $('#Zoek')[0].value=$('#Zoek')[0].value.substring(0, $('#Zoek')[0].value.length - 1);
-    } else if(this.id=="leeg") {
-    } else if(this.id=="space") {
+    } else if(this.id === "leeg") {
+      focus();
+      return;
+    } else if(this.id === "space") {
       $('#Zoek')[0].value=$('#Zoek')[0].value+" ";
     } else {
       $('#Zoek')[0].value=$('#Zoek')[0].value+this.id;
@@ -719,33 +707,33 @@ $( document ).ready(function() {
   $("body" ).on( "click", 'div.page' ,function() {
     $('.Pagina').hide();
     $('#Page'+this.id).show();
-    $( ".Buttontext:visible" ).each(function( index, element ) {
+    $( ".Buttontext:visible" ).each(function() {
        $(this).textfill({maxFontPixels: 5});
     });
     focus();
   });
   $("body" ).on( "click", 'div.productgroups' ,function() {
-     makepages('normal',productgrouptobuttons(this.id).sort(compare_display))
+     makepages('normal',productgrouptobuttons(this.id).sort(compare_display));
      focus();
   });
   $('.Knopje').click(function() {
     switch(this.id) {
       case 'members':
          $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
-         locked=0
+         locked=0;
          makepages('normal',accountstobuttons(accounts,'m'));
          $('#TopButtons').prepend($('<div>',{class: "Knopje Button normal cash",id: 'cash'}).append($('<span>',{class: "Paginatext",text: "cash"})));
-         $( ".Paginatext:visible" ).each(function( index, element ) {
+         $( ".Paginatext:visible" ).each(function() {
            $(this).textfill({maxFontPixels: 5});
          });
          focus();
          break;
       case 'otherusers':
          $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
-         locked=0
+         locked=0;
          makepages('normal',accountstobuttons(accounts,'o'));
          $('#TopButtons').prepend($('<div>',{class: "Knopje Button normal cash",id: 'cash'}).append($('<span>',{class: "Paginatext",text: "cash"})));
-         $( ".Paginatext:visible" ).each(function( index, element ) {
+         $( ".Paginatext:visible" ).each(function() {
            $(this).textfill({maxFontPixels: 5});
          });
          focus();
@@ -772,7 +760,7 @@ $( document ).ready(function() {
          $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
          locked=0;
          $('#IRCwindow').show();
-         if($('#IRCwindow').html()=="") {
+         if($('#IRCwindow').html() === "") {
            $("#IRCwindow").append($('<iframe>',{src: 'http://kleintje:4200/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
          }
          break;
@@ -780,7 +768,7 @@ $( document ).ready(function() {
          $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
          locked=0;
          $('#spacewindow').show();
-         if($('#spacewindow').html()=="") {
+         if($('#spacewindow').html() === "") {
            $("#spacewindow").append($('<iframe>',{src: '/spaceconsole/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
          }
          break;
@@ -812,11 +800,11 @@ $( document ).ready(function() {
     };
   })();
 
-  $( "#Zoek" ).keydown(function(data,res) {
-    if(data.which==9) {
+  $( "#Zoek" ).keydown(function(data) {
+    if(data.which === 9) {
       dotabfill(1);
       data.preventDefault();
-    } else if(data.which==13) {
+    } else if(data.which === 13) {
       locked=0;
       postmsg('input',this.value);
       this.value="";
