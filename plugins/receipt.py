@@ -8,6 +8,8 @@ class receipt:
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
+        self.receipt = []
+        self.totals = {}
 
     def is_empty(self):
         print("hooi", self.receipt)
