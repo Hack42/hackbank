@@ -53,14 +53,18 @@ class undo:
             fk = sorted(self.undo.keys())
             del self.undo[fk[0]]
 
-        with open("data/revbank.UNDO", "wb") as output:
-            pickle.dump(self.undo, output)
+        with open("data/revbank.UNDO", "w", encoding="utf-8") as output:
+            json.dump(self.undo, output)
 
     def loadundo(self):
         try:
             with open("data/revbank.UNDO", "rb") as f:
-                self.undo = pickle.load(f)
-                f.close()
+                data = f.read()
+            try:
+                loaded = json.loads(data.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                loaded = pickle.loads(data)
+            self.undo = {int(transID): value for transID, value in loaded.items()}
         except:
             pass
 

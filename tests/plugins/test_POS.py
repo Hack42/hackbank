@@ -192,17 +192,37 @@ class TestPOS:
             mock_listbons.assert_called_once()
 
     def test_writebons(self):
-        with patch("builtins.open", new_callable=mock_open):
-            self.POS.bonnetjes = {123: {"bon": "Test"}}
+        with patch("builtins.open", mock_open()) as mocked_file:
+            self.POS.bonnetjes = {123: {"totals": {"user": 1.0}, "bon": b"Test"}}
             self.POS.writebons()
-            # Assert file operation
+            mocked_file.assert_called_with("data/revbank.POS", "w", encoding="utf-8")
+            written = "".join(
+                call.args[0] for call in mocked_file().write.call_args_list
+            )
+            loaded = json.loads(written)
+            assert loaded["123"]["bon"]["encoding"] == "base64"
 
-    def test_loadbons(self):
+    def test_loadbons_pickle_backwards_compatible(self):
         with patch(
             "builtins.open", mock_open(read_data=pickle.dumps({123: {"bon": "Test"}}))
         ):
             self.POS.loadbons()
             assert 123 in self.POS.bonnetjes
+
+    def test_loadbons_json(self):
+        data = json.dumps(
+            {
+                "123": {
+                    "totals": {"user": 1.0},
+                    "bon": {"encoding": "base64", "data": "VGVzdA=="},
+                }
+            }
+        ).encode("utf-8")
+        with patch("builtins.open", mock_open(read_data=data)):
+            self.POS.loadbons()
+            assert self.POS.bonnetjes == {
+                123: {"totals": {"user": 1.0}, "bon": b"Test"}
+            }
 
     def test_listbons(self):
         self.POS.bonnetjes = {123: {"totals": {"user": 1.0}, "bon": "Test"}}
@@ -292,7 +312,7 @@ class TestPOS:
             mock_traceback.assert_called()
 
     def test_writebons_max_receipts(self):
-        with patch("builtins.open", new_callable=mock_open()):
+        with patch("builtins.open", mock_open()):
             self.POS.bonnetjes = {i: {"bon": "Test"} for i in range(60)}
             self.POS.writebons()
             assert len(self.POS.bonnetjes) == 50

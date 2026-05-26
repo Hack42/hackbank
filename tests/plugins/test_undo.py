@@ -97,14 +97,27 @@ def test_undo_writeundo():
     with patch("builtins.open", mock_open()) as mock_file:
         undo.writeundo()
         assert len(undo.undo) == 50
-        mock_file.assert_called_with("data/revbank.UNDO", "wb")
+        mock_file.assert_called_with("data/revbank.UNDO", "w", encoding="utf-8")
         mock_file().write.assert_called()
+        written = "".join(call.args[0] for call in mock_file().write.call_args_list)
+        loaded = json.loads(written)
+        assert len(loaded) == 50
 
 
-def test_undo_loadundo():
+def test_undo_loadundo_pickle_backwards_compatible():
     master_mock = Mock()
     undo = undo_module.undo("SID", master_mock)
     mock_data = pickle.dumps({1: "data"})
+
+    with patch("builtins.open", mock_open(read_data=mock_data)):
+        undo.loadundo()
+        assert undo.undo == {1: "data"}
+
+
+def test_undo_loadundo_json():
+    master_mock = Mock()
+    undo = undo_module.undo("SID", master_mock)
+    mock_data = json.dumps({"1": "data"}).encode("utf-8")
 
     with patch("builtins.open", mock_open(read_data=mock_data)):
         undo.loadundo()

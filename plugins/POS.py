@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import base64
 import traceback
 import json
 import time
@@ -237,16 +238,48 @@ class POS:
             fk = sorted(self.bonnetjes.keys())
             del self.bonnetjes[fk[0]]
 
-        with open("data/revbank.POS", "wb") as output:
-            pickle.dump(self.bonnetjes, output)
+        with open("data/revbank.POS", "w", encoding="utf-8") as output:
+            json.dump(self.serialize_bons(self.bonnetjes), output)
 
     def loadbons(self):
         try:
             with open("data/revbank.POS", "rb") as f:
-                self.bonnetjes = pickle.load(f)
-                f.close()
+                data = f.read()
+            try:
+                loaded = json.loads(data.decode("utf-8"))
+                self.bonnetjes = self.deserialize_bons(loaded)
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                self.bonnetjes = pickle.loads(data)
         except:
             pass
+
+    def serialize_bons(self, bonnetjes):
+        output = {}
+        for bonID, bon in bonnetjes.items():
+            serialized = dict(bon)
+            bon_data = serialized["bon"]
+            if isinstance(bon_data, bytes):
+                serialized["bon"] = {
+                    "encoding": "base64",
+                    "data": base64.b64encode(bon_data).decode("ascii"),
+                }
+            else:
+                serialized["bon"] = {"encoding": "text", "data": bon_data}
+            output[str(bonID)] = serialized
+        return output
+
+    def deserialize_bons(self, bonnetjes):
+        output = {}
+        for bonID, bon in bonnetjes.items():
+            deserialized = dict(bon)
+            bon_data = deserialized["bon"]
+            if isinstance(bon_data, dict):
+                if bon_data.get("encoding") == "base64":
+                    deserialized["bon"] = base64.b64decode(bon_data["data"])
+                else:
+                    deserialized["bon"] = bon_data.get("data", "")
+            output[int(bonID)] = deserialized
+        return output
 
     def listbons(self):
         self.loadbons()
