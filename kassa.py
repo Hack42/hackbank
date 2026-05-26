@@ -1,14 +1,15 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import glob
+import logging
 import os
 import time
 import json
 import sys
-import traceback
 import paho.mqtt.client as mqtt
 from config import config_get
 
+logger = logging.getLogger(__name__)
 sessions = {}
 
 
@@ -76,8 +77,8 @@ class Session:
                 self.send_message(True, "message", "loaded plugin " + plugname)
                 try:
                     self.help.update(self.plugins[plugname].help())
-                except:
-                    print(traceback.format_exc())
+                except Exception:
+                    logger.exception("Plugin %s help failed", plugname)
         print(self.plugins)
         self.receipt = self.plugins["receipt"]
         self.accounts = self.plugins["accounts"]
@@ -90,8 +91,8 @@ class Session:
         for _plug, plugin in self.plugins.items():
             try:
                 plugin.startup()
-            except:
-                print(traceback.format_exc())
+            except Exception:
+                logger.exception("Plugin %s startup failed", _plug)
         self.send_message(True, "commands", json.dumps(self.help))
         self.send_message(True, "message", "Enter product, command or username")
         print(self.plugins)
@@ -99,13 +100,13 @@ class Session:
     def realcallhook(self, hook, arg):
         for _plug, plugin in self.plugins.items():
             try:
-                getattr(plugin, "hook_" + hook)
-                try:
-                    getattr(plugin, "hook_" + hook)(arg)
-                except:
-                    print(traceback.format_exc())
+                hook_func = getattr(plugin, "hook_" + hook)
             except AttributeError:
-                pass
+                continue
+            try:
+                hook_func(arg)
+            except Exception:
+                logger.exception("Plugin %s hook_%s failed", _plug, hook)
 
     def callhook(self, hook, arg):
         self.realcallhook("pre_" + hook, arg)
@@ -119,11 +120,13 @@ class Session:
     def pre_input(self, text):
         for _plug, plugin in self.plugins.items():
             try:
-                plugin.pre_input(text)
+                pre_input = getattr(plugin, "pre_input")
             except AttributeError:
-                pass
-            except:
-                print(traceback.format_exc())
+                continue
+            try:
+                pre_input(text)
+            except Exception:
+                logger.exception("Plugin %s pre_input failed", _plug)
 
     def handle_nextcall(self, text):
         if not self.nextcall:
@@ -136,8 +139,8 @@ class Session:
             print(self.nextcall)
             print(getattr(plug, func))
             return bool(getattr(plug, func)(text))
-        except:
-            print(traceback.format_exc())
+        except Exception:
+            logger.exception("Nextcall failed")
             return False
 
     def input(self, text):
@@ -173,13 +176,15 @@ class Session:
         if not done:
             for _plug, plugin in self.plugins.items():
                 try:
-                    if plugin.input(part):
+                    plugin_input = getattr(plugin, "input")
+                except AttributeError:
+                    continue
+                try:
+                    if plugin_input(part):
                         done = 1
                         break
-                except AttributeError:
-                    print(traceback.format_exc())
-                except:
-                    print(traceback.format_exc())
+                except Exception:
+                    logger.exception("Plugin %s input failed", _plug)
 
         if not done:
             if self.plugins.get("withdraw") and self.plugins["withdraw"].withdraw(part):
@@ -262,7 +267,8 @@ def run():
             while True:
                 time.sleep(1)
             # client.loop_forever()
-        except:
+        except Exception:
+            logger.exception("Kassa MQTT loop failed")
             time.sleep(5)
 
 

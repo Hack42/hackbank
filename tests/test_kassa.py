@@ -221,7 +221,7 @@ def test_input_with_nextcall_successful():
     assert session.nextcall == {}
 
 
-def test_startup_handles_help_and_plugin_startup_errors():
+def test_startup_handles_help_and_plugin_startup_errors(caplog):
     client_mock = Mock()
     session = kassa.Session("SID", client_mock)
 
@@ -258,15 +258,18 @@ def test_startup_handles_help_and_plugin_startup_errors():
     def import_from(_module, name):
         return plugin_classes[name]
 
-    with patch(
-        "glob.glob", return_value=[f"plugins/{name}.py" for name in plugin_classes]
-    ):
-        session.import_from = Mock(side_effect=import_from)
-        session.startup()
+    with caplog.at_level("ERROR", logger="kassa"):
+        with patch(
+            "glob.glob", return_value=[f"plugins/{name}.py" for name in plugin_classes]
+        ):
+            session.import_from = Mock(side_effect=import_from)
+            session.startup()
 
     assert "badhelp" in session.plugins
     assert "badstartup" in session.plugins
     assert session.help == {"good": "Good command"}
+    assert "Plugin badhelp help failed" in caplog.text
+    assert "Plugin badstartup startup failed" in caplog.text
 
 
 def test_startup_removes_existing_plugin_module():
@@ -286,15 +289,17 @@ def test_startup_removes_existing_plugin_module():
         assert sys_modules_name not in kassa.sys.modules
 
 
-def test_realcallhook_handles_plugin_hook_exception():
+def test_realcallhook_handles_plugin_hook_exception(caplog):
     session = kassa.Session("SID", Mock())
     plugin_mock = Mock()
     plugin_mock.hook_test_hook.side_effect = RuntimeError("boom")
     session.plugins = {"test_plugin": plugin_mock}
 
-    session.realcallhook("test_hook", "test_arg")
+    with caplog.at_level("ERROR", logger="kassa"):
+        session.realcallhook("test_hook", "test_arg")
 
     plugin_mock.hook_test_hook.assert_called_with("test_arg")
+    assert "Plugin test_plugin hook_test_hook failed" in caplog.text
 
 
 def test_realcallhook_ignores_plugins_without_hook():
@@ -304,7 +309,7 @@ def test_realcallhook_ignores_plugins_without_hook():
     session.realcallhook("missing", "arg")
 
 
-def test_handle_nextcall_missing_and_exception():
+def test_handle_nextcall_missing_and_exception(caplog):
     session = kassa.Session("SID", Mock())
     assert session.handle_nextcall("text") is False
 
@@ -312,8 +317,11 @@ def test_handle_nextcall_missing_and_exception():
     plugin_mock.fail.side_effect = RuntimeError("boom")
     session.nextcall = {"plug": plugin_mock, "function": "fail"}
 
-    assert session.handle_nextcall("text") is False
+    with caplog.at_level("ERROR", logger="kassa"):
+        assert session.handle_nextcall("text") is False
+
     assert session.nextcall == {}
+    assert "Nextcall failed" in caplog.text
 
 
 def test_input_unknown_sets_message_and_calls_wrong_hook():
@@ -345,7 +353,7 @@ def test_input_unknown_sets_message_and_calls_wrong_hook():
     )
 
 
-def test_handle_part_plugin_attribute_and_generic_exceptions_then_withdraw():
+def test_handle_part_plugin_attribute_and_generic_exceptions_then_withdraw(caplog):
     session = kassa.Session("SID", Mock())
     missing_input_plugin = Mock()
     del missing_input_plugin.input
@@ -360,8 +368,11 @@ def test_handle_part_plugin_attribute_and_generic_exceptions_then_withdraw():
         "withdraw": withdraw_mock,
     }
 
-    assert session.handle_part("10") == 1
+    with caplog.at_level("ERROR", logger="kassa"):
+        assert session.handle_part("10") == 1
+
     withdraw_mock.withdraw.assert_called_with("10")
+    assert "Plugin failing input failed" in caplog.text
 
 
 def test_handle_part_falls_back_to_newuser():
