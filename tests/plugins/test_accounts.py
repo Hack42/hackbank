@@ -86,33 +86,24 @@ def test_writeaccount():
     }
     acc.aliases = {"alias1": "user1", "alias2": "user2"}
 
-    # Mock file handles
-    mock_file_handles = {
-        "data/revbank.accounts": mock_open(),
-        "data/revbank.aliases": mock_open(),
-    }
-
-    # Custom side effect function for mock_open
-    def custom_open_mock(file_name, *args, **kwargs):
-        return mock_file_handles[file_name]()
-
-    with patch("builtins.open", side_effect=custom_open_mock):
+    with patch("plugins.accounts._atomic_write") as mock_atomic_write:
         acc.writeaccount()
 
-        # Assertions for accounts file write
-        accounts_file_handle = mock_file_handles["data/revbank.accounts"]
-        accounts_file_handle().write.assert_has_calls(
-            [
-                call("user1              +100.00 2021-01-01\n"),
-                call("user2              +200.00 2021-01-02\n"),
-            ]
-        )
-
-        # Assertions for aliases file write
-        aliases_file_handle = mock_file_handles["data/revbank.aliases"]
-        aliases_file_handle().write.assert_has_calls(
-            [call("alias1 user1\n"), call("alias2 user2\n")]
-        )
+    mock_atomic_write.assert_has_calls(
+        [
+            call(
+                "data/revbank.accounts",
+                [
+                    "user1              +100.00 2021-01-01\n",
+                    "user2              +200.00 2021-01-02\n",
+                ],
+            ),
+            call(
+                "data/revbank.aliases",
+                ["alias1 user1\n", "alias2 user2\n"],
+            ),
+        ]
+    )
 
 
 def test_hook_balance():

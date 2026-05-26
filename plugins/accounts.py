@@ -1,6 +1,27 @@
 import json
+import os
+import tempfile
+import threading
 import time
 import codecs
+
+
+def _atomic_write(path, lines):
+    directory = os.path.dirname(path) or "."
+    fd, tmp_path = tempfile.mkstemp(
+        prefix=os.path.basename(path) + ".", dir=directory, text=True
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            for line in lines:
+                f.write(line)
+        os.replace(tmp_path, path)
+    except:
+        try:
+            os.unlink(tmp_path)
+        except FileNotFoundError:
+            pass
+        raise
 
 
 class accounts:
@@ -9,6 +30,7 @@ class accounts:
     members = []
     newaccount = ""
     adduseralias = ""
+    write_lock = threading.Lock()
 
     def __init__(self, SID, master):
         self.master = master
@@ -64,19 +86,22 @@ class accounts:
         self.master.callhook("balance", (usr, had, has, self.master.transID))
 
     def writeaccount(self):
-        with open("data/revbank.accounts", "w", encoding="utf-8") as f:
-            for usr, account in self.accounts.items():
-                f.write(
+        with self.write_lock:
+            _atomic_write(
+                "data/revbank.accounts",
+                [
                     "%-18s %+7.2f %s\n"
-                    % (
-                        usr,
-                        round(account["amount"], 2),
-                        account["lastupdate"],
-                    )
-                )
-        with open("data/revbank.aliases", "w", encoding="utf-8") as f:
-            for usr, alias in self.aliases.items():
-                f.write("%s %s\n" % (usr, alias))
+                    % (usr, round(account["amount"], 2), account["lastupdate"])
+                    for usr, account in self.accounts.items()
+                ],
+            )
+            _atomic_write(
+                "data/revbank.aliases",
+                [
+                    "%s %s\n" % (usr, alias)
+                    for usr, alias in self.aliases.items()
+                ],
+            )
 
     # Hooks
     def hook_balance(self, args):

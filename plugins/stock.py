@@ -1,10 +1,32 @@
 import json
+import os
+import tempfile
+import threading
+
+
+def _atomic_write(path, lines):
+    directory = os.path.dirname(path) or "."
+    fd, tmp_path = tempfile.mkstemp(
+        prefix=os.path.basename(path) + ".", dir=directory, text=True
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            for line in lines:
+                f.write(line)
+        os.replace(tmp_path, path)
+    except:
+        try:
+            os.unlink(tmp_path)
+        except FileNotFoundError:
+            pass
+        raise
 
 
 class stock:
     stock = {}
     prod = ""
     stockalias = ""
+    write_lock = threading.Lock()
 
     def __init__(self, SID, master):
         self.master = master
@@ -74,10 +96,14 @@ class stock:
         self.writestock()
 
     def writestock(self):
-        with open("data/revbank.stock", "w", encoding="utf-8") as f:
-            for prod, product in self.stock.items():
-                f.write("%-16s %+9d\n" % (prod, product))
-            f.close()
+        with self.write_lock:
+            _atomic_write(
+                "data/revbank.stock",
+                [
+                    "%-16s %+9d\n" % (prod, product)
+                    for prod, product in self.stock.items()
+                ],
+            )
 
     def voorraad_amount(self, text):
         try:

@@ -179,12 +179,16 @@ def test_stock_writestock():
     stock = stock_module.stock("SID", master_mock)
     stock.stock = {"product1": 10, "product2": 20}
 
-    def custom_mock_open_write(filename, *args, **kwargs):
-        return mock_open()()
-
-    with patch("builtins.open", side_effect=custom_mock_open_write) as mock_file:
+    with patch.object(stock_module, "_atomic_write") as mock_atomic_write:
         stock.writestock()
-        mock_file.assert_called_with("data/revbank.stock", "w", encoding="utf-8")
+
+    mock_atomic_write.assert_called_once_with(
+        "data/revbank.stock",
+        [
+            "product1               +10\n",
+            "product2               +20\n",
+        ],
+    )
 
 
 def test_stock_input_voorraad():
