@@ -24,7 +24,7 @@ class undo:
             "restore": "Restore a transaction",
         }
 
-    def hook_checkout(self, text):
+    def hook_post_checkout(self, text):
         self.loadundo()
         self.undo[self.master.transID] = {
             "totals": copy.deepcopy(self.master.receipt.totals),

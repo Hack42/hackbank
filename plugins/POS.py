@@ -107,16 +107,22 @@ class POS:
             )
             self.writebons()
 
+    def projected_balance(self, user):
+        checkout_balances = getattr(self.master.accounts, "checkout_balances", {})
+        if not isinstance(checkout_balances, dict):
+            checkout_balances = {}
+        account = self.master.accounts.accounts[user]
+        balance_before_checkout = checkout_balances.get(user, account["amount"])
+        return balance_before_checkout + self.master.receipt.totals[user]
+
     def makebon(self, user):
         BON = PRINTER + LARGE + CENTER + LOGO
         is_cash = user == "cash"
-        if (
-            not is_cash
-            and
-            self.master.accounts.accounts[user]["amount"]
-            + self.master.receipt.totals[user]
-        ) < -13.37:
-            BON += b"SALDO TE LAAG\n"
+        projected_balance = None
+        if not is_cash:
+            projected_balance = self.projected_balance(user)
+            if projected_balance < -13.37:
+                BON += b"SALDO TE LAAG\n"
         BON += NORMAL + b"Bon transactie %d\n" % self.master.transID
         BON += (
             BARCODE_T
@@ -153,9 +159,7 @@ class POS:
         BON += b" %-26s% 12.2f\n" % (b"Totaal", self.master.receipt.totals[user])
         BON += b"\nU bent geholpen door: %s\n" % user.encode()
         if not is_cash:
-            BON += b"\n         Nieuw saldo: %5.2f\n" % (
-                self.master.accounts.accounts[user]["amount"]
-            )
+            BON += b"\n         Nieuw saldo: %5.2f\n" % projected_balance
         BON += (
             b"\n"
             + CENTER

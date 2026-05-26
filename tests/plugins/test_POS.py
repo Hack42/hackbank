@@ -121,6 +121,28 @@ class TestPOS:
 
         assert b"SALDO TE LAAG" in bon
 
+    def test_makebon_uses_checkout_balance_snapshot_for_new_balance(self):
+        self.POS.master.receipt = Mock(
+            receipt=[
+                {
+                    "product": "test",
+                    "beni": "user",
+                    "count": 1,
+                    "total": 5.0,
+                    "description": "test",
+                }
+            ],
+            totals={"user": -5},
+        )
+        self.POS.master.transID = 42
+        self.POS.master.accounts.accounts = {"user": {"amount": 15}}
+        self.POS.master.accounts.checkout_balances = {"user": 20}
+
+        bon = self.POS.makebon("user")
+
+        assert b"Nieuw saldo: 15.00" in bon
+        assert b"Nieuw saldo: 10.00" not in bon
+
     def test_makebon_cash_does_not_require_account(self):
         self.POS.master.receipt = Mock(
             receipt=[

@@ -34,6 +34,7 @@ class accounts:
     members = []
     newaccount = ""
     adduseralias = ""
+    checkout_balances = {}
     write_lock = threading.Lock()
 
     def __init__(self, SID, master):
@@ -44,6 +45,7 @@ class accounts:
         self.members = []
         self.newaccount = ""
         self.adduseralias = ""
+        self.checkout_balances = {}
 
     def help(self):
         return {"adduseralias": "Add user key alias"}
@@ -180,6 +182,9 @@ class accounts:
 
     def hook_pre_checkout(self, _text):
         self.readaccounts()
+        self.checkout_balances = {
+            usr: account["amount"] for usr, account in self.accounts.items()
+        }
         self.master.transID = int(time.time() - 1300000000)
 
     def hook_post_checkout(self, _text):

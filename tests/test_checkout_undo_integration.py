@@ -13,7 +13,7 @@ def make_session():
     session = kassa.Session("SID", Mock())
     receipt_plugin = receipt("SID", session)
     undo_plugin = undo("SID", session)
-    session.plugins = {"receipt": receipt_plugin, "undo": undo_plugin}
+    session.plugins = {"undo": undo_plugin, "receipt": receipt_plugin}
     session.receipt = receipt_plugin
     session.transID = 123
     return session, receipt_plugin, undo_plugin
@@ -27,11 +27,11 @@ def make_checkout_session():
     stock_plugin = stock("SID", session)
     pos_plugin = POS("SID", session)
     session.plugins = {
-        "receipt": receipt_plugin,
+        "POS": pos_plugin,
         "accounts": accounts_plugin,
         "products": products_plugin,
+        "receipt": receipt_plugin,
         "stock": stock_plugin,
-        "POS": pos_plugin,
     }
     session.receipt = receipt_plugin
     session.accounts = accounts_plugin
@@ -169,6 +169,7 @@ def test_account_checkout_updates_accounts_stock_and_pos_receipt():
     assert pos_plugin.lastbonID == 123
     assert pos_plugin.bonnetjes[123]["totals"] == {"alice": -5.0}
     assert b"Cola alice" in pos_plugin.bonnetjes[123]["bon"]
+    assert b"Nieuw saldo: 15.00" in pos_plugin.bonnetjes[123]["bon"]
     assert receipt_plugin.receipt == []
     drawer.assert_not_called()
 

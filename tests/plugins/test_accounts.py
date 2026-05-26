@@ -196,11 +196,13 @@ def test_hook_pre_checkout(mock_readaccounts, mock_time):
     mock_time.return_value = 1300000100.0
     master_mock = Mock()
     acc = accounts("SID", master_mock)
+    acc.accounts = {"user1": {"amount": 12.5, "lastupdate": "old"}}
 
     acc.hook_pre_checkout("some text")
 
     mock_readaccounts.assert_called_once()
     assert acc.master.transID == 100
+    assert acc.checkout_balances == {"user1": 12.5}
 
 
 @patch("plugins.accounts.accounts.updateaccount")

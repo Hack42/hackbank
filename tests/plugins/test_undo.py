@@ -15,13 +15,13 @@ def test_undo_help():
     assert undo.help() == expected_help
 
 
-def test_undo_hook_checkout():
+def test_undo_hook_post_checkout():
     master_mock = Mock()
     undo = undo_module.undo("SID", master_mock)
     master_mock.receipt = Mock(totals={}, receipt=[])
 
     with patch.object(undo, "loadundo"), patch.object(undo, "writeundo"):
-        undo.hook_checkout("text")
+        undo.hook_post_checkout("text")
         undo.writeundo.assert_called()
         assert undo.undo[master_mock.transID] == {
             "totals": master_mock.receipt.totals,
@@ -30,7 +30,7 @@ def test_undo_hook_checkout():
         }
 
 
-def test_undo_hook_checkout_stores_snapshot():
+def test_undo_hook_post_checkout_stores_snapshot():
     master_mock = Mock()
     undo = undo_module.undo("SID", master_mock)
     master_mock.transID = 123
@@ -49,7 +49,7 @@ def test_undo_hook_checkout_stores_snapshot():
     )
 
     with patch.object(undo, "loadundo"), patch.object(undo, "writeundo"):
-        undo.hook_checkout("user")
+        undo.hook_post_checkout("user")
 
     master_mock.receipt.totals["user"] = 0
     master_mock.receipt.receipt[0]["count"] = 99
