@@ -52,25 +52,23 @@ class TestMarket:
                 "user": "user1",
             }
         }
-        mo = mock_open()
-        with patch("builtins.open", mo):
+        with patch("plugins.market._atomic_write") as mock_atomic_write:
             self.market.writeproducts()
-            mo.assert_called_with("data/revbank.market", "w", encoding="utf-8")
-            handle = mo()
-            expected_product = "%-10s %-30s %7.2f %7.2f %s\n" % (
-                "user1",
-                "product1,alias1",
-                2.50,
-                1.00,
-                "description1",
-            )
-            handle.write.assert_has_calls(
-                [
-                    call("#                               Price =\n"),
-                    call("# Seller   Barcode          Seller + Space  Description\n\n"),
-                    call(expected_product),
-                ]
-            )
+        expected_product = "%-10s %-30s %7.2f %7.2f %s\n" % (
+            "user1",
+            "product1,alias1",
+            2.50,
+            1.00,
+            "description1",
+        )
+        mock_atomic_write.assert_called_once_with(
+            "data/revbank.market",
+            [
+                "#                               Price =\n",
+                "# Seller   Barcode          Seller + Space  Description\n\n",
+                expected_product,
+            ],
+        )
         assert self.market.products["product1"]["aliases"] == ["alias1"]
 
     def test_lookupprod(self):

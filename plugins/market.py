@@ -1,5 +1,26 @@
 import json
+import os
 import re
+import tempfile
+import threading
+
+
+def _atomic_write(path, lines):
+    directory = os.path.dirname(path) or "."
+    fd, tmp_path = tempfile.mkstemp(
+        prefix=os.path.basename(path) + ".", dir=directory, text=True
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            for line in lines:
+                f.write(line)
+        os.replace(tmp_path, path)
+    except:
+        try:
+            os.unlink(tmp_path)
+        except FileNotFoundError:
+            pass
+        raise
 
 
 class market:
@@ -13,6 +34,7 @@ class market:
     newprodgroup = ""
     newproddesc = ""
     newprod = ""
+    write_lock = threading.Lock()
 
     def help(self):
         return {
@@ -47,12 +69,14 @@ class market:
             self.master.send_message(True, "market/" + prod, json.dumps(product))
 
     def writeproducts(self):
-        with open("data/revbank.market", "w", encoding="utf-8") as f:
-            f.write("#                               Price =\n")
-            f.write("# Seller   Barcode          Seller + Space  Description\n\n")
+        lines = [
+            "#                               Price =\n",
+            "# Seller   Barcode          Seller + Space  Description\n\n",
+        ]
+        with self.write_lock:
             for prod, product in self.products.items():
                 names = [prod] + product["aliases"]
-                f.write(
+                lines.append(
                     "%-10s %-30s %7.2f %7.2f %s\n"
                     % (
                         product.get("user", self.newprodgroup),
@@ -62,6 +86,7 @@ class market:
                         product["description"],
                     )
                 )
+            _atomic_write("data/revbank.market", lines)
 
     def __init__(self, SID, master):
         self.master = master

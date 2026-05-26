@@ -49,9 +49,20 @@ class TestProducts(unittest.TestCase):
             },
         }
         self.products.groups = {"Group1": ["product1"], "Group2": ["product2"]}
-        with patch("builtins.open", mock_open()) as mocked_file:
+        with patch("plugins.products._atomic_write") as mock_atomic_write:
             self.products.writeproducts()
-            mocked_file().write.assert_called()
+        mock_atomic_write.assert_called_once_with(
+            "data/revbank.products",
+            [
+                "# Group1\n",
+                "%-58s %7.2f  %s\n"
+                % ("product1,alias1", 2.50, "Description1"),
+                "\n",
+                "# Group2\n",
+                "%-58s %7.2f  %s\n" % ("product2", 1.50, "Description2"),
+                "\n",
+            ],
+        )
         self.assertEqual(self.products.products["product1"]["aliases"], ["alias1"])
         self.assertEqual(self.products.products["product2"]["aliases"], [])
 
