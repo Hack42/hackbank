@@ -33,6 +33,9 @@ DEFAULT_CONFIG = {
             "baudrate": 19200,
         },
     },
+    "logging": {
+        "level": "INFO",
+    },
 }
 
 

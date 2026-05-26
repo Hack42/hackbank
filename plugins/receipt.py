@@ -1,4 +1,8 @@
 import json
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class receipt:
@@ -12,7 +16,7 @@ class receipt:
         self.totals = {}
 
     def is_empty(self):
-        print("hooi", self.receipt)
+        logger.debug("receipt_state sid=%s receipt=%s", self.SID, self.receipt)
         if self.receipt:
             return False
         return True

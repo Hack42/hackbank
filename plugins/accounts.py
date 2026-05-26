@@ -4,6 +4,10 @@ import tempfile
 import threading
 import time
 import codecs
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 def _atomic_write(path, lines):
@@ -45,7 +49,7 @@ class accounts:
         return {"adduseralias": "Add user key alias"}
 
     def get_last_updated_accounts(self):
-        print(self.accounts)
+        logger.debug("accounts_state sid=%s accounts=%s", self.SID, self.accounts)
         # Sort the accounts based on last update time, in descending order
         sorted_accounts = sorted(
             self.accounts.items(), key=lambda x: x[1]["lastupdate"], reverse=True
@@ -90,7 +94,7 @@ class accounts:
             ]
 
     def updateaccount(self, usr, value):
-        print("Updating account", usr)
+        logger.debug("update_account sid=%s user=%s value=%s", self.SID, usr, value)
         if usr == "cash":
             return
         had = self.accounts[usr]["amount"]

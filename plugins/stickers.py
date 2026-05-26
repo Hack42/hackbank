@@ -6,6 +6,7 @@ import time
 import base64
 import urllib.parse
 import warnings
+import logging
 from PIL import Image, ImageDraw, ImageFont
 import pyqrcode
 from config import config_get
@@ -19,6 +20,9 @@ with warnings.catch_warnings():
     import brother_ql.conversion
     import brother_ql.backends.helpers
     import brother_ql.raster
+
+
+logger = logging.getLogger(__name__)
 
 
 class stickers:  # pylint: disable=too-many-public-methods
@@ -64,12 +68,12 @@ class stickers:  # pylint: disable=too-many-public-methods
 
     def barcodeprint(self):
         if re.compile("^[0-9A-Z]+$").match(self.barcode):
-            print("Qrcode: alphanum")
+            logger.debug("qrcode_mode sid=%s mode=alphanumeric", self.SID)
             qrcode_image = pyqrcode.create(
                 self.barcode, error="L", version=1, mode="alphanumeric"
             ).png_as_base64_str(scale=5)
         else:
-            print("Qrcode: binary")
+            logger.debug("qrcode_mode sid=%s mode=binary", self.SID)
             qrcode_image = pyqrcode.create(
                 self.barcode, error="L", version=2, mode="binary"
             ).png_as_base64_str(scale=5)
@@ -189,7 +193,7 @@ class stickers:  # pylint: disable=too-many-public-methods
         qrname = "https://hack42.nl/wiki/Tool:" + urllib.parse.quote(
             self.name.replace(" ", "_")
         )
-        print("Qrcode: binary")
+        logger.debug("qrcode_mode sid=%s mode=binary", self.SID)
         qrcode_image = pyqrcode.create(qrname, error="L", mode="binary")
         qrcode_image = qrcode_image.png_as_base64_str(
             scale=int((label_size - margin) / qrcode_image.get_png_size())

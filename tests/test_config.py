@@ -8,6 +8,7 @@ def test_load_config_uses_defaults_when_missing(tmp_path):
 
     assert config["mqtt"]["host"] == "localhost"
     assert config["stickers"]["printer"]["port"] == 9100
+    assert config["logging"]["level"] == "INFO"
 
 
 def test_load_config_merges_yaml_with_defaults(tmp_path):
@@ -27,6 +28,7 @@ def test_load_config_merges_yaml_with_defaults(tmp_path):
     assert config["mqtt"]["port"] == 1883
     assert config["stickers"]["printer"]["host"] == "printer.example.test"
     assert config["stickers"]["printer"]["port"] == 9100
+    assert config["logging"]["level"] == "INFO"
 
 
 def test_config_get_uses_env_path(tmp_path, monkeypatch):

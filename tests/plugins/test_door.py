@@ -9,10 +9,10 @@ class TestDoor(TestCase):
         self.door_instance = door("SID", self.master_mock)
 
     def test_help(self):
-        with patch("builtins.print") as mock_print:
+        with patch("plugins.door.logger") as logger:
             result = self.door_instance.help()
-            mock_print.assert_called_with("Help")
             self.assertEqual(result, {"dooropen": "Door open"})
+        logger.debug.assert_called_with("door_help sid=%s", "SID")
 
     def test_input_dooropen(self):
         with patch("paho.mqtt.client.Client") as mock_client:

@@ -440,6 +440,16 @@ def test_send_message_updates_prompt_buttons_and_skips_cached_long_topic():
     assert client_mock.publish.call_count == 3
 
 
+def test_send_message_logs_debug(caplog):
+    client_mock = Mock()
+    session = kassa.Session("SID", client_mock)
+
+    with caplog.at_level("DEBUG", logger="kassa"):
+        session.send_message(True, "message", "hello")
+
+    assert "send_message sid=SID retain=True topic=message message='hello'" in caplog.text
+
+
 def test_session_mutable_state_is_per_instance():
     first = kassa.Session("SID1", Mock())
     second = kassa.Session("SID2", Mock())
@@ -477,9 +487,11 @@ def test_get_session_starts_new_session():
     client_mock.publish.assert_called_with("hack42bar/output/sessions", '["SID"]')
 
 
-def test_run_session_unhandled_action(capsys):
-    kassa.run_session(Mock(), "SID", "unknown", b"data")
-    assert "unhandled unknown" in capsys.readouterr().out
+def test_run_session_unhandled_action(caplog):
+    with caplog.at_level("WARNING", logger="kassa"):
+        kassa.run_session(Mock(), "SID", "unknown", b"data")
+
+    assert "unhandled_session_action sid=SID action=unknown" in caplog.text
 
 
 def test_on_message_short_topic_is_ignored():

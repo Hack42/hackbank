@@ -2,12 +2,16 @@ import json
 import os
 import tempfile
 import threading
+import logging
 from input_validation import (
     filter_reserved_aliases,
     is_reserved_input,
     is_valid_alias,
     is_valid_product_name,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def _atomic_write(path, lines):
@@ -93,7 +97,13 @@ class products:
             self.master.send_message(
                 True, "products/" + prod, json.dumps(self.products[prod])
             )
-        print("readproducts done")
+        logger.debug(
+            "read_products_done sid=%s products=%d aliases=%d groups=%d",
+            self.SID,
+            len(self.products),
+            len(self.aliases),
+            len(self.groups),
+        )
 
     def writeproducts(self):
         lines = []
@@ -212,7 +222,12 @@ class products:
                 "numbers",
                 "Not a valid number; What is the price for" + self.newprod + "?",
             )
-        print(price)
+        logger.debug(
+            "save_product_price sid=%s product=%s price=%s",
+            self.SID,
+            self.priceprod,
+            price,
+        )
         if not 0 < price < 1000:
             return self.messageandbuttons(
                 "saveprice", "numbers", "Price should be between 0 and 1000"

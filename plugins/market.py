@@ -2,12 +2,16 @@ import json
 import os
 import tempfile
 import threading
+import logging
 from input_validation import (
     filter_reserved_aliases,
     is_reserved_input,
     is_valid_alias,
     is_valid_product_name,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def _atomic_write(path, lines):
@@ -57,12 +61,12 @@ class market:
         self.aliases = {}
         with open("data/revbank.market", "r", encoding="utf-8") as f:
             lines = f.readlines()
-        print("ok", lines)
+        logger.debug("read_market_file sid=%s lines=%d", self.SID, len(lines))
         for line in lines:
             if not line.strip() or line.lstrip().startswith("#"):
                 continue
             parts = " ".join(line.split()).split(" ", 4)
-            print(parts)
+            logger.debug("read_market_parts sid=%s parts=%s", self.SID, parts)
             if len(parts) == 5:
                 aliases = parts[1].split(",")
                 name = aliases.pop(0)

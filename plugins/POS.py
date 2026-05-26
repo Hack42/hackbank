@@ -5,7 +5,10 @@ import json
 import time
 import pickle
 import serial
+import logging
 from config import config_get
+
+logger = logging.getLogger(__name__)
 
 DISPLAY = b"\x1b=\x02\x1b@"
 PRINTER = b"\x1b=\x01\x1b@"
@@ -52,7 +55,7 @@ class POS:
             stopbits=serial.STOPBITS_ONE,  # pylint: disable=no-member
             bytesize=serial.EIGHTBITS,  # pylint: disable=no-member
         )
-        print("Serial open")
+        logger.info("pos_serial_open sid=%s port=%s", self.SID, serial_config["port"])
 
     def help(self):
         return {

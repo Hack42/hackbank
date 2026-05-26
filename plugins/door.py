@@ -1,7 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+import logging
+
 import paho.mqtt.client as mqtt
 from config import config_get
+
+
+logger = logging.getLogger(__name__)
 
 
 class door:
@@ -10,7 +15,7 @@ class door:
         self.SID = SID
 
     def help(self):
-        print("Help")
+        logger.debug("door_help sid=%s", self.SID)
         return {"dooropen": "Door open"}
 
     def input(self, text):

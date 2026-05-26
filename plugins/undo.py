@@ -3,6 +3,10 @@ import json
 import copy
 import pickle
 import time
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class undo:
@@ -100,8 +104,12 @@ class undo:
             )
             return True
 
-        print(self.undo.keys())
-        print(f"transID not in undo: {transID}")
+        logger.warning(
+            "undo_transaction_not_found sid=%s trans_id=%s available=%s",
+            self.SID,
+            transID,
+            sorted(self.undo.keys()),
+        )
         self.listundo()
         return True
 
