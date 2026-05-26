@@ -14,6 +14,22 @@ class TestPOS:
             self.POS.open()
             assert self.POS.ser is not None
 
+    def test_open_uses_configured_serial_port(self):
+        serial_mock = Mock()
+        with patch("plugins.POS.serial", new=serial_mock), patch(
+            "plugins.POS.config_get",
+            return_value={"port": "/dev/test-printer", "baudrate": 9600},
+        ):
+            self.POS.open()
+
+        serial_mock.Serial.assert_called_with(
+            port="/dev/test-printer",
+            baudrate=9600,
+            parity=serial_mock.PARITY_NONE,
+            stopbits=serial_mock.STOPBITS_ONE,
+            bytesize=serial_mock.EIGHTBITS,
+        )
+
     def test_open_when_already_open(self):
         self.POS.ser = Mock()
 

@@ -468,6 +468,21 @@ def test_run_sets_up_client_and_stops_on_keyboard_interrupt():
     client_mock.loop_start.assert_called_once()
 
 
+def test_run_uses_configured_mqtt():
+    client_mock = Mock()
+
+    with patch("kassa.mqtt.Client", return_value=client_mock), patch(
+        "kassa.config_get",
+        return_value={"host": "mqtt.example.test", "port": 1884, "keepalive": 30},
+    ), patch("kassa.time.sleep", side_effect=[KeyboardInterrupt, KeyboardInterrupt]):
+        try:
+            kassa.run()
+        except KeyboardInterrupt:
+            pass
+
+    client_mock.connect.assert_called_with("mqtt.example.test", 1884, 30)
+
+
 def test_startup_removes_module_in_second_import_pass():
     client_mock = Mock()
     session = kassa.Session("SID", client_mock)

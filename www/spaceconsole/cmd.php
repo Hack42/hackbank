@@ -1,7 +1,11 @@
 <?php
 header('Content-type: application/json');
 require("phpMQTT.php");
-$mqtt = new phpMQTT("192.168.142.66", 1883, "barcmnd".rand());
+$mqtt_host = $_ENV["MQTT_HOST"];
+if (empty($mqtt_host)) {
+  $mqtt_host = "localhost";
+}
+$mqtt = new phpMQTT($mqtt_host, 1883, "barcmnd".rand());
 
 
 

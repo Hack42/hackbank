@@ -11,6 +11,7 @@ import pyqrcode
 import brother_ql.conversion
 import brother_ql.backends.helpers
 import brother_ql.raster
+from config import config_get
 
 
 class stickers:  # pylint: disable=too-many-public-methods
@@ -21,7 +22,7 @@ class stickers:  # pylint: disable=too-many-public-methods
     LOGOFILE = "images/hack42.png"
     FONT = "images/arialbd.ttf"
     printer = "QL710W"
-    PRINTER = "tcp://192.168.42.167:9100"
+    PRINTER = "tcp://localhost:9100"
     MODEL = "QL-710W"
     SPACE = (
         0  # spacing around qrcode, should be 4 but our printer prints on white labels
@@ -38,6 +39,18 @@ class stickers:  # pylint: disable=too-many-public-methods
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
+        printer_config = config_get("stickers", "printer", default={})
+        self.MODEL = printer_config.get("model", self.MODEL)
+        self.PRINTER = self.printer_identifier(printer_config)
+
+    def printer_identifier(self, printer_config):
+        if printer_config.get("identifier"):
+            return printer_config["identifier"]
+        host = printer_config.get("host")
+        port = printer_config.get("port", 9100)
+        if host:
+            return f"tcp://{host}:{port}"
+        return self.PRINTER
 
     def help(self):
         return {"stickers": "All sticker commands"}

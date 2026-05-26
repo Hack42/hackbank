@@ -5,6 +5,7 @@ import json
 import time
 import pickle
 import serial
+from config import config_get
 
 DISPLAY = b"\x1b=\x02\x1b@"
 PRINTER = b"\x1b=\x01\x1b@"
@@ -43,9 +44,10 @@ class POS:
     def open(self):
         if self.ser is not None:
             return
+        serial_config = config_get("pos", "serial", default={})
         self.ser = serial.Serial(  # pylint: disable=no-member
-            port="/dev/ttyUSB0",  # pylint: disable=no-member
-            baudrate=19200,  # pylint: disable=no-member
+            port=serial_config["port"],  # pylint: disable=no-member
+            baudrate=int(serial_config["baudrate"]),  # pylint: disable=no-member
             parity=serial.PARITY_NONE,  # pylint: disable=no-member
             stopbits=serial.STOPBITS_ONE,  # pylint: disable=no-member
             bytesize=serial.EIGHTBITS,  # pylint: disable=no-member

@@ -27,6 +27,25 @@ class TestDoor(TestCase):
             )
             client_instance.disconnect.assert_called()
 
+    def test_input_dooropen_uses_config(self):
+        with patch("paho.mqtt.client.Client") as mock_client, patch(
+            "plugins.door.config_get",
+            return_value={
+                "host": "door-mqtt.example.test",
+                "port": 1884,
+                "keepalive": 30,
+                "topic": "custom/door",
+            },
+        ):
+            client_instance = mock_client.return_value
+            self.assertTrue(self.door_instance.input("dooropen"))
+
+            client_instance.connect.assert_called_with(
+                "door-mqtt.example.test", 1884, 30
+            )
+            client_instance.publish.assert_any_call("custom/door", "closed", 1, True)
+            client_instance.publish.assert_any_call("custom/door", "open", 1, True)
+
     def test_input_invalid_command(self):
         self.assertIsNone(self.door_instance.input("invalid_command"))
 

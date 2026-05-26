@@ -1,0 +1,27 @@
+# Copy this file to config.yaml and adjust local values.
+# config.yaml is intentionally git-ignored so local secrets/device settings are not overwritten.
+
+mqtt:
+  host: localhost
+  port: 1883
+  keepalive: 60
+
+door:
+  mqtt:
+    host: mqtt.space.hack42.nl
+    port: 1883
+    keepalive: 60
+    topic: hack42/brandhok/deuropen
+
+stickers:
+  printer:
+    model: QL-710W
+    host: BRW008092D4A414.space.hack42.nl
+    port: 9100
+    # Optional override when the brother_ql backend needs a full identifier:
+    # identifier: tcp://BRW008092D4A414.space.hack42.nl:9100
+
+pos:
+  serial:
+    port: /dev/ttyUSB0
+    baudrate: 19200

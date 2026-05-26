@@ -31,6 +31,8 @@ pyqrcode==1.2.1
 pyusb==1.2.1
     # via brother-ql
 pyyaml==6.0.1
-    # via serial
+    # via
+    #   -r requirements.in
+    #   serial
 serial==0.0.97
     # via -r requirements.in

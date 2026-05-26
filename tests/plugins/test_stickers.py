@@ -7,6 +7,34 @@ from unittest.mock import patch
 from plugins.stickers import stickers
 
 
+def test_uses_configured_printer_host():
+    with patch(
+        "plugins.stickers.config_get",
+        return_value={
+            "model": "QL-820NWB",
+            "host": "printer.example.test",
+            "port": 9101,
+        },
+    ):
+        sticky = stickers("main", Mock())
+
+    assert sticky.MODEL == "QL-820NWB"
+    assert sticky.PRINTER == "tcp://printer.example.test:9101"
+
+
+def test_uses_configured_printer_identifier():
+    with patch(
+        "plugins.stickers.config_get",
+        return_value={
+            "model": "QL-710W",
+            "identifier": "tcp://printer-id.example.test:9100",
+        },
+    ):
+        sticky = stickers("main", Mock())
+
+    assert sticky.PRINTER == "tcp://printer-id.example.test:9100"
+
+
 @patch("builtins.open")
 @patch("plugins.stickers.brother_ql.backends.helpers")
 def test_eigendom(_cups, _open):

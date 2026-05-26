@@ -7,6 +7,7 @@ import json
 import sys
 import traceback
 import paho.mqtt.client as mqtt
+from config import config_get
 
 sessions = {}
 
@@ -247,11 +248,16 @@ def on_message(client, _userdata, msg):
 def run():
     while 1:
         try:
+            mqtt_config = config_get("mqtt", default={})
             client = mqtt.Client()
             client.on_connect = on_connect
             client.on_message = on_message
 
-            client.connect("localhost", 1883, 60)
+            client.connect(
+                mqtt_config["host"],
+                int(mqtt_config["port"]),
+                int(mqtt_config["keepalive"]),
+            )
             client.loop_start()
             while True:
                 time.sleep(1)
