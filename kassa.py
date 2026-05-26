@@ -40,6 +40,19 @@ class Session:
         self.SID = SID
         self.client = client
         self.plugins = {}
+        self.counter = 0
+        self.nextcall = {}
+        self.prompt = ""
+        self.help = {}
+        self.cache = {}
+        self.iets = 0
+        self.buttons = {}
+        self.stock = None
+        self.POS = None
+        self.log = None
+        self.receipt = None
+        self.accounts = None
+        self.products = None
 
     def startup(self):
         print("Startup", self.SID)

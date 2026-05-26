@@ -398,6 +398,21 @@ def test_send_message_updates_prompt_buttons_and_skips_cached_long_topic():
     assert client_mock.publish.call_count == 3
 
 
+def test_session_mutable_state_is_per_instance():
+    first = kassa.Session("SID1", Mock())
+    second = kassa.Session("SID2", Mock())
+
+    first.help["command"] = "description"
+    first.cache["topic"] = "message"
+    first.nextcall["function"] = "next"
+    first.buttons["special"] = "custom"
+
+    assert second.help == {}
+    assert second.cache == {}
+    assert second.nextcall == {}
+    assert second.buttons == {}
+
+
 def test_get_session_reuses_existing_session():
     client_mock = Mock()
     existing_session = Mock()
