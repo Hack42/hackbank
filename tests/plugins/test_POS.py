@@ -21,6 +21,17 @@ class TestPOS:
 
         self.POS.ser.write.assert_not_called()
 
+    def test_instances_do_not_share_state(self):
+        self.POS.bonnetjes[123] = {"bon": b"Test"}
+        self.POS.ser = Mock()
+        self.POS.lastbonID = 123
+
+        other = POS_module.POS("SID2", Mock())
+
+        assert other.bonnetjes == {}
+        assert other.ser is None
+        assert other.lastbonID == 0
+
     def test_help_and_hook_addremove(self):
         assert self.POS.help() == {
             "bon": "Print Receipt",

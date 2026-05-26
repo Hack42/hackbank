@@ -36,6 +36,9 @@ class POS:
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
+        self.bonnetjes = {}
+        self.ser = None
+        self.lastbonID = 0
 
     def open(self):
         if self.ser is not None:
