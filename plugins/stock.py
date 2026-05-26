@@ -117,32 +117,12 @@ class stock:
             )
 
     def voorraad_amount(self, text):
+        if text == "abort":
+            self.master.callhook("abort", None)
+            return True
         try:
             aantal = int(text)
-            if not -1 < aantal < 5000:
-                self.master.donext(self, "voorraad_amount")
-                self.master.send_message(
-                    True,
-                    "message",
-                    "Please enter a number between 0 and 4999, how much "
-                    + self.prod
-                    + " is in stock?",
-                )
-                self.master.send_message(
-                    True, "buttons", json.dumps({"special": "numbers"})
-                )
-                return True
-            self.setstock(self.prod, aantal)
-            self.master.donext(self, "voorraad")
-            self.master.send_message(True, "message", "What product to set the stock?")
-            self.master.send_message(
-                True, "buttons", json.dumps({"special": "products"})
-            )
-            return True
-        except:
-            if text == "abort":
-                self.master.callhook("abort", None)
-                return True
+        except (TypeError, ValueError):
             self.master.donext(self, "voorraad_amount")
             self.master.send_message(
                 True,
@@ -153,6 +133,24 @@ class stock:
                 True, "buttons", json.dumps({"special": "numbers"})
             )
             return True
+        if not -1 < aantal < 5000:
+            self.master.donext(self, "voorraad_amount")
+            self.master.send_message(
+                True,
+                "message",
+                "Please enter a number between 0 and 4999, how much "
+                + self.prod
+                + " is in stock?",
+            )
+            self.master.send_message(
+                True, "buttons", json.dumps({"special": "numbers"})
+            )
+            return True
+        self.setstock(self.prod, aantal)
+        self.master.donext(self, "voorraad")
+        self.master.send_message(True, "message", "What product to set the stock?")
+        self.master.send_message(True, "buttons", json.dumps({"special": "products"}))
+        return True
 
     def voorraad(self, text):
         prod = self.master.products.lookupprod(text)
@@ -177,32 +175,12 @@ class stock:
         return True
 
     def inkoop_amount(self, text):
+        if text == "abort":
+            self.master.callhook("abort", None)
+            return True
         try:
             aantal = int(text)
-            if not 0 < aantal < 5000:
-                self.master.donext(self, "inkoop_amount")
-                self.master.send_message(
-                    True,
-                    "message",
-                    "Please enter a number between 1 and 4999, how much "
-                    + self.prod
-                    + " did you buy?",
-                )
-                self.master.send_message(
-                    True, "buttons", json.dumps({"special": "numbers"})
-                )
-                return True
-            self.addstock(self.prod, aantal)
-            self.master.donext(self, "inkoop")
-            self.master.send_message(True, "message", "What product did you buy?")
-            self.master.send_message(
-                True, "buttons", json.dumps({"special": "products"})
-            )
-            return True
-        except:
-            if text == "abort":
-                self.master.callhook("abort", None)
-                return True
+        except (TypeError, ValueError):
             self.master.donext(self, "inkoop_amount")
             self.master.send_message(
                 True,
@@ -213,6 +191,24 @@ class stock:
                 True, "buttons", json.dumps({"special": "numbers"})
             )
             return True
+        if not 0 < aantal < 5000:
+            self.master.donext(self, "inkoop_amount")
+            self.master.send_message(
+                True,
+                "message",
+                "Please enter a number between 1 and 4999, how much "
+                + self.prod
+                + " did you buy?",
+            )
+            self.master.send_message(
+                True, "buttons", json.dumps({"special": "numbers"})
+            )
+            return True
+        self.addstock(self.prod, aantal)
+        self.master.donext(self, "inkoop")
+        self.master.send_message(True, "message", "What product did you buy?")
+        self.master.send_message(True, "buttons", json.dumps({"special": "products"}))
+        return True
 
     def inkoop(self, text):
         prod = self.master.products.lookupprod(text)

@@ -202,22 +202,22 @@ class products:
             return self.master.callhook("abort", None)
         try:
             price = float(text)
-            print(price)
-            if not 0 < price < 1000:
-                return self.messageandbuttons(
-                    "saveprice", "numbers", "Price should be between 0 and 1000"
-                )
-            self.newprodprice = price
-            self.products[self.priceprod]["price"] = self.newprodprice
-            self.writeproducts()
-            self.readproducts()
-            return True
-        except:
+        except (TypeError, ValueError):
             return self.messageandbuttons(
                 "saveprice",
                 "numbers",
                 "Not a valid number; What is the price for" + self.newprod + "?",
             )
+        print(price)
+        if not 0 < price < 1000:
+            return self.messageandbuttons(
+                "saveprice", "numbers", "Price should be between 0 and 1000"
+            )
+        self.newprodprice = price
+        self.products[self.priceprod]["price"] = self.newprodprice
+        self.writeproducts()
+        self.readproducts()
+        return True
 
     def addproductgroup(self, text):
         if text == "abort":
@@ -266,34 +266,34 @@ class products:
             return self.master.callhook("abort", None)
         try:
             price = float(text)
-            if not 0 < price < 1000:
-                return self.messageandbuttons(
-                    "addproductprice",
-                    "numbers",
-                    "Price should be between 0 and 1000",
-                )
-            self.newprodprice = price
-            self.master.donext(self, "addproductgroup")
-            self.master.send_message(
-                True, "message", "what productgroup to add the product to?"
-            )
-            self.master.send_message(
-                True,
-                "buttons",
-                json.dumps(
-                    {
-                        "special": "custom",
-                        "custom": [{"text": n, "display": n} for n in self.groups],
-                    }
-                ),
-            )
-            return True
-        except:
+        except (TypeError, ValueError):
             return self.messageandbuttons(
                 "addproductprice",
                 "numbers",
                 "Not a valid number; What is the price for" + self.newprod + "?",
             )
+        if not 0 < price < 1000:
+            return self.messageandbuttons(
+                "addproductprice",
+                "numbers",
+                "Price should be between 0 and 1000",
+            )
+        self.newprodprice = price
+        self.master.donext(self, "addproductgroup")
+        self.master.send_message(
+            True, "message", "what productgroup to add the product to?"
+        )
+        self.master.send_message(
+            True,
+            "buttons",
+            json.dumps(
+                {
+                    "special": "custom",
+                    "custom": [{"text": n, "display": n} for n in self.groups],
+                }
+            ),
+        )
+        return True
 
     def addproductdesc(self, text):
         if text == "abort":
@@ -377,7 +377,7 @@ class products:
                         True, "buttons", json.dumps({"special": "products"})
                     )
                     return True
-            except:
+            except (TypeError, ValueError):
                 pass
         return None
 

@@ -216,21 +216,21 @@ class market:
             return self.master.callhook("abort", None)
         try:
             price = float(text)
-            if not 0 < price < 1000:
-                return self.messageandbuttons(
-                    "saveprice", "numbers", "Price should be between 0 and 1000"
-                )
-            self.newprodprice = price
-            self.products[self.priceprod]["price"] = price
-            self.writeproducts()
-            self.readproducts()
-            return True
-        except:
+        except (TypeError, ValueError):
             return self.messageandbuttons(
                 "saveprice",
                 "numbers",
                 "Not a valid number; What is the price for" + self.newprod + "?",
             )
+        if not 0 < price < 1000:
+            return self.messageandbuttons(
+                "saveprice", "numbers", "Price should be between 0 and 1000"
+            )
+        self.newprodprice = price
+        self.products[self.priceprod]["price"] = price
+        self.writeproducts()
+        self.readproducts()
+        return True
 
     def addproductgroup(self, text):
         if text == "abort":
@@ -279,34 +279,34 @@ class market:
             return self.master.callhook("abort", None)
         try:
             price = float(text)
-            if not 0 < price < 1000:
-                return self.messageandbuttons(
-                    "addproductprice",
-                    "numbers",
-                    "Price should be between 0 and 1000",
-                )
-            self.newprodprice = price
-            self.master.donext(self, "addproductgroup")
-            self.master.send_message(
-                True, "message", "what productgroup to add the product to?"
-            )
-            self.master.send_message(
-                True,
-                "buttons",
-                json.dumps(
-                    {
-                        "special": "custom",
-                        "custom": [{"text": n, "display": n} for n in self.groups],
-                    }
-                ),
-            )
-            return True
-        except:
+        except (TypeError, ValueError):
             return self.messageandbuttons(
                 "addproductprice",
                 "numbers",
                 "Not a valid number; What is the price for" + self.newprod + "?",
             )
+        if not 0 < price < 1000:
+            return self.messageandbuttons(
+                "addproductprice",
+                "numbers",
+                "Price should be between 0 and 1000",
+            )
+        self.newprodprice = price
+        self.master.donext(self, "addproductgroup")
+        self.master.send_message(
+            True, "message", "what productgroup to add the product to?"
+        )
+        self.master.send_message(
+            True,
+            "buttons",
+            json.dumps(
+                {
+                    "special": "custom",
+                    "custom": [{"text": n, "display": n} for n in self.groups],
+                }
+            ),
+        )
+        return True
 
     def addproductdesc(self, text):
         if text == "abort":
@@ -415,22 +415,6 @@ class market:
                 "delmarket", "keyboard", "What market product do you want to remove?"
             )
 
-        #        elif text=="aliasproduct":
-        #            return self.messageandbuttons('addalias','products','What product do you want to alias?')
-        #        elif text=="addproduct":
-        #            return self.messageandbuttons('addproduct','keyboard','What is the name of the product you want to add?')
-        #        elif text=="setprice":
-        #            return self.messageandbuttons('setprice','products','What product to change the price for?')
-        #        elif text.endswith('*'):
-        #            try:
-        #                value=float(text[:-1])
-        #                if value>0 and value<100:
-        #                    self.times=value
-        #                    self.master.send_message(True,'message',"What are you buying %d from?" % self.times)
-        #                    self.master.send_message(True,'buttons',json.dumps({'special':'products'}))
-        #                    return True
-        #            except:
-        #                pass
         return None
 
     def hook_abort(self, _void):

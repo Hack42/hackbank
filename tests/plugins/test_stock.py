@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch, mock_open, call
 import plugins.stock as stock_module
 import json
+import pytest
 
 
 def test_stock_constructor():
@@ -340,12 +341,15 @@ def test_stock_voorraad_amount_valid():
     stock = stock_module.stock("SID", master_mock)
     stock.prod = "product1"
 
-    assert stock.voorraad_amount("10") == True
-    master_mock.donext.assert_called_with(stock, "voorraad_amount")
+    with patch.object(stock, "setstock") as mock_setstock:
+        assert stock.voorraad_amount("10") == True
+
+    mock_setstock.assert_called_with("product1", 10)
+    master_mock.donext.assert_called_with(stock, "voorraad")
     master_mock.send_message.assert_has_calls(
         [
-            call(True, "message", "Not a number, how much product1 is in stock"),
-            call(True, "buttons", '{"special": "numbers"}'),
+            call(True, "message", "What product to set the stock?"),
+            call(True, "buttons", '{"special": "products"}'),
         ]
     )
 
@@ -471,12 +475,6 @@ def test_stock_voorraad_amount_error_handling():
     stock = stock_module.stock("SID", master_mock)
     stock.prod = "product1"
 
-    with patch.object(stock, "setstock", side_effect=Exception("Set stock error")):
-        assert stock.voorraad_amount("1000") == True
-        # Check that error handling branches are covered
-        master_mock.send_message.assert_has_calls(
-            [
-                call(True, "message", "Not a number, how much product1 is in stock"),
-                call(True, "buttons", '{"special": "numbers"}'),
-            ]
-        )
+    with patch.object(stock, "setstock", side_effect=RuntimeError("Set stock error")):
+        with pytest.raises(RuntimeError, match="Set stock error"):
+            stock.voorraad_amount("1000")
