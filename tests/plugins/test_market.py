@@ -47,25 +47,28 @@ class TestMarket:
             "product1": {
                 "aliases": ["alias1"],
                 "price": 2.50,
+                "space": 1.00,
                 "description": "description1",
+                "user": "user1",
             }
         }
-        self.market.groups = {"group1": ["product1"]}
         mo = mock_open()
         with patch("builtins.open", mo):
             self.market.writeproducts()
             mo.assert_called_with("data/revbank.market", "w", encoding="utf-8")
             handle = mo()
-            expected_product = "%-58s %7.2f  %s\n" % (
+            expected_product = "%-10s %-30s %7.2f %7.2f %s\n" % (
+                "user1",
                 "product1,alias1",
                 2.50,
+                1.00,
                 "description1",
             )
             handle.write.assert_has_calls(
                 [
-                    call("# group1\n"),
+                    call("#                               Price =\n"),
+                    call("# Seller   Barcode          Seller + Space  Description\n\n"),
                     call(expected_product),
-                    call("\n"),
                 ]
             )
         assert self.market.products["product1"]["aliases"] == ["alias1"]
@@ -140,13 +143,13 @@ class TestMarket:
     def test_saveprice(self):
         self.market.priceprod = "product1"
         self.market.newprodprice = 3.0
-        self.market.products = {"product1": {"price": 2.5}}
-        market_data = "user1 product1,alias1,alias2 2.50 1.00 description1\n"
-        mo = mock_open(read_data=market_data)
-        with patch("builtins.open", mo):
+        self.market.products = {"product1": {"price": 2.5, "aliases": []}}
+        with patch.object(self.market, "readproducts"), patch.object(
+            self.market, "writeproducts"
+        ):
             self.market.saveprice("3.0")
             print(self.market.products)
-            assert self.market.products["product1"]["price"] == 2.5
+            assert self.market.products["product1"]["price"] == 3.0
 
     def test_addproductgroup(self):
         self.market.newprod = "product1"
@@ -236,6 +239,19 @@ class TestMarket:
             assert self.market.addproductgroup("group1")
             assert "group1" in self.market.groups
 
+    def test_delmarket_removes_product_and_aliases(self):
+        market_data = (
+            "user1 product1,alias1 2.50 1.00 description1\n"
+            "user2 product2,alias2 3.50 0.50 description2\n"
+        )
+        mo = mock_open(read_data=market_data)
+        with patch("builtins.open", mo):
+            assert self.market.delmarket("alias1")
+
+        assert "product1" not in self.market.products
+        assert "alias1" not in self.market.aliases
+        assert "product2" in self.market.products
+
     def test_addproductprice_invalid_price(self):
         self.market.newprod = "product1"
         self.market.newproddesc = "description"
@@ -287,3 +303,15 @@ class TestMarket:
         assert json.loads(payload)["custom"] == [
             {"text": "product1", "display": "Description", "right": "2.50 (0.50)"}
         ]
+
+    def test_input_market_admin_commands(self):
+        assert self.market.input("addmarket")
+        self.master_mock.donext.assert_called_with(self.market, "addalias")
+
+        self.master_mock.reset_mock()
+        assert self.market.input("changemarket")
+        self.master_mock.donext.assert_called_with(self.market, "setprice")
+
+        self.master_mock.reset_mock()
+        assert self.market.input("delmarket")
+        self.master_mock.donext.assert_called_with(self.market, "delmarket")

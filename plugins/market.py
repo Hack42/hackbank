@@ -48,22 +48,20 @@ class market:
 
     def writeproducts(self):
         with open("data/revbank.market", "w", encoding="utf-8") as f:
-            print(self.groups)
-            for group, groupvalue in self.groups.items():
-                f.write("# " + group + "\n")
-                for prod in groupvalue:
-                    product = self.products[prod]
-                    names = [prod] + product["aliases"]
-                    f.write(
-                        "%-58s %7.2f  %s\n"
-                        % (
-                            ",".join(names),
-                            product["price"],
-                            product["description"],
-                        )
+            f.write("#                               Price =\n")
+            f.write("# Seller   Barcode          Seller + Space  Description\n\n")
+            for prod, product in self.products.items():
+                names = [prod] + product["aliases"]
+                f.write(
+                    "%-10s %-30s %7.2f %7.2f %s\n"
+                    % (
+                        product.get("user", self.newprodgroup),
+                        ",".join(names),
+                        product["price"],
+                        product.get("space", 0.0),
+                        product["description"],
                     )
-                f.write("\n")
-            f.close()
+                )
 
     def __init__(self, SID, master):
         self.master = master
@@ -143,6 +141,25 @@ class market:
             "setprice",
             "products",
             "Unknown product;What product do you want change price?",
+        )
+
+    def delmarket(self, text):
+        if text == "abort":
+            return self.master.callhook("abort", None)
+        self.readproducts()
+        prod = self.lookupprod(text)
+        if prod:
+            del self.products[prod]
+            self.aliases = {}
+            for product_name, product in self.products.items():
+                for alias in product["aliases"]:
+                    self.aliases[alias] = product_name
+            self.writeproducts()
+            return True
+        return self.messageandbuttons(
+            "delmarket",
+            "keyboard",
+            "Unknown market product;What market product do you want to remove?",
         )
 
     def saveprice(self, text):
@@ -330,6 +347,18 @@ class market:
                 True, "buttons", json.dumps({"special": "custom", "custom": custom})
             )
             return True
+        if text == "addmarket":
+            return self.messageandbuttons(
+                "addalias", "keyboard", "What market product do you want to alias?"
+            )
+        if text == "changemarket":
+            return self.messageandbuttons(
+                "setprice", "keyboard", "What market product to change price for?"
+            )
+        if text == "delmarket":
+            return self.messageandbuttons(
+                "delmarket", "keyboard", "What market product do you want to remove?"
+            )
 
         #        elif text=="aliasproduct":
         #            return self.messageandbuttons('addalias','products','What product do you want to alias?')
