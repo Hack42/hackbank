@@ -100,6 +100,7 @@ class TestReceipt(TestCase):
                 "beni": "user1",
                 "Lose": True,
                 "count": 1,
+                "product": "prod1",
             }
         ]
         with patch.object(self.receipt_instance.master, "send_message"):
@@ -107,6 +108,21 @@ class TestReceipt(TestCase):
                 self.receipt_instance.add(True, 5.0, "desc", 1, "user1", "prod1")
             )
             self.assertEqual(self.receipt_instance.receipt[0]["count"], 2)
+
+    def test_add_same_description_different_product_keeps_separate_lines(self):
+        with patch.object(self.receipt_instance.master, "send_message"):
+            self.assertTrue(
+                self.receipt_instance.add(True, 5.0, "desc", 1, "user1", "prod1")
+            )
+            self.assertTrue(
+                self.receipt_instance.add(True, 5.0, "desc", 1, "user1", "prod2")
+            )
+
+        self.assertEqual(len(self.receipt_instance.receipt), 2)
+        self.assertEqual(
+            [line["product"] for line in self.receipt_instance.receipt],
+            ["prod1", "prod2"],
+        )
 
     def test_input_remove(self):
         self.receipt_instance.receipt = [

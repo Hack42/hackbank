@@ -84,6 +84,7 @@ class receipt:
                 and self.receipt[r]["value"] == Value
                 and self.receipt[r]["beni"] == Beni
                 and self.receipt[r]["Lose"] == Lose
+                and self.receipt[r]["product"] == Prod
             ):
                 self.receipt[r]["count"] += Count
                 self.receipt[r]["total"] = (
