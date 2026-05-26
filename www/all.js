@@ -28,7 +28,7 @@ var cachetop={};
     };
 })(jQuery);
 
-$( document ).ready(function() {
+$(function() {
   var session='main';
   if (window.location.hash !== '') {
     session=window.location.hash.replace('#','');
@@ -48,6 +48,30 @@ $( document ).ready(function() {
 
   function postmsg(topic,msg) {
     $.post( "post.php", { topic: 'session/'+session+'/'+topic, msg: msg } );
+  }
+  function fillVisibleText(selector) {
+    $(selector).each(function() {
+       $(this).textfill({maxFontPixels: 5});
+    });
+  }
+  function topButton(className,id,text) {
+    return $('<div>',{class: "Knopje Button "+className,id: id}).append($('<span>',{class: "Paginatext",text: text}));
+  }
+  function prependCashButton() {
+    $('#TopButtons').prepend(topButton("normal cash",'cash',"cash"));
+    fillVisibleText(".Paginatext:visible");
+  }
+  function activateTopButton(id) {
+    $('.topknop').removeClass('activetop');
+    $('#'+id).addClass('activetop');
+  }
+  function showAccountButtons(activeButtonId, accountType, tabMode) {
+    activateTopButton(activeButtonId);
+    $('#Secondscreen').show();
+    makepages('normal',accountstobuttons(accounts,accountType));
+    prependCashButton();
+    focus();
+    tabenable=tabMode;
   }
   function build_receipt(msg) {
     var parts=JSON.parse(msg);
@@ -214,9 +238,7 @@ $( document ).ready(function() {
     $('#TopButtons').append($('<div>',{class: "Knopje Button normal restore",id: 'restore'}).append($('<span>',{class: "Knopjetext",text: "Undo + Restore"})));
     $('#TopButtons').append($('<div>',{class: "Knopje Button normal bon",id: 'bon'}).append($('<span>',{class: "Knopjetext",text: "Bon"})));
     $('#TopButtons').append($('<div>',{class: "Knopje Button normal kassala",id: 'kassala'}).append($('<span>',{class: "Knopjetext",text: "Kassala"})));
-    $( "#TopButtons .Knopjetext:visible" ).each(function() {
-       $(this).textfill({maxFontPixels: 5});
-    });
+    fillVisibleText("#TopButtons .Knopjetext:visible");
   }
   function dokeys(keys) {
     $.each(keys, function(idx,val) {
@@ -344,21 +366,15 @@ $( document ).ready(function() {
     });
     if(pagecount === 1) {
       $(".page").remove();
-      $( ".Buttontext:visible" ).each(function() {
-         $(this).textfill({maxFontPixels: 5});
-      });
+      fillVisibleText(".Buttontext:visible");
       showquestion();
     } else {
       $('#'+pagecount+' .Paginatext').html($('#'+pagecount+' .Paginatext').html()+' - '+lastchar);
-      $( ".Paginatext:visible" ).each(function() {
-         $(this).textfill({maxFontPixels: 5});
-      });
+      fillVisibleText(".Paginatext:visible");
       $(".Pagina").each(function() {
         $('.Pagina').hide();
         $(this).show();
-        $( ".Buttontext:visible" ).each(function() {
-           $(this).textfill({maxFontPixels: 5});
-        });
+        fillVisibleText(".Buttontext:visible");
         $('.Pagina').hide();
         $('#Page1').show();
       });
@@ -367,17 +383,9 @@ $( document ).ready(function() {
   function dobuttons(msg) {
     var buttons=JSON.parse(msg);
     if(msg === '{}' && locked === 0) {
-      $('.topknop').removeClass('activetop'); $('#members').addClass('activetop');
-      $('#Secondscreen').show();
-      makepages('normal',accountstobuttons(accounts,'m'));
-      $('#TopButtons').prepend($('<div>',{class: "Knopje Button normal cash",id: 'cash'}).append($('<span>',{class: "Paginatext",text: "cash"})));
-      $( ".Paginatext:visible" ).each(function() {
-         $(this).textfill({maxFontPixels: 5});
-      });
-      focus();
-      tabenable=1;
+      showAccountButtons('members','m',1);
     } else if (buttons['special'] === 'custom') {
-      $('.topknop').removeClass('activetop'); $('#commands').addClass('activetop');
+      activateTopButton('commands');
       $('#Secondscreen').show();
       if(buttons['sort'] === "text") {
         buttons['custom'].sort(compare_text_rev);
@@ -388,56 +396,45 @@ $( document ).ready(function() {
       focus();
       tabenable=0;
     } else if (buttons['special'] === 'accounts') {
-      $('.topknop').removeClass('activetop'); $('#members').addClass('activetop');
-      $('#Secondscreen').show();
-      makepages('normal',accountstobuttons(accounts,'m'));
-      $('#TopButtons').prepend($('<div>',{class: "Knopje Button normal cash",id: 'cash'}).append($('<span>',{class: "Paginatext",text: "cash"})));
-      $( ".Paginatext:visible" ).each(function() {
-         $(this).textfill({maxFontPixels: 5});
-      });
-      focus();
-      tabenable=2;
+      showAccountButtons('members','m',2);
     } else if (buttons['special'] === 'accountsamount') {
-      $('.topknop').removeClass('activetop'); $('#members').addClass('activetop');
+      activateTopButton('members');
       $('#Secondscreen').show();
       makepages('normal',accountstobuttons(accounts,'m'));
-      $('#TopButtons').prepend($('<div>',{class: "Knopje Button shownumbers",id: 'shownumbers'}).append($('<span>',{class: "Paginatext",text: "Enter amount"})));
-      $('#TopButtons').prepend($('<div>',{class: "Knopje Button normal cash",id: 'cash'}).append($('<span>',{class: "Paginatext",text: "cash"})));
-      $( ".Paginatext:visible" ).each(function() {
-         $(this).textfill({maxFontPixels: 5});
-      });
+      $('#TopButtons').prepend(topButton("shownumbers",'shownumbers',"Enter amount"));
+      prependCashButton();
       focus();
       tabenable=2;
 
     } else if (buttons['special'] === 'numbers') {
-      $('.topknop').removeClass('activetop'); 
+      $('.topknop').removeClass('activetop');
       $('#Secondscreen').show();
       makepage_numbers();
       focus();
       tabenable=0;
     } else if (buttons['special'] === 'keyboard') {
-      $('.topknop').removeClass('activetop'); 
+      $('.topknop').removeClass('activetop');
       $('#Secondscreen').show();
       $('#Secondscreen').show();
       makepage_keyboard();
       focus();
       tabenable=0;
     } else if (buttons['special'] === 'infobox') {
-      $('.topknop').removeClass('activetop'); 
+      $('.topknop').removeClass('activetop');
       $('#Secondscreen').show();
       $('#Secondscreen').show();
       makepage_infobox();
       focus();
       tabenable=0;
     } else if (buttons['special'] === 'history') {
-      $('.topknop').removeClass('activetop'); $('#commands').addClass('activetop');
+      activateTopButton('commands');
       $('#Secondscreen').show();
       $('#Secondscreen').show();
       makepage_history();
       focus();
       tabenable=0;
     } else if (buttons['special'] === 'products') {
-      $('.topknop').removeClass('activetop'); $('#products').addClass('activetop');
+      activateTopButton('products');
       $('#Secondscreen').show();
       $('#Secondscreen').show();
       makepages('productgroups',productstobuttons(groups).sort(compare_display));
@@ -611,9 +608,7 @@ $( document ).ready(function() {
   $('#Buttons').append($('<div>',{class: "Knopje undo",id: 'undo'}).append($('<span>',{class: "Knopjetext",text: "Undo"})));
   $('#Buttons').append($('<div>',{class: "Knopje ok",id: 'ok'}).append($('<span>',{class: "Knopjetext",text: "OK"})));
   $('#Buttons').append($('<div>',{class: "Knopje knopjes",id: 'knopjes'}).append($('<span>',{class: "Knopjetext",text: "Show Buttons"})));
-  $( ".Knopjetext:visible" ).each(function() {
-         $(this).textfill({maxFontPixels: 5});
-  });
+  fillVisibleText(".Knopjetext:visible");
 
   function dotabfill(fill) {
     if(!tabenable) return;
@@ -707,57 +702,43 @@ $( document ).ready(function() {
   $("body" ).on( "click", 'div.page' ,function() {
     $('.Pagina').hide();
     $('#Page'+this.id).show();
-    $( ".Buttontext:visible" ).each(function() {
-       $(this).textfill({maxFontPixels: 5});
-    });
+    fillVisibleText(".Buttontext:visible");
     focus();
   });
   $("body" ).on( "click", 'div.productgroups' ,function() {
      makepages('normal',productgrouptobuttons(this.id).sort(compare_display));
      focus();
   });
-  $('.Knopje').click(function() {
+  $("body").on("click", 'div.Knopje:not(.normal):not(.shownumbers):not(.invoer):not(.page):not(.productgroups)', function() {
     switch(this.id) {
       case 'members':
-         $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
          locked=0;
-         makepages('normal',accountstobuttons(accounts,'m'));
-         $('#TopButtons').prepend($('<div>',{class: "Knopje Button normal cash",id: 'cash'}).append($('<span>',{class: "Paginatext",text: "cash"})));
-         $( ".Paginatext:visible" ).each(function() {
-           $(this).textfill({maxFontPixels: 5});
-         });
-         focus();
+         showAccountButtons(this.id,'m',tabenable);
          break;
       case 'otherusers':
-         $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
          locked=0;
-         makepages('normal',accountstobuttons(accounts,'o'));
-         $('#TopButtons').prepend($('<div>',{class: "Knopje Button normal cash",id: 'cash'}).append($('<span>',{class: "Paginatext",text: "cash"})));
-         $( ".Paginatext:visible" ).each(function() {
-           $(this).textfill({maxFontPixels: 5});
-         });
-         focus();
+         showAccountButtons(this.id,'o',tabenable);
          break;
       case 'products':
-         $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
+         activateTopButton(this.id);
          locked=1;
          makepages('productgroups',productstobuttons(groups).sort(compare_display));
          focus();
          break;
       case 'commands':
-         $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
+         activateTopButton(this.id);
          locked=0;
          makepages('normal',commandstobuttons().sort(compare_display));
          focus();
          break;
       case 'back':
-         $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
+         activateTopButton(this.id);
          locked=0;
          $('#Secondscreen').hide();
          focus();
          break;
       case 'irc':
-         $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
+         activateTopButton(this.id);
          locked=0;
          $('#IRCwindow').show();
          if($('#IRCwindow').html() === "") {
@@ -765,7 +746,7 @@ $( document ).ready(function() {
          }
          break;
       case 'spacecon':
-         $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
+         activateTopButton(this.id);
          locked=0;
          $('#spacewindow').show();
          if($('#spacewindow').html() === "") {
@@ -773,7 +754,7 @@ $( document ).ready(function() {
          }
          break;
       case 'knopjes':
-         $('.topknop').removeClass('activetop'); $('#'+this.id).addClass('activetop');
+         activateTopButton(this.id);
          locked=0;
          $('#Secondscreen').show();
          $('#IRCwindow').hide();
@@ -786,7 +767,7 @@ $( document ).ready(function() {
         focus();
     }
   });
-  $('.KnopjeOK').click(function() {
+  $("body").on("click", '.KnopjeOK', function() {
       runtext($('#Zoek')[0].value);
       $('#Zoek')[0].value="";
       showusers('');
@@ -800,7 +781,7 @@ $( document ).ready(function() {
     };
   })();
 
-  $( "#Zoek" ).keydown(function(data) {
+  $( "#Zoek" ).on("keydown", function(data) {
     if(data.which === 9) {
       dotabfill(1);
       data.preventDefault();
@@ -813,9 +794,6 @@ $( document ).ready(function() {
         dotabfill(0);
       }, 200 );
     }
-  });
-  $('#Firstscreen').resize(function(){
-    console.log('resize');
   });
   focus();
   postmsg('input','');
