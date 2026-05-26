@@ -3,8 +3,7 @@ import os
 import re
 import tempfile
 import threading
-
-RESERVED_INPUTS = {"abort", "ok"}
+from input_validation import filter_reserved_aliases, is_reserved_input
 
 
 def _atomic_write(path, lines):
@@ -46,16 +45,8 @@ class market:
             "market": "Market: Products",
         }
 
-    def reserved_inputs(self):
-        reserved = set(RESERVED_INPUTS)
-        reserved.update(self.help().keys())
-        master_help = getattr(self.master, "help", {})
-        if isinstance(master_help, dict):
-            reserved.update(master_help.keys())
-        return reserved
-
     def is_reserved_input(self, text):
-        return text in self.reserved_inputs()
+        return is_reserved_input(text, master=self.master, plugin_help=self.help())
 
     def readproducts(self):
         self.products = {}
@@ -73,9 +64,9 @@ class market:
                 name = aliases.pop(0)
                 if self.is_reserved_input(name):
                     continue
-                aliases = [
-                    alias for alias in aliases if not self.is_reserved_input(alias)
-                ]
+                aliases = filter_reserved_aliases(
+                    aliases, master=self.master, plugin_help=self.help()
+                )
                 try:
                     price = float(parts[2])
                     space = float(parts[3])
