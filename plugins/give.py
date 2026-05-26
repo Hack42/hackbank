@@ -9,6 +9,9 @@ class give:
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
+        self.userto = ""
+        self.value = 0
+        self.myreason = ""
 
     def help(self):
         return {"give": "Give Money to other user"}

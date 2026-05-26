@@ -93,3 +93,14 @@ class TestGive:
             assert self.give.amount("1001")
             self.give.master.donext.assert_called_with(self.give, "amount")
             self.give.master.send_message.assert_called()
+
+    def test_instances_do_not_share_state(self):
+        self.give.userto = "user1"
+        self.give.value = 10
+        self.give.myreason = "reason"
+
+        other = give_module.give("SID2", Mock())
+
+        assert other.userto == ""
+        assert other.value == 0
+        assert other.myreason == ""

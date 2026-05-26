@@ -429,3 +429,22 @@ class TestDeclaratie:
             assert self.declaratie.input(command)
             assert self.declaratie.soort == command
             self.master_mock.donext.assert_called_with(self.declaratie, "who")
+
+    def test_instances_do_not_share_state(self):
+        self.declaratie.wie = "user1"
+        self.declaratie.value = 10
+        self.declaratie.reden = "reason"
+        self.declaratie.ascash = 1
+        self.declaratie.asbank = 2
+        self.declaratie.asbar = 3
+        self.declaratie.soort = "declaratie"
+
+        other = declaratie_module.declaratie("SID2", Mock())
+
+        assert other.wie == ""
+        assert other.value == 0
+        assert other.reden == ""
+        assert other.ascash == 0
+        assert other.asbank == 0
+        assert other.asbar == 0
+        assert other.soort == ""

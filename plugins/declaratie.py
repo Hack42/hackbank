@@ -16,6 +16,13 @@ class declaratie:
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
+        self.wie = ""
+        self.value = 0
+        self.reden = ""
+        self.ascash = 0
+        self.asbank = 0
+        self.asbar = 0
+        self.soort = ""
 
     def help(self):
         return {

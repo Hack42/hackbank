@@ -14,6 +14,10 @@ class take:
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
+        self.totakefrom = []
+        self.peruser = 0
+        self.myreason = ""
+        self.value = 0
 
     def help(self):
         return {"take": "Take money from other user(s)"}
