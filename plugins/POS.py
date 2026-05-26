@@ -4,8 +4,16 @@ import traceback
 import json
 import time
 import pickle
-import serial
+import warnings
 from config import config_get
+
+with warnings.catch_warnings():
+    warnings.filterwarnings(
+        "ignore",
+        message="the imp module is deprecated in favour of importlib.*",
+        category=DeprecationWarning,
+    )
+    import serial
 
 DISPLAY = b"\x1b=\x02\x1b@"
 PRINTER = b"\x1b=\x01\x1b@"

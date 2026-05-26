@@ -6,12 +6,20 @@ import io
 import time
 import base64
 import urllib.parse
+import warnings
 from PIL import Image, ImageDraw, ImageFont
 import pyqrcode
-import brother_ql.conversion
-import brother_ql.backends.helpers
-import brother_ql.raster
 from config import config_get
+
+with warnings.catch_warnings():
+    warnings.filterwarnings(
+        "ignore",
+        message="The 'warn' method is deprecated, use 'warning' instead",
+        category=DeprecationWarning,
+    )
+    import brother_ql.conversion
+    import brother_ql.backends.helpers
+    import brother_ql.raster
 
 
 class stickers:  # pylint: disable=too-many-public-methods
