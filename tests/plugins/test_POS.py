@@ -332,11 +332,12 @@ class TestPOS:
     def test_selectbon_invalid_bonID(self):
         self.setup_method(None)
         self.POS.bonnetjes = {}
-        with patch.object(self.POS, "bon"), patch(
-            "plugins.POS.traceback.print_exc"
-        ) as mock_traceback:
+        with patch.object(self.POS, "bon"), patch.object(
+            self.POS, "listbons"
+        ) as mock_listbons:
             assert self.POS.selectbon("invalid")
-            mock_traceback.assert_called()
+            self.POS.bon.assert_not_called()
+            mock_listbons.assert_called_once()
 
     def test_writebons_max_receipts(self):
         with patch("builtins.open", mock_open()):
@@ -346,7 +347,7 @@ class TestPOS:
 
     def test_loadbons_file_error(self):
         self.POS.bonnetjes = {123: {"bon": "stale"}}
-        with patch("builtins.open", new_callable=mock_open(), side_effect=Exception):
+        with patch("builtins.open", new_callable=mock_open(), side_effect=OSError):
             self.POS.loadbons()
             assert self.POS.bonnetjes == {}
 

@@ -14,7 +14,7 @@ def _atomic_write(path, lines):
             for line in lines:
                 f.write(line)
         os.replace(tmp_path, path)
-    except:
+    except Exception:
         try:
             os.unlink(tmp_path)
         except FileNotFoundError:

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import base64
-import traceback
+import binascii
 import json
 import time
 import pickle
@@ -228,15 +228,16 @@ class POS:
             return True
         try:
             bonID = int(text)
-            if bonID in self.bonnetjes:
-                self.bon(bonID)
-                return True
+        except (TypeError, ValueError):
             self.listbons()
             return True
-        except:
-            traceback.print_exc()
-            self.listbons()
+
+        if bonID in self.bonnetjes:
+            self.bon(bonID)
             return True
+
+        self.listbons()
+        return True
 
     def writebons(self):
         while len(self.bonnetjes) > 50:
@@ -251,13 +252,25 @@ class POS:
         try:
             with open("data/revbank.POS", "rb") as f:
                 data = f.read()
+        except OSError:
+            return
+
+        try:
             try:
                 loaded = json.loads(data.decode("utf-8"))
             except (UnicodeDecodeError, json.JSONDecodeError):
                 loaded = pickle.loads(data)
             self.bonnetjes = self.deserialize_bons(loaded)
-        except:
-            pass
+        except (
+            AttributeError,
+            EOFError,
+            KeyError,
+            TypeError,
+            ValueError,
+            binascii.Error,
+            pickle.PickleError,
+        ):
+            return
 
     def serialize_bons(self, bonnetjes):
         output = {}
