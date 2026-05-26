@@ -1,7 +1,7 @@
 paho-mqtt
 PyQRCode
 Pillow
-serial
+pyserial
 pypng
 brother_ql
 PyYAML

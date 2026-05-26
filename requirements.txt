@@ -11,11 +11,7 @@ brother-ql==0.9.4
 click==8.1.7
     # via brother-ql
 future==0.18.3
-    # via
-    #   brother-ql
-    #   serial
-iso8601==2.1.0
-    # via serial
+    # via brother-ql
 packbits==0.6
     # via brother-ql
 paho-mqtt==1.6.1
@@ -28,11 +24,9 @@ pypng==0.20220715.0
     # via -r requirements.in
 pyqrcode==1.2.1
     # via -r requirements.in
+pyserial==3.5
+    # via -r requirements.in
 pyusb==1.2.1
     # via brother-ql
 pyyaml==6.0.1
-    # via
-    #   -r requirements.in
-    #   serial
-serial==0.0.97
     # via -r requirements.in
