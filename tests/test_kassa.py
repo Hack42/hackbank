@@ -428,11 +428,12 @@ def test_run_session_unhandled_action(capsys):
 def test_on_message_short_topic_is_ignored():
     client_mock = Mock()
     msg_mock = Mock()
-    msg_mock.topic = "short/topic"
     msg_mock.payload = b"data"
 
     with patch("kassa.run_session") as mock_run_session:
-        kassa.on_message(client_mock, None, msg_mock)
+        for topic in ("short/topic", "hack42bar/input/session", "hack42bar/input/session/1234"):
+            msg_mock.topic = topic
+            kassa.on_message(client_mock, None, msg_mock)
 
     mock_run_session.assert_not_called()
 

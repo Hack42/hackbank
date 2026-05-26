@@ -225,7 +225,7 @@ def on_message(client, _userdata, msg):
     # print(msg.topic+" "+str(msg.payload))
     elms = msg.topic.split("/")
     msg = msg.payload
-    if len(elms) < 3:
+    if len(elms) < 5:
         return
     # try:
     run_session(client, elms[3], elms[4], msg)
