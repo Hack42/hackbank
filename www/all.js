@@ -88,7 +88,7 @@ $(function() {
     var parts=JSON.parse(msg);
     $('#Receipt').empty();
     var counter=0;
-    $.each(parts, function(idx,stuff) {
+    parts.forEach(function(stuff) {
       counter++;
       $('#Receipt').append(
         $('<div>',{class: 'Itemline'})
@@ -114,7 +114,7 @@ $(function() {
     var parts=JSON.parse(msg);
     $('#Totals').empty();
     var counter=0;
-    $.each(parts, function(idx,stuff) {
+    parts.forEach(function(stuff) {
       counter++;
       $('#Totals').append(
         $('<div>',{class: 'Userline Total_'+stuff.user})
@@ -147,10 +147,11 @@ $(function() {
   function setupproducts(name,msg) {
     prods[name]=JSON.parse(msg);
     groups={};
-    $.each(prods, function(idx,stuff) {
+    Object.keys(prods).forEach(function(idx) {
+      var stuff=prods[idx];
       groups[stuff.group]=(groups[stuff.group] || 0) + 1;
       var barcode=0;
-      $.each(stuff.aliases, function(idx2,stuff2) {
+      stuff.aliases.forEach(function(stuff2) {
         if(stuff2 > 9999999) barcode=1;
       });
       if(barcode === 0) {
@@ -212,7 +213,7 @@ $(function() {
   }
   function allproductstobuttons() {
     var buttons=[];
-    $.each(prods,function(v) {
+    Object.keys(prods).forEach(function(v) {
       var button={'text': v,'display': prods[v].description,'right': prods[v].price.toFixed(2), rightclass:"green", class: v, aliases: prods[v].aliases};
       if(stock[v] !== undefined && Number(stock[v]) !== 0) {
         button['left']=stock[v];
@@ -225,7 +226,8 @@ $(function() {
   function productgrouptobuttons(group) {
     var buttons=[];
     var thisprods={};
-    $.each(prods, function(idx,stuff) {
+    Object.keys(prods).forEach(function(idx) {
+      var stuff=prods[idx];
       if(stuff.group === group) thisprods[idx]=1;
     });
     Object.keys(thisprods).sort().forEach(function(v) {
@@ -252,7 +254,7 @@ $(function() {
     fillVisibleText("#TopButtons .Knopjetext:visible");
   }
   function dokeys(keys) {
-    $.each(keys, function(idx,val) {
+    keys.forEach(function(val) {
       $('#keys').append($('<div>',{class: "Knopje Knop invoer small",id: val ,text: val}));
     });
   }
@@ -302,7 +304,7 @@ $(function() {
     $('#MainButtons').empty();
     $('#TopButtons').empty();
     $('#MainButtons').append($('<div>',{class: "mylines", id: "mylines"}));
-    $.each(history,function(idx,val) {
+    history.forEach(function(val) {
        $('#mylines').append(val+"<br>");
     });
     $('#mylines').css({'position': 'relative','top': '-12vh','left': '0px','z-index': '100','background': 'lightgray','height': '76vh','overflow-wrap': 'break-word','overflow-y': 'scroll','width': '96vw'});
@@ -340,7 +342,7 @@ $(function() {
     var donewpage=0;
     var first=1;
     var lastchar="";
-    $.each(buttons, function(idx, stuff) {
+    buttons.forEach(function(stuff) {
       if(donewpage === 1) {
         $('#'+pagecount+' .Paginatext').html($('#'+pagecount+' .Paginatext').html()+' - '+lastchar);
         pagecount++;
@@ -621,6 +623,16 @@ $(function() {
   $('#Buttons').append($('<div>',{class: "Knopje knopjes",id: 'knopjes'}).append($('<span>',{class: "Knopjetext",text: "Show Buttons"})));
   fillVisibleText(".Knopjetext:visible");
 
+  function buttonMatches(button, query) {
+    return button.text.toLowerCase().startsWith(query) || button.display.toLowerCase().startsWith(query);
+  }
+  function addMatchingButtons(matches, candidates, query) {
+    candidates.forEach(function(candidate) {
+       if(buttonMatches(candidate, query)) {
+           matches.push(candidate);
+       }
+    });
+  }
   function dotabfill(fill) {
     if(!tabenable) return;
     var dingen=$('#Zoek')[0].value.split(" ");
@@ -629,33 +641,17 @@ $(function() {
         return;
     }
     var buttons=[];
-    $.each(accountstobuttons(accounts,'m'),function(i,v) {
-       if(v.text.toLowerCase().startsWith(zoek) || v.display.toLowerCase().startsWith(zoek)) {
-           buttons.push(v);
-       }
-    });
-    $.each(accountstobuttons(accounts,'o'),function(i,v) {
-       if(v.text.toLowerCase().startsWith(zoek) || v.display.toLowerCase().startsWith(zoek)) {
-           buttons.push(v);
-       }
-    });
-    $.each(accountstobuttons(accounts,'x'),function(i,v) {
-       if(v.text.toLowerCase().startsWith(zoek) || v.display.toLowerCase().startsWith(zoek)) {
-           buttons.push(v);
-       }
-    });
+    addMatchingButtons(buttons, accountstobuttons(accounts,'m'), zoek);
+    addMatchingButtons(buttons, accountstobuttons(accounts,'o'), zoek);
+    addMatchingButtons(buttons, accountstobuttons(accounts,'x'), zoek);
     if(tabenable === 1) {
-      $.each(commandstobuttons(),function(i,v) {
-         if(v.text.toLowerCase().startsWith(zoek) || v.display.toLowerCase().startsWith(zoek)) {
-             buttons.push(v);
-         }
-      });
-      $.each(allproductstobuttons(),function(i,v) {
-         if(v.text.toLowerCase().startsWith(zoek) || v.display.toLowerCase().startsWith(zoek)) {
+      addMatchingButtons(buttons, commandstobuttons(), zoek);
+      allproductstobuttons().forEach(function(v) {
+         if(buttonMatches(v, zoek)) {
            buttons.push(v);
          } else {
            var done2=0;
-           $.each(v.aliases,function(i2,v2) {
+           v.aliases.forEach(function(v2) {
              if(String(v2).toLowerCase().startsWith(zoek) && ! done2) {
                buttons.push(v);
                done2=1;
