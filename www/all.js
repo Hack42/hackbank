@@ -109,6 +109,9 @@ $(function() {
   function topButton(className,id,text) {
     return $('<div>',{class: "Knopje Button "+className,id: id}).append($('<span>',{class: "Paginatext",text: text}));
   }
+  function buttonElement(className,id,text) {
+    return $('<div>',{class: className,id: id}).append($('<span>',{class: "Knopjetext",text: text}));
+  }
   function prependCashButton() {
     $('#TopButtons').prepend(topButton("normal cash",'cash',"cash"));
     fillVisibleText(".Paginatext:visible");
@@ -626,40 +629,6 @@ $(function() {
     };
   }
 
-  connectStream();
-
-  $('#body').append($('<div>',{id: 'Firstscreen'}));
-  $('#body').append($('<div>',{id: 'Secondscreen'}));
-  $('#body').append($('<div>',{id: 'IRCwindow'}));
-  $('#body').append($('<div>',{id: 'spacewindow'}));
-
-  $('#Firstscreen').append(  $('<div>',{id: 'Receipt', class: 'Receipt'}) );
-  $('#Firstscreen').append(  $('<div>',{id: 'Totals', class: 'Totals'}) );
-  $('#Firstscreen').append(  $('<div>',{id: 'Buttons', class: 'Buttons'}) );
-  $('#Firstscreen').append(  $('<div>',{id: 'Log'}) );
-  $('#Firstscreen').append(  $('<div>',{id: 'Invoer'}).append($('<input>',{id: 'Zoek',placeholder: "Starting network communication" }).attr('autocomplete','off')))
-  $('#Secondscreen').append(  $('<div>',{id: 'LeftButtons', class: 'LeftButtons'}) );
-  $('#Secondscreen').append(  $('<div>',{id: 'MainButtons', class: 'MainButtons'}) );
-  $('#Secondscreen').append(  $('<div>',{id: 'TopButtons', class: 'RightButtons'}) );
-  $('#Secondscreen').append(  $('<div>',{id: 'Receipt2'}) );
-  $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop normal abort",id: 'abort'}).append($('<span>',{class: "Knopjetext",text: "Abort"})));
-  $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop special",id: 'members'}).append($('<span>',{class: "Knopjetext",text: "Members"})));
-  $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop special",id: 'otherusers'}).append($('<span>',{class: "Knopjetext",text: "Other Users"})));
-  $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop special",id: 'products'}).append($('<span>',{class: "Knopjetext",text: "Products"})));
-  $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop special",id: 'commands'}).append($('<span>',{class: "Knopjetext",text: "Commands"})));
-  $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop sounds",id: 'sounds'}).append($('<span>',{class: "Knopjetext",text: "Sounds"})));
-  $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop irc",id: 'irc'}).append($('<span>',{class: "Knopjetext",text: "IRC"})));
-  $('#LeftButtons').append($('<div>',{class: "Knopje Button topknop spacecon",id: 'spacecon'}).append($('<span>',{class: "Knopjetext",text: "Lights"})));
-  //$('#LeftButtons').append($('<div>',{class: "Knopje Button back",id: 'back'}).append($('<span>',{class: "Knopjetext",text: "Back"})));
-  $('#Buttons').append($('<div>',{class: "Knopje abort",id: 'abort'}).append($('<span>',{class: "Knopjetext",text: "Abort"})));
-  $('#Buttons').append($('<div>',{class: "Knopje bon",id: 'bon'}).append($('<span>',{class: "Knopjetext",text: "Bon"})));
-  $('#Buttons').append($('<div>',{class: "Knopje remove",id: 'remove'}).append($('<span>',{class: "Knopjetext",text: " Remove Item"})));
-  $('#Buttons').append($('<div>',{class: "Knopje shame",id: 'shame'}).append($('<span>',{class: "Knopjetext",text: "Shame"})));
-  $('#Buttons').append($('<div>',{class: "Knopje undo",id: 'undo'}).append($('<span>',{class: "Knopjetext",text: "Undo"})));
-  $('#Buttons').append($('<div>',{class: "Knopje ok",id: 'ok'}).append($('<span>',{class: "Knopjetext",text: "OK"})));
-  $('#Buttons').append($('<div>',{class: "Knopje knopjes",id: 'knopjes'}).append($('<span>',{class: "Knopjetext",text: "Show Buttons"})));
-  fillVisibleText(".Knopjetext:visible");
-
   function buttonMatches(button, query) {
     return button.text.toLowerCase().startsWith(query) || button.display.toLowerCase().startsWith(query);
   }
@@ -825,20 +794,77 @@ $(function() {
     };
   })();
 
-  searchInput().addEventListener("keydown", function(data) {
-    if(data.which === 9) {
-      dotabfill(1);
-      data.preventDefault();
-    } else if(data.which === 13) {
-      locked=0;
-      postmsg('input',this.value);
-      this.value="";
-    } else {
-      delay(function(){
-        dotabfill(0);
-      }, 200 );
-    }
-  });
+  function buildLayout() {
+    $('#body').append($('<div>',{id: 'Firstscreen'}));
+    $('#body').append($('<div>',{id: 'Secondscreen'}));
+    $('#body').append($('<div>',{id: 'IRCwindow'}));
+    $('#body').append($('<div>',{id: 'spacewindow'}));
+
+    $('#Firstscreen').append($('<div>',{id: 'Receipt', class: 'Receipt'}));
+    $('#Firstscreen').append($('<div>',{id: 'Totals', class: 'Totals'}));
+    $('#Firstscreen').append($('<div>',{id: 'Buttons', class: 'Buttons'}));
+    $('#Firstscreen').append($('<div>',{id: 'Log'}));
+    $('#Firstscreen').append($('<div>',{id: 'Invoer'}).append($('<input>',{id: 'Zoek',placeholder: "Starting network communication" }).attr('autocomplete','off')));
+    $('#Secondscreen').append($('<div>',{id: 'LeftButtons', class: 'LeftButtons'}));
+    $('#Secondscreen').append($('<div>',{id: 'MainButtons', class: 'MainButtons'}));
+    $('#Secondscreen').append($('<div>',{id: 'TopButtons', class: 'RightButtons'}));
+    $('#Secondscreen').append($('<div>',{id: 'Receipt2'}));
+  }
+
+  function buildLeftButtons() {
+    var buttons=[
+      ["Knopje Button topknop normal abort",'abort',"Abort"],
+      ["Knopje Button topknop special",'members',"Members"],
+      ["Knopje Button topknop special",'otherusers',"Other Users"],
+      ["Knopje Button topknop special",'products',"Products"],
+      ["Knopje Button topknop special",'commands',"Commands"],
+      ["Knopje Button topknop sounds",'sounds',"Sounds"],
+      ["Knopje Button topknop irc",'irc',"IRC"],
+      ["Knopje Button topknop spacecon",'spacecon',"Lights"],
+    ];
+    buttons.forEach(function(button) {
+      $('#LeftButtons').append(buttonElement(button[0],button[1],button[2]));
+    });
+  }
+
+  function buildActionButtons() {
+    var buttons=[
+      ["Knopje abort",'abort',"Abort"],
+      ["Knopje bon",'bon',"Bon"],
+      ["Knopje remove",'remove'," Remove Item"],
+      ["Knopje shame",'shame',"Shame"],
+      ["Knopje undo",'undo',"Undo"],
+      ["Knopje ok",'ok',"OK"],
+      ["Knopje knopjes",'knopjes',"Show Buttons"],
+    ];
+    buttons.forEach(function(button) {
+      $('#Buttons').append(buttonElement(button[0],button[1],button[2]));
+    });
+  }
+
+  function bindSearchInput() {
+    searchInput().addEventListener("keydown", function(data) {
+      if(data.which === 9) {
+        dotabfill(1);
+        data.preventDefault();
+      } else if(data.which === 13) {
+        locked=0;
+        postmsg('input',this.value);
+        this.value="";
+      } else {
+        delay(function(){
+          dotabfill(0);
+        }, 200 );
+      }
+    });
+  }
+
+  connectStream();
+  buildLayout();
+  buildLeftButtons();
+  buildActionButtons();
+  fillVisibleText(".Knopjetext:visible");
+  bindSearchInput();
   focus();
   postmsg('input','');
 });
