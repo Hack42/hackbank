@@ -6,7 +6,7 @@ NPM ?= npm
 test: venv
 	@. .venv/bin/activate && ${env} ${PYTHON} -m pytest  -vvv --cov=. --cov-report term-missing
 
-check: test js-lint ## Run tests and JavaScript lint
+check: test lint ## Run tests and linters
 
 venv: .venv/make_venv_complete ## Create virtual environment
 .venv/make_venv_complete:
