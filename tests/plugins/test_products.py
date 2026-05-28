@@ -75,8 +75,7 @@ class TestProducts(unittest.TestCase):
             "data/revbank.products",
             [
                 "# Group1\n",
-                "%-58s %7.2f  %s\n"
-                % ("product1,alias1", 2.50, "Description1"),
+                "%-58s %7.2f  %s\n" % ("product1,alias1", 2.50, "Description1"),
                 "\n",
                 "# Group2\n",
                 "%-58s %7.2f  %s\n" % ("product2", 1.50, "Description2"),
@@ -396,9 +395,13 @@ def test_atomic_write_writes_and_cleans_up_on_failure(tmp_path):
 
     assert output.read_text(encoding="utf-8") == "line1\nline2\n"
 
-    with patch("plugins.products.tempfile.mkstemp", return_value=(123, "tmpfile")), patch(
+    with patch(
+        "plugins.products.tempfile.mkstemp", return_value=(123, "tmpfile")
+    ), patch(
         "plugins.products.os.fdopen", side_effect=RuntimeError("write failed")
-    ), patch("plugins.products.os.unlink", side_effect=FileNotFoundError) as mock_unlink:
+    ), patch(
+        "plugins.products.os.unlink", side_effect=FileNotFoundError
+    ) as mock_unlink:
         with pytest.raises(RuntimeError):
             ProductsModule._atomic_write("data/revbank.products", ["line\n"])
 

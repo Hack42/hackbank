@@ -470,7 +470,9 @@ def test_send_message_logs_debug(caplog):
     with caplog.at_level("DEBUG", logger="kassa"):
         session.send_message(True, "message", "hello")
 
-    assert "send_message sid=SID retain=True topic=message message='hello'" in caplog.text
+    assert (
+        "send_message sid=SID retain=True topic=message message='hello'" in caplog.text
+    )
 
 
 def test_session_mutable_state_is_per_instance():
@@ -523,7 +525,11 @@ def test_on_message_short_topic_is_ignored():
     msg_mock.payload = b"data"
 
     with patch("kassa.run_session") as mock_run_session:
-        for topic in ("short/topic", "hack42bar/input/session", "hack42bar/input/session/1234"):
+        for topic in (
+            "short/topic",
+            "hack42bar/input/session",
+            "hack42bar/input/session/1234",
+        ):
             msg_mock.topic = topic
             kassa.on_message(client_mock, None, msg_mock)
 

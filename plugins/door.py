@@ -5,7 +5,6 @@ import logging
 import paho.mqtt.client as mqtt
 from config import config_get
 
-
 logger = logging.getLogger(__name__)
 
 

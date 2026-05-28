@@ -38,7 +38,14 @@ def make_checkout_session():
     session.products = products_plugin
     session.stock = stock_plugin
     session.POS = pos_plugin
-    return session, receipt_plugin, accounts_plugin, products_plugin, stock_plugin, pos_plugin
+    return (
+        session,
+        receipt_plugin,
+        accounts_plugin,
+        products_plugin,
+        stock_plugin,
+        pos_plugin,
+    )
 
 
 def test_checkout_stores_undo_snapshot_after_receipt_checkout():

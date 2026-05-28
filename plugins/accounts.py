@@ -6,7 +6,6 @@ import time
 import codecs
 import logging
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -117,10 +116,7 @@ class accounts:
             )
             _atomic_write(
                 "data/revbank.aliases",
-                [
-                    "%s %s\n" % (usr, alias)
-                    for usr, alias in self.aliases.items()
-                ],
+                ["%s %s\n" % (usr, alias) for usr, alias in self.aliases.items()],
             )
 
     # Hooks

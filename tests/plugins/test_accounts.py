@@ -89,11 +89,7 @@ def test_readaccounts_tolerates_comments_blanks_and_whitespace():
         "user2\t-20.50\t2021-01-02 extra-field\n"
     )
     mock_aliases_data = (
-        "# comment\n"
-        "\n"
-        "alias1     user1\n"
-        "bad alias line\n"
-        "alias2\tuser2\n"
+        "# comment\n" "\n" "alias1     user1\n" "bad alias line\n" "alias2\tuser2\n"
     )
 
     def custom_mock_open(filename, _bla, _bla2):
@@ -447,9 +443,13 @@ def test_newuser_no_positive_gain():
 
 
 def test_atomic_write_removes_temp_file_when_write_fails():
-    with patch("plugins.accounts.tempfile.mkstemp", return_value=(123, "tmpfile")), patch(
+    with patch(
+        "plugins.accounts.tempfile.mkstemp", return_value=(123, "tmpfile")
+    ), patch(
         "plugins.accounts.os.fdopen", side_effect=RuntimeError("write failed")
-    ), patch("plugins.accounts.os.unlink", side_effect=FileNotFoundError) as mock_unlink:
+    ), patch(
+        "plugins.accounts.os.unlink", side_effect=FileNotFoundError
+    ) as mock_unlink:
         with pytest.raises(RuntimeError):
             accounts_module._atomic_write("data/revbank.accounts", ["line\n"])
 

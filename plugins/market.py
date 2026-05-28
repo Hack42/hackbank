@@ -10,7 +10,6 @@ from input_validation import (
     is_valid_product_name,
 )
 
-
 logger = logging.getLogger(__name__)
 
 
