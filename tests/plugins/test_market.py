@@ -2,6 +2,7 @@ from unittest.mock import patch, mock_open, MagicMock, call
 import plugins.market as market_module
 import json
 import re
+import pytest
 
 
 class TestMarket:
@@ -294,6 +295,26 @@ class TestMarket:
         assert "alias1" not in self.market.aliases
         assert "product2" in self.market.products
 
+    def test_delmarket_abort_and_unknown_product(self):
+        assert self.market.delmarket("abort") is self.master_mock.callhook.return_value
+        self.master_mock.callhook.assert_called_with("abort", None)
+
+        self.master_mock.reset_mock()
+        with patch.object(self.market, "readproducts"):
+            assert self.market.delmarket("unknown") is True
+
+        self.master_mock.donext.assert_called_with(self.market, "delmarket")
+        self.master_mock.send_message.assert_has_calls(
+            [
+                call(
+                    True,
+                    "message",
+                    "Unknown market product;What market product do you want to remove?",
+                ),
+                call(True, "buttons", '{"special": "keyboard"}'),
+            ]
+        )
+
     def test_addproductprice_invalid_price(self):
         self.market.newprod = "product1"
         self.market.newproddesc = "description"
@@ -376,3 +397,18 @@ class TestMarket:
         self.master_mock.reset_mock()
         assert self.market.input("delmarket")
         self.master_mock.donext.assert_called_with(self.market, "delmarket")
+
+
+def test_atomic_write_writes_and_cleans_up_on_failure(tmp_path):
+    output = tmp_path / "market.txt"
+    market_module._atomic_write(str(output), ["line1\n", "line2\n"])
+
+    assert output.read_text(encoding="utf-8") == "line1\nline2\n"
+
+    with patch("plugins.market.tempfile.mkstemp", return_value=(123, "tmpfile")), patch(
+        "plugins.market.os.fdopen", side_effect=RuntimeError("write failed")
+    ), patch("plugins.market.os.unlink", side_effect=FileNotFoundError) as mock_unlink:
+        with pytest.raises(RuntimeError):
+            market_module._atomic_write("data/revbank.market", ["line\n"])
+
+    mock_unlink.assert_called_once_with("tmpfile")

@@ -36,6 +36,12 @@ def test_uses_configured_printer_identifier():
     assert sticky.PRINTER == "tcp://printer-id.example.test:9100"
 
 
+def test_printer_identifier_falls_back_to_default_printer():
+    sticky = stickers("main", Mock())
+
+    assert sticky.printer_identifier({}) == sticky.PRINTER
+
+
 @patch("builtins.open")
 @patch("plugins.stickers.brother_ql.backends.helpers")
 def test_eigendom(_cups, _open):

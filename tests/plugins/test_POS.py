@@ -273,6 +273,21 @@ class TestPOS:
                 123: {"totals": {"user": 1.0}, "bon": b"Test"}
             }
 
+    def test_loadbons_missing_file_clears_bons(self):
+        self.POS.bonnetjes = {123: {"bon": "stale"}}
+
+        with patch("builtins.open", side_effect=OSError("missing")):
+            self.POS.loadbons()
+
+        assert self.POS.bonnetjes == {}
+
+    def test_deserialize_bons_uses_text_payload_for_non_base64_dict(self):
+        result = self.POS.deserialize_bons(
+            {"123": {"totals": {}, "bon": {"encoding": "text", "data": "Test"}}}
+        )
+
+        assert result == {123: {"totals": {}, "bon": "Test"}}
+
     def test_listbons(self):
         self.POS.bonnetjes = {123: {"totals": {"user": 1.0}, "bon": "Test"}}
         with patch.object(self.POS, "loadbons"), patch.object(

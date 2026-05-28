@@ -2,8 +2,10 @@ import json
 
 from unittest.mock import Mock, call
 from unittest.mock import patch, mock_open
+import pytest
 
 from plugins.accounts import accounts
+import plugins.accounts as accounts_module
 
 
 def test_help():
@@ -442,3 +444,13 @@ def test_newuser_no_positive_gain():
     ]
 
     assert acc.newuser("new_user") is None
+
+
+def test_atomic_write_removes_temp_file_when_write_fails():
+    with patch("plugins.accounts.tempfile.mkstemp", return_value=(123, "tmpfile")), patch(
+        "plugins.accounts.os.fdopen", side_effect=RuntimeError("write failed")
+    ), patch("plugins.accounts.os.unlink", side_effect=FileNotFoundError) as mock_unlink:
+        with pytest.raises(RuntimeError):
+            accounts_module._atomic_write("data/revbank.accounts", ["line\n"])
+
+    mock_unlink.assert_called_once_with("tmpfile")

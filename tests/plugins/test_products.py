@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import Mock, patch, mock_open, call
+import pytest
 import plugins.products as ProductsModule
 
 
@@ -387,3 +388,18 @@ class TestProducts(unittest.TestCase):
 
         assert self.products.input("0*") is None
         assert self.products.input("not-a-number*") is None
+
+
+def test_atomic_write_writes_and_cleans_up_on_failure(tmp_path):
+    output = tmp_path / "products.txt"
+    ProductsModule._atomic_write(str(output), ["line1\n", "line2\n"])
+
+    assert output.read_text(encoding="utf-8") == "line1\nline2\n"
+
+    with patch("plugins.products.tempfile.mkstemp", return_value=(123, "tmpfile")), patch(
+        "plugins.products.os.fdopen", side_effect=RuntimeError("write failed")
+    ), patch("plugins.products.os.unlink", side_effect=FileNotFoundError) as mock_unlink:
+        with pytest.raises(RuntimeError):
+            ProductsModule._atomic_write("data/revbank.products", ["line\n"])
+
+    mock_unlink.assert_called_once_with("tmpfile")

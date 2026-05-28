@@ -164,6 +164,18 @@ def test_undo_doundo_valid_transID():
         undo.master.callhook.assert_called()
 
 
+def test_undo_doundo_lists_when_entry_is_malformed():
+    master_mock = Mock()
+    undo = undo_module.undo("SID", master_mock)
+    undo.undo = {123: {"totals": {}}}
+
+    with patch.object(undo, "listundo") as mock_listundo:
+        assert undo.doundo("123") == True
+
+    mock_listundo.assert_called_once()
+    master_mock.callhook.assert_not_called()
+
+
 def test_undo_doundo_invalid_transID():
     master_mock = Mock()
     undo = undo_module.undo("SID", master_mock)
@@ -236,6 +248,29 @@ def test_undo_dorestore_paths():
         assert undo.dorestore("999")
         assert undo.dorestore("not-a-number")
         assert undo.listundo.call_count == 2
+
+
+def test_undo_dorestore_lists_when_entry_is_malformed():
+    master_mock = Mock()
+    undo = undo_module.undo("SID", master_mock)
+    undo.undo = {123: {"totals": {}}}
+
+    with patch.object(undo, "listundo") as mock_listundo:
+        assert undo.dorestore("123") == True
+
+    mock_listundo.assert_called_once()
+    master_mock.callhook.assert_not_called()
+
+
+def test_undo_restore_receipt_lists_on_invalid_receipt_entry():
+    master_mock = Mock()
+    undo = undo_module.undo("SID", master_mock)
+
+    with patch.object(undo, "listundo") as mock_listundo:
+        assert undo._restore_receipt([{"missing": "fields"}], "buyer") == True
+
+    mock_listundo.assert_called_once()
+    master_mock.receipt.add.assert_not_called()
 
 
 def test_undo_listundo():

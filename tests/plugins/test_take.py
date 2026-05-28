@@ -64,6 +64,16 @@ def test_who_invalid_amount():
     master_mock.donext.assert_called_with(take, "who")
 
 
+def test_who_non_numeric_amount():
+    master_mock = Mock()
+    take = take_module.take("SID", master_mock)
+    master_mock.accounts.accounts = {"user1": {}}
+    take.totakefrom = ["user1"]
+
+    assert take.who("not-a-number") == True
+    master_mock.donext.assert_called_with(take, "who")
+
+
 def test_who_unknown_user():
     master_mock = Mock()
     take = take_module.take("SID", master_mock)

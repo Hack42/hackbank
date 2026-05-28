@@ -31,6 +31,16 @@ def test_load_config_merges_yaml_with_defaults(tmp_path):
     assert config["logging"]["level"] == "INFO"
 
 
+def test_load_config_uses_defaults_for_non_mapping_yaml(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("- not\n- a\n- mapping\n", encoding="utf-8")
+
+    config = load_config(config_path)
+
+    assert config["mqtt"]["host"] == "localhost"
+    assert config["stickers"]["printer"]["port"] == 9100
+
+
 def test_config_get_uses_env_path(tmp_path, monkeypatch):
     config_path = tmp_path / "custom.yaml"
     config_path.write_text("mqtt:\n  port: 1884\n", encoding="utf-8")

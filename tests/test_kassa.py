@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from unittest.mock import Mock, patch, call
+import pytest
 import kassa
 from plugins.products import products
 
@@ -424,6 +425,28 @@ def test_session_product_add_flow_rejects_invalid_name():
         1,
         True,
     )
+
+
+def test_run_logs_and_sleeps_after_mqtt_loop_exception(caplog):
+    client = Mock()
+    client.connect.side_effect = RuntimeError("connect failed")
+
+    with patch(
+        "kassa.config_get",
+        return_value={"host": "localhost", "port": 1883, "keepalive": 60},
+    ), patch("kassa.mqtt.Client", return_value=client), patch(
+        "kassa.logging.basicConfig"
+    ), patch(
+        "kassa.time.sleep", side_effect=KeyboardInterrupt
+    ), caplog.at_level(
+        "ERROR", logger="kassa"
+    ), pytest.raises(
+        KeyboardInterrupt
+    ):
+        kassa.run()
+
+    assert "Kassa MQTT loop failed" in caplog.text
+    client.loop_start.assert_not_called()
 
 
 def test_send_message_updates_prompt_buttons_and_skips_cached_long_topic():

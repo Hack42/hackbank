@@ -477,3 +477,18 @@ def test_stock_voorraad_amount_error_handling():
     with patch.object(stock, "setstock", side_effect=RuntimeError("Set stock error")):
         with pytest.raises(RuntimeError, match="Set stock error"):
             stock.voorraad_amount("1000")
+
+
+def test_stock_atomic_write_writes_and_cleans_up_on_failure(tmp_path):
+    output = tmp_path / "stock.txt"
+    stock_module._atomic_write(str(output), ["line1\n", "line2\n"])
+
+    assert output.read_text(encoding="utf-8") == "line1\nline2\n"
+
+    with patch("plugins.stock.tempfile.mkstemp", return_value=(123, "tmpfile")), patch(
+        "plugins.stock.os.fdopen", side_effect=RuntimeError("write failed")
+    ), patch("plugins.stock.os.unlink", side_effect=FileNotFoundError) as mock_unlink:
+        with pytest.raises(RuntimeError):
+            stock_module._atomic_write("data/revbank.stock", ["line\n"])
+
+    mock_unlink.assert_called_once_with("tmpfile")
