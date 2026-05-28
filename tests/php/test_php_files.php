@@ -44,4 +44,30 @@ foreach (glob($root . '/www/spaceconsole/*.php') as $file) {
     );
 }
 
+require_once $root . '/www/config.php';
+
+$config_file = tempnam(sys_get_temp_dir(), 'kassa-config-');
+assert_true($config_file !== false, 'could not create temporary config file');
+file_put_contents($config_file, "mqtt:\n  host: mqtt.example.test\n  port: 1884\n");
+putenv("MQTT_HOST");
+putenv("MQTT_PORT");
+assert_true(
+    kassa_config_get(array("mqtt", "host"), null, $config_file) === "mqtt.example.test",
+    'PHP config should read mqtt.host from config.yaml'
+);
+assert_true(
+    kassa_mqtt_config($config_file) === array("host" => "mqtt.example.test", "port" => 1884),
+    'PHP MQTT config should use config.yaml when env vars are absent'
+);
+
+putenv("MQTT_HOST=127.0.0.1");
+putenv("MQTT_PORT=1885");
+assert_true(
+    kassa_mqtt_config($config_file) === array("host" => "127.0.0.1", "port" => 1885),
+    'MQTT_HOST and MQTT_PORT should override config.yaml'
+);
+putenv("MQTT_HOST");
+putenv("MQTT_PORT");
+unlink($config_file);
+
 echo "PHP file tests passed\n";

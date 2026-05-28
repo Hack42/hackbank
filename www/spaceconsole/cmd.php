@@ -17,10 +17,7 @@ function request_string($key, $max_length) {
   return $value;
 }
 
-$mqtt_host = getenv("MQTT_HOST");
-if (empty($mqtt_host)) {
-  $mqtt_host = "localhost";
-}
+require_once(__DIR__."/../config.php");
 $action = request_string("action", 16);
 $device = "";
 $value = "";
@@ -51,7 +48,8 @@ switch ($action) {
 
 require("../phpMQTT.php");
 use Bluerhinos\phpMQTT;
-$mqtt = new phpMQTT($mqtt_host, 1883, "barcmnd".rand());
+$mqtt_config = kassa_mqtt_config();
+$mqtt = new phpMQTT($mqtt_config["host"], $mqtt_config["port"], "barcmnd".rand());
 
 if(!$mqtt->connect()){
   echo json_encode(array("message"=>"MQTT error"));

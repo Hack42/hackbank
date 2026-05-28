@@ -18,10 +18,7 @@ function request_string($key, $max_length) {
   return $value;
 }
 
-$mqtt_host = getenv("MQTT_HOST");
-if (empty($mqtt_host)) {
-  $mqtt_host = "localhost";
-}
+require_once(__DIR__."/config.php");
 
 $topic = request_string("topic", 128);
 if (!isset($_REQUEST["msg"]) || !is_string($_REQUEST["msg"]) || strlen($_REQUEST["msg"]) > 512) {
@@ -34,7 +31,8 @@ if (!preg_match('/^session\/[A-Za-z0-9_-]{1,64}\/input$/', $topic)) {
 
 require("phpMQTT.php");
 use Bluerhinos\phpMQTT;
-$mqtt = new phpMQTT($mqtt_host, 1883, "barclient".rand());
+$mqtt_config = kassa_mqtt_config();
+$mqtt = new phpMQTT($mqtt_config["host"], $mqtt_config["port"], "barclient".rand());
 if($mqtt->connect()){
   $mqtt->publish("hack42bar/input/".$topic, $msg, 1);
   $mqtt->close();
