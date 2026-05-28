@@ -1,0 +1,10 @@
+{
+  "name": "kassa",
+  "private": true,
+  "scripts": {
+    "lint:js": "eslint www/all.js www/spaceconsole/all.js"
+  },
+  "devDependencies": {
+    "eslint": "^8.55.0"
+  }
+}

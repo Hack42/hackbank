@@ -1,4 +1,3 @@
-/* global dolog, runtext, showusers */
 var cachepixels={};
 var cachetop={};
 (function($) {

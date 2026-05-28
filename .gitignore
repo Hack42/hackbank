@@ -1,1 +1,8 @@
 config.yaml
+.coverage
+.pytest_cache/
+.venv/
+__pycache__/
+node_modules/
+tests/__pycache__/
+tests/plugins/__pycache__/
