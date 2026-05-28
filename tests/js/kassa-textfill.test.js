@@ -5,12 +5,7 @@ const test = require("node:test");
 const vm = require("node:vm");
 
 function loadTextfill() {
-  function jquery(selection) {
-    return selection;
-  }
-  jquery.fn = {};
-
-  const sandbox = {jQuery: jquery, window: {}};
+  const sandbox = {window: {}};
   const script = fs.readFileSync(
     path.join(__dirname, "../../www/kassa-textfill.js"),
     "utf8",
@@ -20,7 +15,6 @@ function loadTextfill() {
 
   return {
     fillElement: sandbox.window.HackBankTextfill.fillElement,
-    textfillPlugin: jquery.fn.textfill,
   };
 }
 
@@ -74,23 +68,4 @@ test("textfill reuses cached size for repeated text", () => {
 
   assert.equal(second.style.fontSize, "1.4vh");
   assert.equal(second.style.top, "20px");
-});
-
-test("jQuery plugin remains available as a wrapper", () => {
-  const {textfillPlugin} = loadTextfill();
-  const element = createElement("wrapped");
-  const selection = {
-    filled: [],
-    each(callback) {
-      callback.call(element);
-      this.filled.push(element);
-      return this;
-    },
-  };
-
-  const result = textfillPlugin.call(selection, {maxFontPixels: 5});
-
-  assert.equal(result, selection);
-  assert.equal(selection.filled[0], element);
-  assert.equal(element.style.fontSize, "1.4vh");
 });

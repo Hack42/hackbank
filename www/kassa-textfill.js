@@ -1,7 +1,7 @@
 var cachepixels = {};
 var cachetop = {};
 
-(function(window, $) {
+(function(window) {
     function textfillElement(element, options) {
         var fontSize = options.maxFontPixels;
         var parent = element.parentElement;
@@ -31,11 +31,4 @@ var cachetop = {};
     window.HackBankTextfill = {
         fillElement: textfillElement,
     };
-
-    $.fn.textfill = function(options) {
-        this.each(function() {
-            textfillElement(this, options);
-        });
-        return this;
-    };
-})(window, jQuery);
+})(window);

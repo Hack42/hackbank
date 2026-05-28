@@ -11,7 +11,6 @@ test("main index loads split kassa scripts in dependency order", () => {
   );
 
   assert.deepEqual(scripts, [
-    "jquery.min.js",
     "kassa-textfill.js",
     "kassa-dom.js",
     "kassa-buttons.js",
