@@ -279,8 +279,7 @@ class stickers:  # pylint: disable=too-many-public-methods
         result = self.read_copy_count(text, "barcodenum")
         if result is not None:
             return result
-        self.barcodeprint()
-        return True
+        return self.print_label(self.barcodeprint, "barcodenum")
 
     def barcodecount(self, text):
         prod = self.master.products.lookupprod(text)
@@ -327,14 +326,32 @@ class stickers:  # pylint: disable=too-many-public-methods
         self.copies = copies
         return None
 
+    def print_label(self, print_func, nextcall):
+        try:
+            print_func()
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.exception(
+                "Sticker print failed sid=%s printer=%s", self.SID, self.PRINTER
+            )
+            self.master.donext(self, nextcall)
+            self.master.send_message(
+                True,
+                "message",
+                "Printer error; sticker not printed. Check printer and try again.",
+            )
+            self.master.send_message(
+                True, "buttons", json.dumps({"special": "numbers"})
+            )
+            return True
+        return True
+
     def eigendomnum(self, text):
         if text == "abort":
             return self.master.callhook("abort", None)
         result = self.read_copy_count(text, "eigendomnum")
         if result is not None:
             return result
-        self.eigendomprint()
-        return True
+        return self.print_label(self.eigendomprint, "eigendomnum")
 
     def eigendomcount(self, text):
         if text == "abort":
@@ -348,8 +365,7 @@ class stickers:  # pylint: disable=too-many-public-methods
         result = self.read_copy_count(text, "foodnum")
         if result is not None:
             return result
-        self.foodprint()
-        return True
+        return self.print_label(self.foodprint, "foodnum")
 
     def thtnum(self, text):
         if text == "abort":
@@ -357,8 +373,7 @@ class stickers:  # pylint: disable=too-many-public-methods
         result = self.read_copy_count(text, "thtnum")
         if result is not None:
             return result
-        self.thtprint()
-        return True
+        return self.print_label(self.thtprint, "thtnum")
 
     def toolnum(self, text):
         if text == "abort":
@@ -366,8 +381,7 @@ class stickers:  # pylint: disable=too-many-public-methods
         result = self.read_copy_count(text, "toolnum")
         if result is not None:
             return result
-        self.toolprint()
-        return True
+        return self.print_label(self.toolprint, "toolnum")
 
     def foodname(self, text):
         if text == "abort":

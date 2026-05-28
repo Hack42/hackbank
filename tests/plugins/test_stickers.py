@@ -1,6 +1,5 @@
 import io
 import base64
-import pytest
 
 from unittest.mock import Mock, call
 from unittest.mock import patch
@@ -301,12 +300,22 @@ def test_toolnum_prints_label(_cups):
     assert sticky.copies == 1
 
 
-def test_number_print_errors_are_not_swallowed():
-    sticky = stickers("main", Mock())
+def test_number_print_errors_show_printer_message():
+    master = Mock()
+    sticky = stickers("main", master)
 
     with patch.object(sticky, "barcodeprint", side_effect=RuntimeError("print failed")):
-        with pytest.raises(RuntimeError, match="print failed"):
-            sticky.barcodenum("1")
+        assert sticky.barcodenum("1")
+
+    master.donext.assert_called_once_with(sticky, "barcodenum")
+    assert master.send_message.call_args_list == [
+        call(
+            True,
+            "message",
+            "Printer error; sticker not printed. Check printer and try again.",
+        ),
+        call(True, "buttons", '{"special": "numbers"}'),
+    ]
 
 
 @patch("plugins.stickers.brother_ql.backends.helpers")
