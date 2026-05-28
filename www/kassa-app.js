@@ -45,13 +45,34 @@ $(function() {
       console.error("Post failed", error);
     });
   }
+  function createElement(tagName, attrs) {
+    var element=document.createElement(tagName);
+    Object.keys(attrs || {}).forEach(function(name) {
+      if(name === "class") {
+        element.className=attrs[name];
+      } else if(name === "text") {
+        element.textContent=attrs[name];
+      } else {
+        element.setAttribute(name, attrs[name]);
+      }
+    });
+    return element;
+  }
+  function appendTo(selector, child) {
+    var parent=document.querySelector(selector);
+    if(parent) parent.appendChild(child);
+  }
   function prependCashButton() {
-    $('#TopButtons').prepend(topButton("normal cash",'cash',"cash"));
+    var topButtons=document.getElementById('TopButtons');
+    if(topButtons) topButtons.prepend(topButton("normal cash",'cash',"cash"));
     fillVisibleText(".Paginatext:visible");
   }
   function activateTopButton(id) {
-    $('.topknop').removeClass('activetop');
-    $('#'+id).addClass('activetop');
+    allElements('.topknop').forEach(function(button) {
+      button.classList.remove('activetop');
+    });
+    var button=document.getElementById(id);
+    if(button) button.classList.add('activetop');
   }
   function showAccountButtons(activeButtonId, accountType, tabMode) {
     activateTopButton(activeButtonId);
@@ -347,8 +368,9 @@ $(function() {
   }
 
   function showquestion() {
-    if ($('#TopButtons').is(':empty')){
-       $('#TopButtons').append($('<div>',{class: "Question",id: 'Question', text: question}));
+    var topButtons=document.getElementById('TopButtons');
+    if (topButtons && topButtons.childElementCount === 0){
+       topButtons.appendChild(createElement('div',{class: "Question",id: 'Question', text: question}));
     }
   }
 
@@ -633,30 +655,54 @@ $(function() {
   }
 
   function bindButtonEvents() {
-    $("body" ).on( "click",'div.shownumbers', handleShownumbersClick);
-    $("body" ).on( "click",'div.normal', handleNormalClick);
-    $("body" ).on( "click",'div.invoer', handleInputClick);
-    $("body" ).on( "click", 'div.page' ,handlePageClick);
-    $("body" ).on( "click", 'div.productgroups' ,handleProductGroupClick);
-    $("body").on("click", 'div.Knopje:not(.normal):not(.shownumbers):not(.invoer):not(.page):not(.productgroups)', handleMainButtonClick);
-    $("body").on("click", '.KnopjeOK', handleOkClick);
+    document.body.addEventListener("click", function(event) {
+      var target=event.target;
+      var button;
+
+      if(!target.closest) return null;
+
+      button=target.closest('div.shownumbers');
+      if(button) return handleShownumbersClick.call(button, event);
+
+      button=target.closest('div.normal');
+      if(button) return handleNormalClick.call(button, event);
+
+      button=target.closest('div.invoer');
+      if(button) return handleInputClick.call(button, event);
+
+      button=target.closest('div.page');
+      if(button) return handlePageClick.call(button, event);
+
+      button=target.closest('div.productgroups');
+      if(button) return handleProductGroupClick.call(button, event);
+
+      button=target.closest('.KnopjeOK');
+      if(button) return handleOkClick.call(button, event);
+
+      button=target.closest('div.Knopje:not(.normal):not(.shownumbers):not(.invoer):not(.page):not(.productgroups)');
+      if(button) return handleMainButtonClick.call(button, event);
+    });
   }
 
   function buildLayout() {
-    $('#body').append($('<div>',{id: 'Firstscreen'}));
-    $('#body').append($('<div>',{id: 'Secondscreen'}));
-    $('#body').append($('<div>',{id: 'IRCwindow'}));
-    $('#body').append($('<div>',{id: 'spacewindow'}));
+    appendTo('#body', createElement('div',{id: 'Firstscreen'}));
+    appendTo('#body', createElement('div',{id: 'Secondscreen'}));
+    appendTo('#body', createElement('div',{id: 'IRCwindow'}));
+    appendTo('#body', createElement('div',{id: 'spacewindow'}));
 
-    $('#Firstscreen').append($('<div>',{id: 'Receipt', class: 'Receipt'}));
-    $('#Firstscreen').append($('<div>',{id: 'Totals', class: 'Totals'}));
-    $('#Firstscreen').append($('<div>',{id: 'Buttons', class: 'Buttons'}));
-    $('#Firstscreen').append($('<div>',{id: 'Log'}));
-    $('#Firstscreen').append($('<div>',{id: 'Invoer'}).append($('<input>',{id: 'Zoek',placeholder: "Starting network communication" }).attr('autocomplete','off')));
-    $('#Secondscreen').append($('<div>',{id: 'LeftButtons', class: 'LeftButtons'}));
-    $('#Secondscreen').append($('<div>',{id: 'MainButtons', class: 'MainButtons'}));
-    $('#Secondscreen').append($('<div>',{id: 'TopButtons', class: 'RightButtons'}));
-    $('#Secondscreen').append($('<div>',{id: 'Receipt2'}));
+    appendTo('#Firstscreen', createElement('div',{id: 'Receipt', class: 'Receipt'}));
+    appendTo('#Firstscreen', createElement('div',{id: 'Totals', class: 'Totals'}));
+    appendTo('#Firstscreen', createElement('div',{id: 'Buttons', class: 'Buttons'}));
+    appendTo('#Firstscreen', createElement('div',{id: 'Log'}));
+
+    var inputWrapper=createElement('div',{id: 'Invoer'});
+    inputWrapper.appendChild(createElement('input',{id: 'Zoek', placeholder: "Starting network communication", autocomplete: 'off'}));
+    appendTo('#Firstscreen', inputWrapper);
+
+    appendTo('#Secondscreen', createElement('div',{id: 'LeftButtons', class: 'LeftButtons'}));
+    appendTo('#Secondscreen', createElement('div',{id: 'MainButtons', class: 'MainButtons'}));
+    appendTo('#Secondscreen', createElement('div',{id: 'TopButtons', class: 'RightButtons'}));
+    appendTo('#Secondscreen', createElement('div',{id: 'Receipt2'}));
   }
 
   function buildLeftButtons() {
@@ -671,7 +717,7 @@ $(function() {
       ["Knopje Button topknop spacecon",'spacecon',"Lights"],
     ];
     buttons.forEach(function(button) {
-      $('#LeftButtons').append(buttonElement(button[0],button[1],button[2]));
+      appendTo('#LeftButtons', buttonElement(button[0],button[1],button[2]));
     });
   }
 
@@ -686,7 +732,7 @@ $(function() {
       ["Knopje knopjes",'knopjes',"Show Buttons"],
     ];
     buttons.forEach(function(button) {
-      $('#Buttons').append(buttonElement(button[0],button[1],button[2]));
+      appendTo('#Buttons', buttonElement(button[0],button[1],button[2]));
     });
   }
 
