@@ -1,0 +1,232 @@
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const test = require("node:test");
+const vm = require("node:vm");
+
+function makeElement(tag, register) {
+  const element = {
+    attributes: {},
+    childElementCount: 0,
+    children: [],
+    className: "",
+    eventListeners: {},
+    id: "",
+    parentElement: null,
+    scrollHeight: 0,
+    scrollTop: 0,
+    style: {},
+    tag,
+    textContent: "",
+    value: "",
+    appendChild(child) {
+      child.parentElement = this;
+      this.children.push(child);
+      this.childElementCount = this.children.length;
+      return child;
+    },
+    addEventListener(type, handler) {
+      this.eventListeners[type] = handler;
+    },
+    classList: {
+      add(className) {
+        const classes = new Set(element.className.split(/\s+/).filter(Boolean));
+        classes.add(className);
+        element.className = Array.from(classes).join(" ");
+      },
+      remove(className) {
+        element.className = element.className
+          .split(/\s+/)
+          .filter((item) => item && item !== className)
+          .join(" ");
+      },
+    },
+    focus() {
+      this.focused = true;
+    },
+    prepend(child) {
+      child.parentElement = this;
+      this.children.unshift(child);
+      this.childElementCount = this.children.length;
+      return child;
+    },
+    querySelector(selector) {
+      return findFirst(this, selector);
+    },
+    setAttribute(name, value) {
+      this.attributes[name] = value;
+      this[name] = value;
+      if(name === "id") {
+        this.id = value;
+        register(value, this);
+      }
+    },
+  };
+  return element;
+}
+
+function matchesSelector(element, selector) {
+  const cleanSelector = selector.replace(":visible", "");
+  if(cleanSelector.startsWith("#")) return element.id === cleanSelector.slice(1);
+  if(cleanSelector.startsWith(".")) {
+    return element.className.split(/\s+/).includes(cleanSelector.slice(1));
+  }
+  return element.tag === cleanSelector;
+}
+
+function findAll(root, selector, results = []) {
+  root.children.forEach((child) => {
+    if(matchesSelector(child, selector)) results.push(child);
+    findAll(child, selector, results);
+  });
+  return results;
+}
+
+function findFirst(root, selector) {
+  return findAll(root, selector)[0] || null;
+}
+
+function loadScript(sandbox, scriptName) {
+  const script = fs.readFileSync(
+    path.join(__dirname, "../../www", scriptName),
+    "utf8",
+  );
+  vm.runInNewContext(script, sandbox, {filename: scriptName});
+}
+
+function loadKassaApp({hash = ""} = {}) {
+  const elements = {};
+  const eventSources = [];
+  const fetchCalls = [];
+  const textfillCalls = [];
+  const timers = [];
+  const register = (id, element) => {
+    elements[id] = element;
+  };
+  const body = makeElement("body", register);
+  body.id = "body";
+  register("body", body);
+
+  const document = {
+    body,
+    createElement(tag) {
+      return makeElement(tag, register);
+    },
+    getElementById(id) {
+      return elements[id] || null;
+    },
+    querySelector(selector) {
+      if(selector === "#body") return body;
+      if(selector.startsWith("#")) return elements[selector.slice(1)] || null;
+      return findFirst(body, selector);
+    },
+    querySelectorAll(selector) {
+      return findAll(body, selector);
+    },
+  };
+
+  function EventSource(url) {
+    this.url = url;
+    this.closeCalled = false;
+    this.close = () => {
+      this.closeCalled = true;
+    };
+    eventSources.push(this);
+  }
+
+  const window = {
+    HackBankTextfill: {
+      fillElement(element, options) {
+        textfillCalls.push({element, options});
+      },
+    },
+    location: {
+      hash,
+    },
+  };
+  const sandbox = {
+    $: (callback) => callback(),
+    Date,
+    EventSource,
+    URLSearchParams,
+    clearTimeout() {},
+    console: {
+      error() {},
+      log() {},
+    },
+    document,
+    fetch(url, options) {
+      fetchCalls.push({url, options});
+      return Promise.resolve();
+    },
+    setTimeout(callback, delay) {
+      timers.push({callback, delay});
+      return timers.length;
+    },
+    window,
+  };
+
+  loadScript(sandbox, "kassa-dom.js");
+  loadScript(sandbox, "kassa-buttons.js");
+  loadScript(sandbox, "kassa-app.js");
+
+  return {
+    body,
+    elements,
+    eventSources,
+    fetchCalls,
+    textfillCalls,
+    timers,
+  };
+}
+
+test("kassa app builds the startup layout and opens a session stream", () => {
+  const {elements, eventSources, fetchCalls, textfillCalls} = loadKassaApp({
+    hash: "#bar",
+  });
+
+  [
+    "Firstscreen",
+    "Secondscreen",
+    "Receipt",
+    "Totals",
+    "Buttons",
+    "Log",
+    "Zoek",
+    "LeftButtons",
+    "MainButtons",
+    "TopButtons",
+    "Receipt2",
+  ].forEach((id) => assert(elements[id], `${id} should exist`));
+
+  assert.match(eventSources[0].url, /^stream\.php\?session=bar&t=/);
+  assert.equal(fetchCalls[0].url, "post.php");
+  assert.equal(String(fetchCalls[0].options.body), "topic=session%2Fbar%2Finput&msg=");
+  assert.equal(elements.Zoek.placeholder, "Starting network communication");
+  assert(textfillCalls.length > 0);
+});
+
+test("kassa app wires Enter in the search input to post input and clear it", () => {
+  const {elements, fetchCalls} = loadKassaApp();
+  const input = elements.Zoek;
+
+  input.value = "abort";
+  input.eventListeners.keydown.call(input, {
+    which: 13,
+  });
+
+  assert.equal(fetchCalls.length, 2);
+  assert.equal(String(fetchCalls[1].options.body), "topic=session%2Fmain%2Finput&msg=abort");
+  assert.equal(input.value, "");
+});
+
+test("kassa app handles closed streams by scheduling one reconnect", () => {
+  const {eventSources, timers} = loadKassaApp();
+
+  eventSources[0].onmessage({data: "closed"});
+  eventSources[0].onerror();
+
+  assert.equal(eventSources[0].closeCalled, true);
+  assert.equal(timers.length, 1);
+  assert.equal(timers[0].delay, 1000);
+});
