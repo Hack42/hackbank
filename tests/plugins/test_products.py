@@ -390,7 +390,7 @@ class TestProducts(unittest.TestCase):
 
 
 def test_atomic_write_writes_and_cleans_up_on_failure(tmp_path):
-    output = tmp_path / "products.txt"
+    output = tmp_path / "missing" / "products.txt"
     ProductsModule._atomic_write(str(output), ["line1\n", "line2\n"])
 
     assert output.read_text(encoding="utf-8") == "line1\nline2\n"

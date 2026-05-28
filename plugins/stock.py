@@ -6,6 +6,7 @@ import threading
 
 def _atomic_write(path, lines):
     directory = os.path.dirname(path) or "."
+    os.makedirs(directory, exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(
         prefix=os.path.basename(path) + ".", dir=directory, text=True
     )

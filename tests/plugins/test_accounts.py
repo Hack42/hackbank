@@ -442,6 +442,13 @@ def test_newuser_no_positive_gain():
     assert acc.newuser("new_user") is None
 
 
+def test_atomic_write_creates_parent_directory(tmp_path):
+    output = tmp_path / "missing" / "revbank.accounts"
+    accounts_module._atomic_write(str(output), ["line1\n", "line2\n"])
+
+    assert output.read_text(encoding="utf-8") == "line1\nline2\n"
+
+
 def test_atomic_write_removes_temp_file_when_write_fails():
     with patch(
         "plugins.accounts.tempfile.mkstemp", return_value=(123, "tmpfile")

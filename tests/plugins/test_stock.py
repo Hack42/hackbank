@@ -480,7 +480,7 @@ def test_stock_voorraad_amount_error_handling():
 
 
 def test_stock_atomic_write_writes_and_cleans_up_on_failure(tmp_path):
-    output = tmp_path / "stock.txt"
+    output = tmp_path / "missing" / "stock.txt"
     stock_module._atomic_write(str(output), ["line1\n", "line2\n"])
 
     assert output.read_text(encoding="utf-8") == "line1\nline2\n"

@@ -1,5 +1,6 @@
 PYTHON ?= python3
 NPM ?= npm
+PY_FILES := kassa.py $(shell find plugins tests -type f -name '*.py' | sort)
 
 .PHONY: test venv pip-compile pip-sync pip-sync-dev lint python-lint js-lint check-types fix check
 
@@ -32,7 +33,7 @@ lint: python-lint js-lint  ## Do basic linting
 
 python-lint: venv
 	@. .venv/bin/activate && ${env} ${PYTHON} -m pylint --persistent=no kassa.py plugins
-	@. .venv/bin/activate && ${env} ${PYTHON} -m black --check kassa.py plugins tests
+	@. .venv/bin/activate; for file in ${PY_FILES}; do ${env} ${PYTHON} -m black --check --quiet --workers 1 "$$file" || exit $$?; done
 
 node_modules/.package-lock.json: package.json package-lock.json
 	${NPM} ci
@@ -44,4 +45,4 @@ check-types: venv ## Check for type issues with mypy
 	@. .venv/bin/activate && ${env} ${PYTHON} -m mypy --check .
 
 fix:
-	@. .venv/bin/activate && ${env} ${PYTHON} -m black kassa.py plugins tests
+	@. .venv/bin/activate; for file in ${PY_FILES}; do ${env} ${PYTHON} -m black --quiet --workers 1 "$$file" || exit $$?; done
