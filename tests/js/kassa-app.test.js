@@ -214,6 +214,7 @@ function loadKassaApp({hash = ""} = {}) {
 
   loadScript(sandbox, "kassa-dom.js");
   loadScript(sandbox, "kassa-buttons.js");
+  loadScript(sandbox, "kassa-stream.js");
   loadScript(sandbox, "kassa-app.js");
   documentListeners.DOMContentLoaded();
 

@@ -510,50 +510,6 @@ document.addEventListener("DOMContentLoaded", function() {
          break;
     }
   }
-  var source = null;
-  var streamReconnectTimer = null;
-  var streamReconnectDelay = 1000;
-
-  function scheduleStreamReconnect() {
-    if(streamReconnectTimer) return;
-    if(source) {
-      source.close();
-      source = null;
-    }
-    streamReconnectTimer = setTimeout(function() {
-      streamReconnectTimer = null;
-      connectStream();
-    }, streamReconnectDelay);
-    streamReconnectDelay = Math.min(streamReconnectDelay * 2, 30000);
-  }
-
-  function connectStream() {
-    source = new EventSource('stream.php?session='+encodeURIComponent(session)+'&t='+(new Date()).getTime());
-    source.onopen = function() {
-      streamReconnectDelay = 1000;
-    };
-    source.onmessage = function(event) {
-      if(event.data === "closed") {
-        scheduleStreamReconnect();
-        return;
-      }
-      var data;
-      try {
-        data=JSON.parse(event.data);
-      } catch(error) {
-        console.log("Invalid stream message", event.data, error);
-        return;
-      }
-      var path=data[0];
-      var msg=data[1];
-      //if(path=="startup") postmsg('startup',1);
-      runmsg(path,msg);
-    };
-    source.onerror = function() {
-      scheduleStreamReconnect();
-    };
-  }
-
   function dotabfill(fill) {
     if(!tabenable) return;
     var dingen=searchValue().split(" ");
@@ -815,7 +771,13 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
-  connectStream();
+  window.HackBankStream.createSessionStream({
+    session: session,
+    onMessage: runmsg,
+    onInvalidMessage: function(data, error) {
+      console.log("Invalid stream message", data, error);
+    },
+  });
   buildLayout();
   buildLeftButtons();
   buildActionButtons();

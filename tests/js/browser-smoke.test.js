@@ -89,6 +89,7 @@ test("kassa frontend posts keyboard and button input in a browser", (t) => {
     ${scriptTag("kassa-textfill.js")}
     ${scriptTag("kassa-dom.js")}
     ${scriptTag("kassa-buttons.js")}
+    ${scriptTag("kassa-stream.js")}
     ${scriptTag("kassa-app.js")}
     <script>
       window.addEventListener("DOMContentLoaded", function() {
