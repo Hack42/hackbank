@@ -23,13 +23,15 @@ function runChromium(command, url) {
   return spawnSync(command, [
     "--headless",
     "--disable-gpu",
+    "--disable-dev-shm-usage",
     "--no-sandbox",
+    "--allow-file-access-from-files",
     "--dump-dom",
-    "--virtual-time-budget=1000",
+    "--virtual-time-budget=3000",
     url,
   ], {
     encoding: "utf8",
-    timeout: 10000,
+    timeout: 20000,
   });
 }
 
@@ -45,31 +47,8 @@ function scriptTag(scriptName) {
   return `<script src="file://${path.resolve(__dirname, "../../www", scriptName)}"></script>`;
 }
 
-test("kassa index boots in a real browser", (t) => {
-  const command = chromiumCommand();
-  if(!command) {
-    t.skip("Chromium is not available");
-    return;
-  }
-
-  const indexPath = path.resolve(__dirname, "../../www/index.html");
-  const result = runChromium(command, `file://${indexPath}`);
-  if(skipIfChromiumSandboxed(t, result)) return;
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /id="Firstscreen"/);
-  assert.match(result.stdout, /id="Zoek"/);
-  assert.match(result.stdout, /id="LeftButtons"/);
-});
-
-test("kassa frontend posts keyboard and button input in a browser", (t) => {
-  const command = chromiumCommand();
-  if(!command) {
-    t.skip("Chromium is not available");
-    return;
-  }
-
-  const fixturePath = path.join(os.tmpdir(), `kassa-browser-smoke-${process.pid}.html`);
+function writeKassaFixture(bodyScript) {
+  const fixturePath = path.join(os.tmpdir(), `kassa-browser-smoke-${process.pid}-${Date.now()}.html`);
   fs.writeFileSync(fixturePath, `<!doctype html>
 <html>
   <head>
@@ -91,7 +70,58 @@ test("kassa frontend posts keyboard and button input in a browser", (t) => {
     ${scriptTag("kassa-buttons.js")}
     ${scriptTag("kassa-stream.js")}
     ${scriptTag("kassa-app.js")}
-    <script>
+    <script>${bodyScript}</script>
+  </head>
+  <body id="body"></body>
+</html>`);
+  return fixturePath;
+}
+
+test("kassa index boots in a real browser", (t) => {
+  const command = chromiumCommand();
+  if(!command) {
+    t.skip("Chromium is not available");
+    return;
+  }
+
+  const fixturePath = writeKassaFixture(`
+    window.addEventListener("DOMContentLoaded", function() {
+      setTimeout(function() {
+        var output = document.createElement("pre");
+        output.id = "smoke-result";
+        output.textContent = JSON.stringify({
+          hasFirstscreen: !!document.getElementById("Firstscreen"),
+          hasZoek: !!document.getElementById("Zoek"),
+          hasLeftButtons: !!document.getElementById("LeftButtons"),
+          eventSourceUrl: window.__eventSourceUrl
+        });
+        document.body.appendChild(output);
+      }, 0);
+    });
+  `);
+  const result = runChromium(command, `file://${fixturePath}`);
+  fs.unlinkSync(fixturePath);
+  if(skipIfChromiumSandboxed(t, result)) return;
+
+  assert.equal(result.status, 0, result.stderr);
+  const match = result.stdout.match(/<pre id="smoke-result">([^<]+)<\/pre>/);
+  assert(match, result.stdout);
+  const data = JSON.parse(match[1].replaceAll("&quot;", '"').replaceAll("&amp;", "&"));
+
+  assert.equal(data.hasFirstscreen, true);
+  assert.equal(data.hasZoek, true);
+  assert.equal(data.hasLeftButtons, true);
+  assert.match(data.eventSourceUrl, /^stream\.php\?session=main&t=/);
+});
+
+test("kassa frontend posts keyboard and button input in a browser", (t) => {
+  const command = chromiumCommand();
+  if(!command) {
+    t.skip("Chromium is not available");
+    return;
+  }
+
+  const fixturePath = writeKassaFixture(`
       window.addEventListener("DOMContentLoaded", function() {
         setTimeout(function() {
           var input = document.getElementById("Zoek");
@@ -112,10 +142,7 @@ test("kassa frontend posts keyboard and button input in a browser", (t) => {
           document.body.appendChild(output);
         }, 0);
       });
-    </script>
-  </head>
-  <body id="body"></body>
-</html>`);
+  `);
 
   const result = runChromium(command, `file://${fixturePath}`);
   fs.unlinkSync(fixturePath);

@@ -98,7 +98,7 @@ test("search helpers read, set and append the Zoek input", () => {
 test("button helpers build native elements and fill visible text", () => {
   const label = {};
   const {helpers, textfillCalls} = loadDomHelpers({
-    selectorMap: {".Buttontext:visible": [label]},
+    selectorMap: {".Buttontext": [label]},
   });
 
   const button = helpers.buttonElement("Knopje normal", "ok", "OK");
@@ -113,6 +113,20 @@ test("button helpers build native elements and fill visible text", () => {
   assert.equal(textfillCalls.length, 1);
   assert.equal(textfillCalls[0].element, label);
   assert.equal(textfillCalls[0].options.maxFontPixels, 5);
+});
+
+test("allElements supports legacy visible selectors", () => {
+  const visible = {offsetWidth: 10, offsetHeight: 0};
+  const hidden = {offsetWidth: 0, offsetHeight: 0, getClientRects: () => []};
+  const rectVisible = {offsetWidth: 0, offsetHeight: 0, getClientRects: () => [1]};
+  const {helpers} = loadDomHelpers({
+    selectorMap: {".Buttontext": [visible, hidden, rectVisible]},
+  });
+
+  const result = helpers.allElements(".Buttontext:visible");
+  assert.equal(result.length, 2);
+  assert.equal(result[0], visible);
+  assert.equal(result[1], rectVisible);
 });
 
 test("topButton builds a native pagination button", () => {

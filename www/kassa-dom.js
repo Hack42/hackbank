@@ -4,7 +4,16 @@
   }
 
   function allElements(selector) {
-    return Array.prototype.slice.call(document.querySelectorAll(selector));
+    if(selector.indexOf(':visible') === -1) {
+      return Array.prototype.slice.call(document.querySelectorAll(selector));
+    }
+    return Array.prototype.slice.call(
+      document.querySelectorAll(selector.replace(/:visible/g, ''))
+    ).filter(function(element) {
+      if(element.offsetWidth || element.offsetHeight) return true;
+      if(element.getClientRects) return element.getClientRects().length > 0;
+      return true;
+    });
   }
 
   function showElement(selector) {
