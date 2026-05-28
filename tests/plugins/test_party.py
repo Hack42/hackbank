@@ -1,6 +1,9 @@
 import json
 from unittest.mock import Mock, call, patch
 
+import pytest
+
+import plugins.party as party_module
 from plugins.party import PARTY_USER, STATE_FILE, party
 
 
@@ -68,6 +71,51 @@ def test_writestate_and_loadstate_roundtrip(tmp_path, monkeypatch):
     assert loaded.active
     assert loaded.started_amount == 42.5
     assert loaded.started_at == "2026-05-28_20:00:00"
+
+
+def test_atomic_write_removes_temp_file_when_write_fails(tmp_path, monkeypatch):
+    output = tmp_path / "data" / "revbank.party"
+    created_temp = tmp_path / "data" / "revbank.party.tmp"
+
+    def fake_mkstemp(prefix, dir, text):  # pylint: disable=unused-argument
+        output.parent.mkdir(parents=True, exist_ok=True)
+        created_temp.write_text("partial", encoding="utf-8")
+        return 123, str(created_temp)
+
+    monkeypatch.setattr(party_module.tempfile, "mkstemp", fake_mkstemp)
+    monkeypatch.setattr(
+        party_module.os,
+        "fdopen",
+        Mock(side_effect=OSError("write failed")),
+    )
+
+    with pytest.raises(OSError):
+        party_module._atomic_write(str(output), {"active": True})
+
+    assert not created_temp.exists()
+
+
+def test_atomic_write_tolerates_missing_temp_file_on_failure(tmp_path, monkeypatch):
+    output = tmp_path / "data" / "revbank.party"
+
+    monkeypatch.setattr(
+        party_module.tempfile,
+        "mkstemp",
+        Mock(return_value=(123, str(tmp_path / "missing.tmp"))),
+    )
+    monkeypatch.setattr(
+        party_module.os,
+        "fdopen",
+        Mock(side_effect=OSError("write failed")),
+    )
+    monkeypatch.setattr(
+        party_module.os,
+        "unlink",
+        Mock(side_effect=FileNotFoundError),
+    )
+
+    with pytest.raises(OSError):
+        party_module._atomic_write(str(output), {"active": True})
 
 
 @patch("plugins.party.time.strftime", return_value="2026-05-28_20:00:00")
