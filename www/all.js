@@ -60,6 +60,47 @@ $(function() {
       console.error("Post failed", error);
     });
   }
+  function firstElement(selector) {
+    return document.querySelector(selector);
+  }
+  function allElements(selector) {
+    return Array.prototype.slice.call(document.querySelectorAll(selector));
+  }
+  function showElement(selector) {
+    var element=firstElement(selector);
+    if(element) element.style.display='';
+  }
+  function hideElement(selector) {
+    var element=firstElement(selector);
+    if(element) element.style.display='none';
+  }
+  function hideElements(selector) {
+    allElements(selector).forEach(function(element) {
+      element.style.display='none';
+    });
+  }
+  function clearElement(selector) {
+    var element=firstElement(selector);
+    if(element) element.textContent='';
+  }
+  function scrollToBottom(selector) {
+    var element=firstElement(selector);
+    if(element) element.scrollTop=element.scrollHeight;
+  }
+  function searchInput() {
+    return document.getElementById('Zoek');
+  }
+  function searchValue() {
+    var input=searchInput();
+    return input ? input.value : "";
+  }
+  function setSearchValue(value) {
+    var input=searchInput();
+    if(input) input.value=value;
+  }
+  function appendSearchValue(value) {
+    setSearchValue(searchValue()+value);
+  }
   function fillVisibleText(selector) {
     $(selector).each(function() {
        $(this).textfill({maxFontPixels: 5});
@@ -78,7 +119,7 @@ $(function() {
   }
   function showAccountButtons(activeButtonId, accountType, tabMode) {
     activateTopButton(activeButtonId);
-    $('#Secondscreen').show();
+    showElement('#Secondscreen');
     makepages('normal',accountstobuttons(accounts,accountType));
     prependCashButton();
     focus();
@@ -86,7 +127,7 @@ $(function() {
   }
   function build_receipt(msg) {
     var parts=JSON.parse(msg);
-    $('#Receipt').empty();
+    clearElement('#Receipt');
     var counter=0;
     parts.forEach(function(stuff) {
       counter++;
@@ -99,20 +140,20 @@ $(function() {
           .append($('<div>',{class: 'ItemAmount', text: stuff.total.toFixed(2)}))
       );
     });
-    $('#Receipt').scrollTop($('#Receipt')[0].scrollHeight);
+    scrollToBottom('#Receipt');
     if(counter === 0) {
       $('#Receipt').append($('<div>',{class: 'welcome', html: "Welcome to Hack42 Bank HTML5 Interface"}));
     }
-    $('#Receipt2').empty();
+    clearElement('#Receipt2');
     $('.Itemline').clone().appendTo('#Receipt2');
-    $('#Receipt2').scrollTop($('#Receipt2')[0].scrollHeight);
+    scrollToBottom('#Receipt2');
     if ($('#Receipt2').is(':empty')){
        $('#Receipt2').append($('<img>',{src: 'images/Hack42.png', width: '100%'}).css({'top': '12vh','position': 'absolute'}));
     }
   }
   function build_totals(msg) {
     var parts=JSON.parse(msg);
-    $('#Totals').empty();
+    clearElement('#Totals');
     var counter=0;
     parts.forEach(function(stuff) {
       counter++;
@@ -124,7 +165,7 @@ $(function() {
           .append($('<span>',{class: 'Totalamount',text: (stuff.amount ? stuff.amount : 0-stuff.amount).toFixed(2) }))
       );
     });
-    $('#Totals').scrollTop($('#Totals')[0].scrollHeight);
+    scrollToBottom('#Totals');
     if(counter === 0) {
       $('#Totals').append($('<div>',{class: 'welcome', html: "Scan a product or choose a button from below"}));
     }
@@ -242,8 +283,8 @@ $(function() {
   }
 
   function makepage_infobox() {
-    $('#MainButtons').empty();
-    $('#TopButtons').empty();
+    clearElement('#MainButtons');
+    clearElement('#TopButtons');
     $('#MainButtons').append($('<div>',{class: "infoboxes", id: "infoboxes"}));
     $('.Userline').clone().appendTo('#infoboxes');
     $('#TopButtons').append($('<div>',{class: "Knopje Button normal ok",id: 'ok'}).append($('<span>',{class: "Knopjetext",text: "OK"})));
@@ -259,8 +300,8 @@ $(function() {
     });
   }
   function makepage_keyboard() {
-    $('#MainButtons').empty();
-    $('#TopButtons').empty();
+    clearElement('#MainButtons');
+    clearElement('#TopButtons');
     $('#MainButtons').append($('<div>',{class: "keys", id: "keys"}));
 
     var keys=['!','@','#','$','%','^','&','*','(',')'];
@@ -301,19 +342,19 @@ $(function() {
     
   }
   function makepage_history() {
-    $('#MainButtons').empty();
-    $('#TopButtons').empty();
+    clearElement('#MainButtons');
+    clearElement('#TopButtons');
     $('#MainButtons').append($('<div>',{class: "mylines", id: "mylines"}));
     history.forEach(function(val) {
        $('#mylines').append(val+"<br>");
     });
     $('#mylines').css({'position': 'relative','top': '-12vh','left': '0px','z-index': '100','background': 'lightgray','height': '76vh','overflow-wrap': 'break-word','overflow-y': 'scroll','width': '96vw'});
-    $('#mylines').scrollTop($('#mylines')[0].scrollHeight);
+    scrollToBottom('#mylines');
     showquestion();
   }
   function makepage_numbers() {
-    $('#MainButtons').empty();
-    $('#TopButtons').empty();
+    clearElement('#MainButtons');
+    clearElement('#TopButtons');
     $('#MainButtons').append($('<div>',{class: "numbers", id: "numbers"}));
     $('#numbers')    .append($('<div>',{class: "Knopje Knop invoer",id: 1 ,text: 1}))
                      .append($('<div>',{class: "Knopje Knop invoer",id: 2 ,text: 2}))
@@ -334,8 +375,8 @@ $(function() {
   }
   function makepages(extraclass,buttons) {
     var pagecount=1;
-    $('#MainButtons').empty();
-    $('#TopButtons').empty();
+    clearElement('#MainButtons');
+    clearElement('#TopButtons');
     $('#MainButtons').append($('<div>',{id: 'Page'+pagecount, class: 'Pagina'}));
     $('#TopButtons').append($('<div>',{class: "Knopje Button page",id: '1'}).append($('<span>',{class: "Paginatext",text: "Page 1"})));
     var counter=0;
@@ -346,7 +387,7 @@ $(function() {
       if(donewpage === 1) {
         $('#'+pagecount+' .Paginatext').html($('#'+pagecount+' .Paginatext').html()+' - '+lastchar);
         pagecount++;
-        $('#MainButtons').append($('<div>',{id: 'Page'+pagecount, class: 'Pagina'}).hide());
+        $('#MainButtons').append($('<div>',{id: 'Page'+pagecount, class: 'Pagina', style: 'display: none;'}));
         $('#TopButtons').append($('<div>',{class: "Knopje Button page",id: pagecount}).append($('<span>',{class: "Paginatext",text: "Page "+pagecount})));
         counter=0;
         donewpage=0;
@@ -384,12 +425,12 @@ $(function() {
     } else {
       $('#'+pagecount+' .Paginatext').html($('#'+pagecount+' .Paginatext').html()+' - '+lastchar);
       fillVisibleText(".Paginatext:visible");
-      $(".Pagina").each(function() {
-        $('.Pagina').hide();
-        $(this).show();
+      allElements(".Pagina").forEach(function(page) {
+        hideElements('.Pagina');
+        page.style.display='';
         fillVisibleText(".Buttontext:visible");
-        $('.Pagina').hide();
-        $('#Page1').show();
+        hideElements('.Pagina');
+        showElement('#Page1');
       });
     }
   }
@@ -399,7 +440,7 @@ $(function() {
       showAccountButtons('members','m',1);
     } else if (buttons['special'] === 'custom') {
       activateTopButton('commands');
-      $('#Secondscreen').show();
+      showElement('#Secondscreen');
       if(buttons['sort'] === "text") {
         buttons['custom'].sort(compare_text_rev);
       } else {
@@ -412,7 +453,7 @@ $(function() {
       showAccountButtons('members','m',2);
     } else if (buttons['special'] === 'accountsamount') {
       activateTopButton('members');
-      $('#Secondscreen').show();
+      showElement('#Secondscreen');
       makepages('normal',accountstobuttons(accounts,'m'));
       $('#TopButtons').prepend(topButton("shownumbers",'shownumbers',"Enter amount"));
       prependCashButton();
@@ -421,35 +462,31 @@ $(function() {
 
     } else if (buttons['special'] === 'numbers') {
       $('.topknop').removeClass('activetop');
-      $('#Secondscreen').show();
+      showElement('#Secondscreen');
       makepage_numbers();
       focus();
       tabenable=0;
     } else if (buttons['special'] === 'keyboard') {
       $('.topknop').removeClass('activetop');
-      $('#Secondscreen').show();
-      $('#Secondscreen').show();
+      showElement('#Secondscreen');
       makepage_keyboard();
       focus();
       tabenable=0;
     } else if (buttons['special'] === 'infobox') {
       $('.topknop').removeClass('activetop');
-      $('#Secondscreen').show();
-      $('#Secondscreen').show();
+      showElement('#Secondscreen');
       makepage_infobox();
       focus();
       tabenable=0;
     } else if (buttons['special'] === 'history') {
       activateTopButton('commands');
-      $('#Secondscreen').show();
-      $('#Secondscreen').show();
+      showElement('#Secondscreen');
       makepage_history();
       focus();
       tabenable=0;
     } else if (buttons['special'] === 'products') {
       activateTopButton('products');
-      $('#Secondscreen').show();
-      $('#Secondscreen').show();
+      showElement('#Secondscreen');
       makepages('productgroups',productstobuttons(groups).sort(compare_display));
       focus();
       tabenable=1;
@@ -475,12 +512,12 @@ $(function() {
      if(SID !== session) return;
      switch(action) {
          case 'message':
-            $("#Zoek")[0].placeholder=msg;
+            if(searchInput()) searchInput().placeholder=msg;
             $('#Question').remove();
             question=msg;
             showquestion();
             $('#Log').append(  $('<div>',{class: 'lastlog Log',text: msg})  );
-            $('#Log').scrollTop($('#Log')[0].scrollHeight);
+            scrollToBottom('#Log');
             break;
          case 'receipt':
             build_receipt(msg);
@@ -491,7 +528,7 @@ $(function() {
          case 'log':
             $('.lastlog').remove();
             $('#Log').append(  $('<div>',{class: 'Log',text: msg})  );
-            $('#Log').scrollTop($('#Log')[0].scrollHeight);
+            scrollToBottom('#Log');
             break;
          case 'infobox':
             run_infobox(pathParts[6],msg);
@@ -635,7 +672,7 @@ $(function() {
   }
   function dotabfill(fill) {
     if(!tabenable) return;
-    var dingen=$('#Zoek')[0].value.split(" ");
+    var dingen=searchValue().split(" ");
     var zoek=dingen[dingen.length-1].toLowerCase();
     if(zoek.length<2) {
         return;
@@ -663,52 +700,52 @@ $(function() {
     makepages('normal',buttons);
     if(buttons.length === 1 && fill) {
         dingen[dingen.length-1]=buttons[0].text+" ";
-        $('#Zoek')[0].value=dingen.join(" ");
+        setSearchValue(dingen.join(" "));
     }
   }
 
   function focus() {
-    $('#IRCwindow').hide();
-    $('#spacewindow').hide();
-    $('#Zoek')[0].focus();
+    hideElement('#IRCwindow');
+    hideElement('#spacewindow');
+    if(searchInput()) searchInput().focus();
   }
   function verwerkinput() {
-    postmsg('input',$('#Zoek')[0].value);
-    $('#Zoek')[0].value="";
+    postmsg('input',searchValue());
+    setSearchValue("");
   }
   $("body" ).on( "click",'div.shownumbers', function() {
     locked=1;
-    $('#Secondscreen').show();
+    showElement('#Secondscreen');
     makepage_numbers();
     focus();
     tabenable=0;
   });
   $("body" ).on( "click",'div.normal', function() {
-    var dingen=$('#Zoek')[0].value.split(" ");
+    var dingen=searchValue().split(" ");
     dingen[dingen.length-1]=this.id;
     postmsg('input',dingen.join(" "));
-    $('#Zoek')[0].value="";
+    setSearchValue("");
     focus();
   });
   $("body" ).on( "click",'div.invoer', function() {
     if(this.id === "enter") {
       verwerkinput();
     } else if(this.id === "backspace") {
-      $('#Zoek')[0].value=$('#Zoek')[0].value.substring(0, $('#Zoek')[0].value.length - 1);
+      setSearchValue(searchValue().substring(0, searchValue().length - 1));
     } else if(this.id === "leeg") {
       focus();
       return;
     } else if(this.id === "space") {
-      $('#Zoek')[0].value=$('#Zoek')[0].value+" ";
+      appendSearchValue(" ");
     } else {
-      $('#Zoek')[0].value=$('#Zoek')[0].value+this.id;
+      appendSearchValue(this.id);
     }
     //postmsg('input',this.id);
     focus();
   });
   $("body" ).on( "click", 'div.page' ,function() {
-    $('.Pagina').hide();
-    $('#Page'+this.id).show();
+    hideElements('.Pagina');
+    showElement('#Page'+this.id);
     fillVisibleText(".Buttontext:visible");
     focus();
   });
@@ -741,13 +778,13 @@ $(function() {
       case 'back':
          activateTopButton(this.id);
          locked=0;
-         $('#Secondscreen').hide();
+         hideElement('#Secondscreen');
          focus();
          break;
       case 'irc':
          activateTopButton(this.id);
          locked=0;
-         $('#IRCwindow').show();
+         showElement('#IRCwindow');
          if($('#IRCwindow').html() === "") {
            $("#IRCwindow").append($('<iframe>',{src: 'http://kleintje:4200/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
          }
@@ -755,7 +792,7 @@ $(function() {
       case 'spacecon':
          activateTopButton(this.id);
          locked=0;
-         $('#spacewindow').show();
+         showElement('#spacewindow');
          if($('#spacewindow').html() === "") {
            $("#spacewindow").append($('<iframe>',{src: '/spaceconsole/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
          }
@@ -763,20 +800,20 @@ $(function() {
       case 'knopjes':
          activateTopButton(this.id);
          locked=0;
-         $('#Secondscreen').show();
-         $('#IRCwindow').hide();
-         $('#spacewindow').hide();
+         showElement('#Secondscreen');
+         hideElement('#IRCwindow');
+         hideElement('#spacewindow');
          focus();
          break;
       default:
-        $('#Zoek')[0].value=$('#Zoek')[0].value+''+this.id;
+        appendSearchValue(this.id);
         verwerkinput();
         focus();
     }
   });
   $("body").on("click", '.KnopjeOK', function() {
-      runtext($('#Zoek')[0].value);
-      $('#Zoek')[0].value="";
+      runtext(searchValue());
+      setSearchValue("");
       showusers('');
       focus();
   });
@@ -788,7 +825,7 @@ $(function() {
     };
   })();
 
-  $( "#Zoek" ).on("keydown", function(data) {
+  searchInput().addEventListener("keydown", function(data) {
     if(data.which === 9) {
       dotabfill(1);
       data.preventDefault();
