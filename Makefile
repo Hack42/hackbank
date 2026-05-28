@@ -1,16 +1,21 @@
 PYTHON ?= python3
 NPM ?= npm
+PHP ?= php
 PY_FILES := kassa.py $(shell find plugins tests -type f -name '*.py' | sort)
+PHP_FILES := $(shell find www -type f -name '*.php' | sort)
 
-.PHONY: test python-test js-test venv pip-compile pip-sync pip-sync-dev lint python-lint js-lint check-types fix check
+.PHONY: test python-test js-test php-test venv pip-compile pip-sync pip-sync-dev lint python-lint js-lint php-lint check-types fix check
 
-test: python-test js-test
+test: python-test js-test php-test
 
 python-test: venv
 	@. .venv/bin/activate && ${env} ${PYTHON} -m pytest  -vvv --cov=. --cov-report term-missing
 
 js-test: node_modules/.package-lock.json
 	@${NPM} run test:js
+
+php-test:
+	@${PHP} tests/php/test_php_files.php
 
 check: test lint ## Run tests and linters
 
@@ -34,7 +39,7 @@ pip-sync-dev: ## synchronizes the .venv with the state of requirements.txt
 	. .venv/bin/activate && ${env} pip install -U pip-tools
 	. .venv/bin/activate && ${env} ${PYTHON} -m piptools sync requirements.txt requirements-dev.txt
 
-lint: python-lint js-lint  ## Do basic linting
+lint: python-lint js-lint php-lint  ## Do basic linting
 
 python-lint: venv
 	@. .venv/bin/activate && ${env} ${PYTHON} -m pylint --persistent=no kassa.py plugins
@@ -45,6 +50,9 @@ node_modules/.package-lock.json: package.json package-lock.json
 
 js-lint: node_modules/.package-lock.json
 	@${NPM} run lint:js
+
+php-lint:
+	@for file in ${PHP_FILES}; do ${PHP} -l "$$file" || exit $$?; done
 
 check-types: venv ## Check for type issues with mypy
 	@. .venv/bin/activate && ${env} ${PYTHON} -m mypy --check .
