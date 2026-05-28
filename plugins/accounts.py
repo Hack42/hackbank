@@ -121,9 +121,12 @@ class accounts:
                 "data/revbank.members", ["%s\n" % member for member in self.members]
             )
 
-    def _publish_members(self):
+    def publish_members(self):
         self.get_last_updated_accounts()
         self.master.send_message(True, "members", json.dumps(self.visible_members()))
+
+    def _publish_members(self):
+        self.publish_members()
 
     def updateaccount(self, usr, value):
         logger.debug("update_account sid=%s user=%s value=%s", self.SID, usr, value)
