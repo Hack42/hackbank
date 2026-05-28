@@ -2,10 +2,15 @@ PYTHON ?= python3
 NPM ?= npm
 PY_FILES := kassa.py $(shell find plugins tests -type f -name '*.py' | sort)
 
-.PHONY: test venv pip-compile pip-sync pip-sync-dev lint python-lint js-lint check-types fix check
+.PHONY: test python-test js-test venv pip-compile pip-sync pip-sync-dev lint python-lint js-lint check-types fix check
 
-test: venv
+test: python-test js-test
+
+python-test: venv
 	@. .venv/bin/activate && ${env} ${PYTHON} -m pytest  -vvv --cov=. --cov-report term-missing
+
+js-test: node_modules/.package-lock.json
+	@${NPM} run test:js
 
 check: test lint ## Run tests and linters
 

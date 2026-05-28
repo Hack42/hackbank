@@ -16,4 +16,12 @@ module.exports = {
     runtext: "readonly",
     showusers: "readonly",
   },
+  overrides: [
+    {
+      files: ["tests/js/*.test.js"],
+      env: {
+        node: true,
+      },
+    },
+  ],
 };
