@@ -10,7 +10,12 @@ import plugins.accounts as accounts_module
 
 def test_help():
     acc = accounts("main", Mock())
-    assert acc.help() == {"adduseralias": "Add user key alias"}
+    assert acc.help() == {
+        "addmember": "Add user to members",
+        "adduseralias": "Add user key alias",
+        "delmember": "Remove user from members",
+        "members": "Manage members",
+    }
 
 
 def test_init():
@@ -136,6 +141,19 @@ def test_writeaccount():
                 ["alias1 user1\n", "alias2 user2\n"],
             ),
         ]
+    )
+
+
+def test_writemembers():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+    acc.members = ["user1", "user2"]
+
+    with patch("plugins.accounts._atomic_write") as mock_atomic_write:
+        acc._writemembers()
+
+    mock_atomic_write.assert_called_once_with(
+        "data/revbank.members", ["user1\n", "user2\n"]
     )
 
 
@@ -308,6 +326,134 @@ def test_messageandbuttons():
     assert master_mock.send_message.call_args_list == expected_calls
 
 
+def test_messageandcustom():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+    custom = [{"text": "option", "display": "Option"}]
+
+    acc._messageandcustom("next_function", custom, "Test message")
+
+    master_mock.donext.assert_called_with(acc, "next_function")
+    expected_calls = [
+        call(True, "message", "Test message"),
+        call(
+            True,
+            "buttons",
+            '{"special": "custom", "custom": [{"text": "option", "display": "Option"}]}',
+        ),
+    ]
+    assert master_mock.send_message.call_args_list == expected_calls
+
+
+def test_membersmenu():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+
+    assert acc._membersmenu() is True
+
+    expected_calls = [
+        call(True, "message", "Please select a members command"),
+        call(
+            True,
+            "buttons",
+            '{"special": "custom", "custom": [{"text": "addmember", "display": "Add member"}, {"text": "delmember", "display": "Remove member"}]}',
+        ),
+    ]
+    assert master_mock.send_message.call_args_list == expected_calls
+
+
+@patch("plugins.accounts._atomic_write")
+def test_addmember(mock_atomic_write):
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+    acc.accounts = {
+        "user1": {"amount": 0, "lastupdate": "2021-01-02"},
+        "user2": {"amount": 0, "lastupdate": "2021-01-01"},
+    }
+
+    assert acc._addmember("user1") is True
+
+    assert acc.members == ["user1"]
+    mock_atomic_write.assert_called_once_with("data/revbank.members", ["user1\n"])
+    expected_calls = [
+        call(True, "nonmembers", '["user2"]'),
+        call(True, "members", '["user1"]'),
+        call(True, "message", "Member added: user1"),
+    ]
+    assert master_mock.send_message.call_args_list == expected_calls
+
+
+def test_addmember_invalid_and_abort():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+    acc.accounts = {"user1": {"amount": 0, "lastupdate": "2021-01-01"}}
+    acc.members = ["user1"]
+
+    assert acc._addmember("missing") is True
+    master_mock.donext.assert_called_with(acc, "_addmember")
+    master_mock.send_message.assert_has_calls(
+        [
+            call(True, "message", "Unknown account; What user do you want to add?"),
+            call(True, "buttons", '{"special": "accounts"}'),
+        ]
+    )
+
+    master_mock.reset_mock()
+    assert acc._addmember("user1") is True
+    master_mock.donext.assert_called_with(acc, "_addmember")
+    master_mock.send_message.assert_has_calls(
+        [
+            call(True, "message", "Already a member; What user do you want to add?"),
+            call(True, "buttons", '{"special": "accounts"}'),
+        ]
+    )
+
+    master_mock.reset_mock()
+    assert acc._addmember("abort") == master_mock.callhook.return_value
+    master_mock.callhook.assert_called_once_with("abort", None)
+
+
+@patch("plugins.accounts._atomic_write")
+def test_delmember(mock_atomic_write):
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+    acc.accounts = {"user1": {"amount": 0, "lastupdate": "2021-01-01"}}
+    acc.members = ["user1"]
+
+    assert acc._delmember("user1") is True
+
+    assert acc.members == []
+    mock_atomic_write.assert_called_once_with("data/revbank.members", [])
+    expected_calls = [
+        call(True, "nonmembers", '["user1"]'),
+        call(True, "members", "[]"),
+        call(True, "message", "Member removed: user1"),
+    ]
+    assert master_mock.send_message.call_args_list == expected_calls
+
+
+def test_delmember_invalid_and_abort():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+    acc.members = ["user1"]
+
+    assert acc._delmember("missing") is True
+    master_mock.donext.assert_called_with(acc, "_delmember")
+    expected_calls = [
+        call(True, "message", "Unknown member; What member do you want to remove?"),
+        call(
+            True,
+            "buttons",
+            '{"special": "custom", "custom": [{"text": "user1", "display": "user1"}]}',
+        ),
+    ]
+    assert master_mock.send_message.call_args_list == expected_calls
+
+    master_mock.reset_mock()
+    assert acc._delmember("abort") == master_mock.callhook.return_value
+    master_mock.callhook.assert_called_once_with("abort", None)
+
+
 @patch("builtins.open")
 def test_addalias(_open):
     master_mock = Mock()
@@ -411,6 +557,49 @@ def test_input_adduseralias_and_unknown():
     assert acc.input("adduseralias") is True
     master_mock.donext.assert_called_with(acc, "askalias")
     assert acc.input("missing") is None
+
+
+def test_input_members_commands():
+    master_mock = Mock()
+    master_mock.receipt.is_empty.return_value = True
+    acc = accounts("SID", master_mock)
+    acc.members = ["user1"]
+
+    assert acc.input("members") is True
+    master_mock.send_message.assert_has_calls(
+        [
+            call(True, "message", "Please select a members command"),
+            call(
+                True,
+                "buttons",
+                '{"special": "custom", "custom": [{"text": "addmember", "display": "Add member"}, {"text": "delmember", "display": "Remove member"}]}',
+            ),
+        ]
+    )
+
+    master_mock.reset_mock()
+    assert acc.input("addmember") is True
+    master_mock.donext.assert_called_with(acc, "_addmember")
+    master_mock.send_message.assert_has_calls(
+        [
+            call(True, "message", "What user do you want to add?"),
+            call(True, "buttons", '{"special": "accounts"}'),
+        ]
+    )
+
+    master_mock.reset_mock()
+    assert acc.input("delmember") is True
+    master_mock.donext.assert_called_with(acc, "_delmember")
+    master_mock.send_message.assert_has_calls(
+        [
+            call(True, "message", "What member do you want to remove?"),
+            call(
+                True,
+                "buttons",
+                '{"special": "custom", "custom": [{"text": "user1", "display": "user1"}]}',
+            ),
+        ]
+    )
 
 
 def test_newuser():

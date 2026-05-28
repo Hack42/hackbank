@@ -48,7 +48,12 @@ class accounts:
         self.checkout_balances = {}
 
     def help(self):
-        return {"adduseralias": "Add user key alias"}
+        return {
+            "addmember": "Add user to members",
+            "adduseralias": "Add user key alias",
+            "delmember": "Remove user from members",
+            "members": "Manage members",
+        }
 
     def get_last_updated_accounts(self):
         logger.debug("accounts_state sid=%s accounts=%s", self.SID, self.accounts)
@@ -94,6 +99,16 @@ class accounts:
                 for member in f.readlines()
                 if member.strip() and not member.lstrip().startswith("#")
             ]
+
+    def _writemembers(self):
+        with self.write_lock:
+            _atomic_write(
+                "data/revbank.members", ["%s\n" % member for member in self.members]
+            )
+
+    def _publish_members(self):
+        self.get_last_updated_accounts()
+        self.master.send_message(True, "members", json.dumps(self.members))
 
     def updateaccount(self, usr, value):
         logger.debug("update_account sid=%s user=%s value=%s", self.SID, usr, value)
@@ -196,6 +211,68 @@ class accounts:
         self.master.send_message(True, "buttons", json.dumps({"special": buttons}))
         return True
 
+    def _messageandcustom(self, donext, custom, msg):
+        self.master.donext(self, donext)
+        self.master.send_message(True, "message", msg)
+        self.master.send_message(
+            True, "buttons", json.dumps({"special": "custom", "custom": custom})
+        )
+        return True
+
+    def _membersmenu(self):
+        custom = [
+            {"text": "addmember", "display": "Add member"},
+            {"text": "delmember", "display": "Remove member"},
+        ]
+        self.master.send_message(True, "message", "Please select a members command")
+        self.master.send_message(
+            True, "buttons", json.dumps({"special": "custom", "custom": custom})
+        )
+        return True
+
+    def _addmember(self, text):
+        if text == "abort":
+            return self.master.callhook("abort", None)
+        if text not in self.accounts:
+            return self.messageandbuttons(
+                "_addmember",
+                "accounts",
+                "Unknown account; What user do you want to add?",
+            )
+        if text in self.members:
+            return self.messageandbuttons(
+                "_addmember",
+                "accounts",
+                "Already a member; What user do you want to add?",
+            )
+        self.members.append(text)
+        self._writemembers()
+        self._publish_members()
+        self.master.send_message(True, "message", "Member added: " + text)
+        return True
+
+    def _delmember(self, text):
+        if text == "abort":
+            return self.master.callhook("abort", None)
+        if text not in self.members:
+            custom = [{"text": member, "display": member} for member in self.members]
+            return self._messageandcustom(
+                "_delmember",
+                custom,
+                "Unknown member; What member do you want to remove?",
+            )
+        self.members.remove(text)
+        self._writemembers()
+        self._publish_members()
+        self.master.send_message(True, "message", "Member removed: " + text)
+        return True
+
+    def _delmember_prompt(self):
+        custom = [{"text": member, "display": member} for member in self.members]
+        return self._messageandcustom(
+            "_delmember", custom, "What member do you want to remove?"
+        )
+
     def addalias(self, text):
         if text == "abort":
             return self.master.callhook("abort", None)
@@ -233,10 +310,18 @@ class accounts:
             self.master.callhook("checkout", text)
             self.master.callhook("endsession", text)
             return True
-        if text == "adduseralias":
-            return self.messageandbuttons(
+        command_handlers = {
+            "adduseralias": lambda: self.messageandbuttons(
                 "askalias", "accounts", "What user do you want to alias?"
-            )
+            ),
+            "members": self._membersmenu,
+            "addmember": lambda: self.messageandbuttons(
+                "_addmember", "accounts", "What user do you want to add?"
+            ),
+            "delmember": self._delmember_prompt,
+        }
+        if text in command_handlers:
+            return command_handlers[text]()
         return None
 
     def newuser(self, text):
