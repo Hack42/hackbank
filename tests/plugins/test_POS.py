@@ -176,6 +176,33 @@ class TestPOS:
             self.POS.open.assert_called()
             self.POS.slowwrite.assert_called()
 
+    def test_makepartybon(self):
+        bon = self.POS.makepartybon(
+            started_amount=100.0,
+            current_amount=72.5,
+            settled_amount=27.5,
+            started_at="2026-05-28_20:00:00",
+        )
+
+        assert b"Party mode afrekening" in bon
+        assert b"Gestart:       2026-05-28_20:00:00" in bon
+        assert b"Begonnen met:" in bon
+        assert b"  100.00" in bon
+        assert b"Over:" in bon
+        assert b"   72.50" in bon
+        assert b"Afgerekend:" in bon
+        assert b"   27.50" in bon
+
+    def test_printparty(self):
+        with patch.object(self.POS, "open") as mock_open_pos, patch.object(
+            self.POS, "slowwrite"
+        ) as mock_slowwrite:
+            self.POS.printparty(100.0, 72.5, 27.5, "2026-05-28_20:00:00")
+
+        mock_open_pos.assert_called_once()
+        mock_slowwrite.assert_called_once()
+        assert b"Party mode afrekening" in mock_slowwrite.call_args[0][0]
+
     def test_hook_post_checkout(self):
         self.POS.master.receipt = Mock(totals={"user1": 1.0, "user2": 2.0})
         with patch.object(self.POS, "loadbons"), patch.object(
