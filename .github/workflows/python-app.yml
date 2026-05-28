@@ -33,11 +33,28 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          coverage: none
+
+      - name: Show tool versions
+        run: |
+          python --version
+          node --version
+          npm --version
+          php --version
+          google-chrome --version || chromium --version || chromium-browser --version || true
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           make venv
           make pip-sync-dev
 
-      - name: Run tests and lint checks
-        run: make check
+      - name: Run tests
+        run: make test
+
+      - name: Run lint checks
+        run: make lint
