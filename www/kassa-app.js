@@ -1,4 +1,4 @@
-$(function() {
+document.addEventListener("DOMContentLoaded", function() {
   var session='main';
   if (window.location.hash !== '') {
     session=window.location.hash.replace('#','');
@@ -52,15 +52,77 @@ $(function() {
         element.className=attrs[name];
       } else if(name === "text") {
         element.textContent=attrs[name];
+      } else if(name === "html") {
+        element.innerHTML=attrs[name];
+      } else if(name === "style") {
+        Object.keys(attrs[name]).forEach(function(styleName) {
+          element.style[styleName]=attrs[name][styleName];
+        });
       } else {
         element.setAttribute(name, attrs[name]);
       }
     });
     return element;
   }
+  function first(selector) {
+    return document.querySelector(selector);
+  }
   function appendTo(selector, child) {
-    var parent=document.querySelector(selector);
+    var parent=first(selector);
     if(parent) parent.appendChild(child);
+  }
+  function appendChildren(parent, children) {
+    children.forEach(function(child) {
+      parent.appendChild(child);
+    });
+    return parent;
+  }
+  function appendToElement(parent, child) {
+    if(parent) parent.appendChild(child);
+    return child;
+  }
+  function removeElement(selector) {
+    var element=first(selector);
+    if(element) element.remove();
+  }
+  function removeElements(selector) {
+    allElements(selector).forEach(function(element) {
+      element.remove();
+    });
+  }
+  function cloneElementsTo(selector, targetSelector) {
+    var target=first(targetSelector);
+    if(!target) return;
+    allElements(selector).forEach(function(element) {
+      target.appendChild(element.cloneNode(true));
+    });
+  }
+  function setElementStyle(selector, styles) {
+    var element=first(selector);
+    if(!element) return;
+    Object.keys(styles).forEach(function(name) {
+      element.style[name]=styles[name];
+    });
+  }
+  function appendBreak(parent) {
+    appendToElement(parent, document.createElement('br'));
+  }
+  function setMainButtonsBackground(value) {
+    var mainButtons=document.getElementById("MainButtons");
+    if(mainButtons) mainButtons.style.backgroundColor=value;
+  }
+  function pageLabel(pagecount) {
+    var pageButton=document.getElementById(String(pagecount));
+    return pageButton ? pageButton.querySelector('.Paginatext') : null;
+  }
+  function appendToPageLabel(pagecount, html) {
+    var label=pageLabel(pagecount);
+    if(label) label.innerHTML=label.innerHTML + html;
+  }
+  function removeActiveTopButtons() {
+    allElements('.topknop').forEach(function(button) {
+      button.classList.remove('activetop');
+    });
   }
   function prependCashButton() {
     var topButtons=document.getElementById('TopButtons');
@@ -84,54 +146,56 @@ $(function() {
   }
   function build_receipt(msg) {
     var parts=JSON.parse(msg);
+    var receipt=first('#Receipt');
+    var receipt2=first('#Receipt2');
     clearElement('#Receipt');
     var counter=0;
     parts.forEach(function(stuff) {
       counter++;
-      $('#Receipt').append(
-        $('<div>',{class: 'Itemline'})
-          .append($('<span>',{class: 'Product', text: stuff.description}))
-          .append($('<span>',{class: 'Times', text: stuff.count}))
-          .append($('<span>',{class: 'LoseOrGain', text: stuff.Lose ? "LOSE" : "GAIN"}))
-          .append($('<span>',{class: 'ItemEuro'}))
-          .append($('<div>',{class: 'ItemAmount', text: stuff.total.toFixed(2)}))
-      );
+      appendToElement(receipt, appendChildren(createElement('div',{class: 'Itemline'}), [
+        createElement('span',{class: 'Product', text: stuff.description}),
+        createElement('span',{class: 'Times', text: stuff.count}),
+        createElement('span',{class: 'LoseOrGain', text: stuff.Lose ? "LOSE" : "GAIN"}),
+        createElement('span',{class: 'ItemEuro'}),
+        createElement('div',{class: 'ItemAmount', text: stuff.total.toFixed(2)}),
+      ]));
     });
     scrollToBottom('#Receipt');
     if(counter === 0) {
-      $('#Receipt').append($('<div>',{class: 'welcome', html: "Welcome to Hack42 Bank HTML5 Interface"}));
+      appendToElement(receipt, createElement('div',{class: 'welcome', text: "Welcome to Hack42 Bank HTML5 Interface"}));
     }
     clearElement('#Receipt2');
-    $('.Itemline').clone().appendTo('#Receipt2');
+    cloneElementsTo('.Itemline', '#Receipt2');
     scrollToBottom('#Receipt2');
-    if ($('#Receipt2').is(':empty')){
-       $('#Receipt2').append($('<img>',{src: 'images/Hack42.png', width: '100%'}).css({'top': '12vh','position': 'absolute'}));
+    if (receipt2 && receipt2.childElementCount === 0){
+      appendToElement(receipt2, createElement('img',{src: 'images/Hack42.png', width: '100%', style: {top: '12vh', position: 'absolute'}}));
     }
   }
   function build_totals(msg) {
     var parts=JSON.parse(msg);
+    var totals=first('#Totals');
     clearElement('#Totals');
     var counter=0;
     parts.forEach(function(stuff) {
       counter++;
-      $('#Totals').append(
-        $('<div>',{class: 'Userline Total_'+stuff.user})
-          .append($('<span>',{class: 'UserName', text: stuff.user ? stuff.user : '-$you-' }))
-          .append($('<span>',{class: 'GainOrLose',text: (stuff.amount<0) ? 'LOSE' : 'GAIN'}))
-          .append($('<span>',{class: 'TotalEuro'}))
-          .append($('<span>',{class: 'Totalamount',text: (stuff.amount ? stuff.amount : 0-stuff.amount).toFixed(2) }))
-      );
+      appendToElement(totals, appendChildren(createElement('div',{class: 'Userline Total_'+stuff.user}), [
+        createElement('span',{class: 'UserName', text: stuff.user ? stuff.user : '-$you-' }),
+        createElement('span',{class: 'GainOrLose',text: (stuff.amount<0) ? 'LOSE' : 'GAIN'}),
+        createElement('span',{class: 'TotalEuro'}),
+        createElement('span',{class: 'Totalamount',text: (stuff.amount ? stuff.amount : 0-stuff.amount).toFixed(2) }),
+      ]));
     });
     scrollToBottom('#Totals');
     if(counter === 0) {
-      $('#Totals').append($('<div>',{class: 'welcome', html: "Scan a product or choose a button from below"}));
+      appendToElement(totals, createElement('div',{class: 'welcome', text: "Scan a product or choose a button from below"}));
     }
   }
   function run_infobox(name,msg) {
     var json=JSON.parse(msg);
     var newsaldo=json.amount;
-    $('.infoboxes .Total_'+name).append($('<span>',{class: 'NowHas',text: "Now Has"}));
-    $('.infoboxes .Total_'+name).append($('<span>',{class: 'NewSaldo',text: newsaldo.toFixed(2)}));
+    var infobox=first('.infoboxes .Total_'+name);
+    appendToElement(infobox, createElement('span',{class: 'NowHas',text: "Now Has"}));
+    appendToElement(infobox, createElement('span',{class: 'NewSaldo',text: newsaldo.toFixed(2)}));
   }
   function setupaccounts(name,msg) {
     accounts[name]=JSON.parse(msg);
@@ -150,132 +214,130 @@ $(function() {
   function makepage_infobox() {
     clearElement('#MainButtons');
     clearElement('#TopButtons');
-    $('#MainButtons').append($('<div>',{class: "infoboxes", id: "infoboxes"}));
-    $('.Userline').clone().appendTo('#infoboxes');
-    $('#TopButtons').append($('<div>',{class: "Knopje Button normal ok",id: 'ok'}).append($('<span>',{class: "Knopjetext",text: "OK"})));
-    $('#TopButtons').append($('<div>',{class: "Knopje Button normal undo",id: 'undo'}).append($('<span>',{class: "Knopjetext",text: "Undo"})));
-    $('#TopButtons').append($('<div>',{class: "Knopje Button normal restore",id: 'restore'}).append($('<span>',{class: "Knopjetext",text: "Undo + Restore"})));
-    $('#TopButtons').append($('<div>',{class: "Knopje Button normal bon",id: 'bon'}).append($('<span>',{class: "Knopjetext",text: "Bon"})));
-    $('#TopButtons').append($('<div>',{class: "Knopje Button normal kassala",id: 'kassala'}).append($('<span>',{class: "Knopjetext",text: "Kassala"})));
+    appendTo('#MainButtons', createElement('div',{class: "infoboxes", id: "infoboxes"}));
+    cloneElementsTo('.Userline', '#infoboxes');
+    appendTo('#TopButtons', buttonElement("Knopje Button normal ok",'ok',"OK"));
+    appendTo('#TopButtons', buttonElement("Knopje Button normal undo",'undo',"Undo"));
+    appendTo('#TopButtons', buttonElement("Knopje Button normal restore",'restore',"Undo + Restore"));
+    appendTo('#TopButtons', buttonElement("Knopje Button normal bon",'bon',"Bon"));
+    appendTo('#TopButtons', buttonElement("Knopje Button normal kassala",'kassala',"Kassala"));
     fillVisibleText("#TopButtons .Knopjetext:visible");
   }
   function dokeys(keys) {
+    var keysElement=document.getElementById('keys');
     keys.forEach(function(val) {
-      $('#keys').append($('<div>',{class: "Knopje Knop invoer small",id: val ,text: val}));
+      appendToElement(keysElement, createElement('div',{class: "Knopje Knop invoer small",id: val ,text: val}));
     });
   }
   function makepage_keyboard() {
     clearElement('#MainButtons');
     clearElement('#TopButtons');
-    $('#MainButtons').append($('<div>',{class: "keys", id: "keys"}));
+    appendTo('#MainButtons', createElement('div',{class: "keys", id: "keys"}));
+    var keysElement=document.getElementById('keys');
 
     var keys=['!','@','#','$','%','^','&','*','(',')'];
     dokeys(keys);
-    $('#keys').append($('<br>'));
+    appendBreak(keysElement);
 
     keys=['1','2','3','4','5','6','7','8','9','0'];
     dokeys(keys);
-    $('#keys').append($('<br>'));
+    appendBreak(keysElement);
 
     keys=['q','w','e','r','t','y','u','i','o','p'];
     dokeys(keys);
-    $('#keys').append($('<div>',{class: "Knopje Knop invoer enter small",id: "backspace" ,text: "←"}));
-    $('#keys').append($('<br>'));
+    appendToElement(keysElement, createElement('div',{class: "Knopje Knop invoer enter small",id: "backspace" ,text: "←"}));
+    appendBreak(keysElement);
 
     keys=['a','s','d','f','g','h','j','k','l'];
     dokeys(keys);
-    $('#keys').append($('<div>',{class: "Knopje Knop invoer enter small",id: "leeg" ,text: " "}));
-    $('#keys').append($('<div>',{class: "Knopje Knop invoer enter small",id: "enter" ,text: "⏎"}));
-    $('#keys').append($('<br>'));
+    appendToElement(keysElement, createElement('div',{class: "Knopje Knop invoer enter small",id: "leeg" ,text: " "}));
+    appendToElement(keysElement, createElement('div',{class: "Knopje Knop invoer enter small",id: "enter" ,text: "⏎"}));
+    appendBreak(keysElement);
 
     keys=['z','x','c','v','b','n','m'];
-    $('#keys').append($('<div>',{class: "Knopje Knop invoer enter small",id: "leeg" ,text: " "}));
+    appendToElement(keysElement, createElement('div',{class: "Knopje Knop invoer enter small",id: "leeg" ,text: " "}));
     dokeys(keys);
-    $('#keys').append($('<br>'));
-    $('#keys').append($('<div>',{class: "Knopje Knop invoer enter small",id: "leeg" ,text: " "}));
-    $('#keys').append($('<div>',{class: "Knopje Knop invoer enter small",id: "space" ,text: " "}));
-    $('#keys').append($('<br>'));
+    appendBreak(keysElement);
+    appendToElement(keysElement, createElement('div',{class: "Knopje Knop invoer enter small",id: "leeg" ,text: " "}));
+    appendToElement(keysElement, createElement('div',{class: "Knopje Knop invoer enter small",id: "space" ,text: " "}));
+    appendBreak(keysElement);
 
     keys=['-','=','+','_','`','~',',','.','/','<','>'];
     dokeys(keys);
-    $('#keys').append($('<br>'));
+    appendBreak(keysElement);
 
     keys=["?",";","'",'\\',':','"','|','[',']','{','}'];
     dokeys(keys);
-    $('#keys').append($('<br>'));
+    appendBreak(keysElement);
     showquestion();
     
   }
   function makepage_history() {
     clearElement('#MainButtons');
     clearElement('#TopButtons');
-    $('#MainButtons').append($('<div>',{class: "mylines", id: "mylines"}));
+    appendTo('#MainButtons', createElement('div',{class: "mylines", id: "mylines"}));
+    var mylines=document.getElementById('mylines');
     history.forEach(function(val) {
-       $('#mylines').append(val+"<br>");
+      appendToElement(mylines, document.createTextNode(val));
+      appendBreak(mylines);
     });
-    $('#mylines').css({'position': 'relative','top': '-12vh','left': '0px','z-index': '100','background': 'lightgray','height': '76vh','overflow-wrap': 'break-word','overflow-y': 'scroll','width': '96vw'});
+    setElementStyle('#mylines', {position: 'relative', top: '-12vh', left: '0px', zIndex: '100', background: 'lightgray', height: '76vh', overflowWrap: 'break-word', overflowY: 'scroll', width: '96vw'});
     scrollToBottom('#mylines');
     showquestion();
   }
   function makepage_numbers() {
     clearElement('#MainButtons');
     clearElement('#TopButtons');
-    $('#MainButtons').append($('<div>',{class: "numbers", id: "numbers"}));
-    $('#numbers')    .append($('<div>',{class: "Knopje Knop invoer",id: 1 ,text: 1}))
-                     .append($('<div>',{class: "Knopje Knop invoer",id: 2 ,text: 2}))
-                     .append($('<div>',{class: "Knopje Knop invoer",id: 3 ,text: 3}))
-                     .append($('<br>'))
-                     .append($('<div>',{class: "Knopje Knop invoer",id: 4 ,text: 4}))
-                     .append($('<div>',{class: "Knopje Knop invoer",id: 5 ,text: 5}))
-                     .append($('<div>',{class: "Knopje Knop invoer",id: 6 ,text: 6}))
-                     .append($('<br>'))
-                     .append($('<div>',{class: "Knopje Knop invoer",id: 7 ,text: 7}))
-                     .append($('<div>',{class: "Knopje Knop invoer",id: 8 ,text: 8}))
-                     .append($('<div>',{class: "Knopje Knop invoer",id: 9 ,text: 9}))
-                     .append($('<br>'))
-                     .append($('<div>',{class: "Knopje Knop invoer",id: "." ,text: "."}))
-                     .append($('<div>',{class: "Knopje Knop invoer",id: 0 ,text: 0}))
-                     .append($('<div>',{class: "Knopje Knop invoer enter",id: "enter" ,text: "⏎"}));
+    appendTo('#MainButtons', createElement('div',{class: "numbers", id: "numbers"}));
+    var numbers=document.getElementById('numbers');
+    [["1","1"],["2","2"],["3","3"],["br"],["4","4"],["5","5"],["6","6"],["br"],["7","7"],["8","8"],["9","9"],["br"],[".","."],["0","0"],["enter","⏎"]].forEach(function(item) {
+      if(item[0] === "br") {
+        appendBreak(numbers);
+      } else {
+        appendToElement(numbers, createElement('div',{class: "Knopje Knop invoer" + (item[0] === "enter" ? " enter" : ""), id: item[0], text: item[1]}));
+      }
+    });
     showquestion();
   }
   function makepages(extraclass,buttons) {
     var pagecount=1;
     clearElement('#MainButtons');
     clearElement('#TopButtons');
-    $('#MainButtons').append($('<div>',{id: 'Page'+pagecount, class: 'Pagina'}));
-    $('#TopButtons').append($('<div>',{class: "Knopje Button page",id: '1'}).append($('<span>',{class: "Paginatext",text: "Page 1"})));
+    appendTo('#MainButtons', createElement('div',{id: 'Page'+pagecount, class: 'Pagina'}));
+    appendTo('#TopButtons', topButton("page",'1',"Page 1"));
     var counter=0;
     var donewpage=0;
     var first=1;
     var lastchar="";
     buttons.forEach(function(stuff) {
       if(donewpage === 1) {
-        $('#'+pagecount+' .Paginatext').html($('#'+pagecount+' .Paginatext').html()+' - '+lastchar);
+        appendToPageLabel(pagecount, ' - '+lastchar);
         pagecount++;
-        $('#MainButtons').append($('<div>',{id: 'Page'+pagecount, class: 'Pagina', style: 'display: none;'}));
-        $('#TopButtons').append($('<div>',{class: "Knopje Button page",id: pagecount}).append($('<span>',{class: "Paginatext",text: "Page "+pagecount})));
+        appendTo('#MainButtons', createElement('div',{id: 'Page'+pagecount, class: 'Pagina', style: {display: 'none'}}));
+        appendTo('#TopButtons', topButton("page",String(pagecount),"Page "+pagecount));
         counter=0;
         donewpage=0;
         first=1;
       }
       if(first === 1) {
-        $('#'+pagecount+' .Paginatext').html($('#'+pagecount+' .Paginatext').html()+'<br>'+stuff.display.charAt(0).toUpperCase());
+        appendToPageLabel(pagecount, '<br>'+stuff.display.charAt(0).toUpperCase());
         first=0;
       }
-      var txt=$('<span>',{class: "Buttontext ",text: stuff.display});
-      var knopje=$('<div>',{class: "Knopje Knop "+stuff.text+" "+extraclass + " " + stuff.class,id: stuff.text }).append(txt);
+      var knopje=appendChildren(createElement('div',{class: "Knopje Knop "+stuff.text+" "+extraclass + " " + stuff.class,id: stuff.text }), [
+        createElement('span',{class: "Buttontext ",text: stuff.display}),
+      ]);
       if(stuff.right) {
         var fullwidth='';
         if(!stuff.left && stuff.fill) {
           fullwidth=' fullwidthButton ';
         }
-        knopje.append($('<span>',{class: "right extra "+fullwidth+stuff.rightclass,text: stuff.right}));
+        appendToElement(knopje, createElement('span',{class: "right extra "+fullwidth+stuff.rightclass,text: stuff.right}));
       }
       if(stuff.left) {
-        knopje.append($('<span>',{class: "left extra "+stuff.leftclass,text: stuff.left}));
+        appendToElement(knopje, createElement('span',{class: "left extra "+stuff.leftclass,text: stuff.left}));
       }
       lastchar=stuff.display.charAt(0).toUpperCase();
-      $('#Page'+pagecount).append(knopje);
+      appendTo('#Page'+pagecount, knopje);
       counter++;
       var w=5;
       var h=5;
@@ -284,11 +346,11 @@ $(function() {
       }
     });
     if(pagecount === 1) {
-      $(".page").remove();
+      removeElements(".page");
       fillVisibleText(".Buttontext:visible");
       showquestion();
     } else {
-      $('#'+pagecount+' .Paginatext').html($('#'+pagecount+' .Paginatext').html()+' - '+lastchar);
+      appendToPageLabel(pagecount, ' - '+lastchar);
       fillVisibleText(".Paginatext:visible");
       allElements(".Pagina").forEach(function(page) {
         hideElements('.Pagina');
@@ -320,25 +382,25 @@ $(function() {
       activateTopButton('members');
       showElement('#Secondscreen');
       makepages('normal',window.HackBankButtons.accountsToButtons(accounts,members,nonmembers,'m'));
-      $('#TopButtons').prepend(topButton("shownumbers",'shownumbers',"Enter amount"));
+      document.getElementById('TopButtons').prepend(topButton("shownumbers",'shownumbers',"Enter amount"));
       prependCashButton();
       focus();
       tabenable=2;
 
     } else if (buttons['special'] === 'numbers') {
-      $('.topknop').removeClass('activetop');
+      removeActiveTopButtons();
       showElement('#Secondscreen');
       makepage_numbers();
       focus();
       tabenable=0;
     } else if (buttons['special'] === 'keyboard') {
-      $('.topknop').removeClass('activetop');
+      removeActiveTopButtons();
       showElement('#Secondscreen');
       makepage_keyboard();
       focus();
       tabenable=0;
     } else if (buttons['special'] === 'infobox') {
-      $('.topknop').removeClass('activetop');
+      removeActiveTopButtons();
       showElement('#Secondscreen');
       makepage_infobox();
       focus();
@@ -379,10 +441,10 @@ $(function() {
      switch(action) {
          case 'message':
             if(searchInput()) searchInput().placeholder=msg;
-            $('#Question').remove();
+            removeElement('#Question');
             question=msg;
             showquestion();
-            $('#Log').append(  $('<div>',{class: 'lastlog Log',text: msg})  );
+            appendTo('#Log', createElement('div',{class: 'lastlog Log',text: msg}));
             scrollToBottom('#Log');
             break;
          case 'receipt':
@@ -392,13 +454,13 @@ $(function() {
             build_totals(msg);
             break;
          case 'log':
-            $('.lastlog').remove();
-            $('#Log').append(  $('<div>',{class: 'Log',text: msg})  );
+            removeElements('.lastlog');
+            appendTo('#Log', createElement('div',{class: 'Log',text: msg}));
             scrollToBottom('#Log');
             break;
          case 'infobox':
             run_infobox(pathParts[6],msg);
-            $("#MainButtons").css("background-color","#d7ffd7");
+            setMainButtonsBackground("#d7ffd7");
             break;
          case 'accounts':
             setupaccounts(pathParts[5],msg);
@@ -414,7 +476,7 @@ $(function() {
             break;
          case 'buttons':
             dobuttons(msg);
-            $("#MainButtons").css("background-color","");
+            setMainButtonsBackground("");
             break;
          case 'sound':
             playsound(msg);
@@ -620,16 +682,16 @@ $(function() {
          activateTopButton(this.id);
          locked=0;
          showElement('#IRCwindow');
-         if($('#IRCwindow').html() === "") {
-           $("#IRCwindow").append($('<iframe>',{src: 'http://kleintje:4200/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
+         if(document.getElementById('IRCwindow').childElementCount === 0) {
+           appendTo('#IRCwindow', createElement('iframe',{src: 'http://kleintje:4200/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
          }
          break;
       case 'spacecon':
          activateTopButton(this.id);
          locked=0;
          showElement('#spacewindow');
-         if($('#spacewindow').html() === "") {
-           $("#spacewindow").append($('<iframe>',{src: '/spaceconsole/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
+         if(document.getElementById('spacewindow').childElementCount === 0) {
+           appendTo('#spacewindow', createElement('iframe',{src: '/spaceconsole/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
          }
          break;
       case 'knopjes':

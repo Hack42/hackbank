@@ -12,6 +12,7 @@ function makeElement(tag, register) {
     className: "",
     eventListeners: {},
     id: "",
+    innerHTML: "",
     parentElement: null,
     scrollHeight: 0,
     scrollTop: 0,
@@ -44,6 +45,23 @@ function makeElement(tag, register) {
     focus() {
       this.focused = true;
     },
+    cloneNode(deep) {
+      const clone = makeElement(this.tag, register);
+      clone.attributes = {...this.attributes};
+      clone.className = this.className;
+      clone.id = this.id;
+      clone.innerHTML = this.innerHTML;
+      clone.scrollHeight = this.scrollHeight;
+      clone.style = {...this.style};
+      clone.textContent = this.textContent;
+      clone.value = this.value;
+      if(deep) {
+        this.children.forEach((child) => {
+          clone.appendChild(child.cloneNode ? child.cloneNode(true) : {...child});
+        });
+      }
+      return clone;
+    },
     prepend(child) {
       child.parentElement = this;
       this.children.unshift(child);
@@ -52,6 +70,14 @@ function makeElement(tag, register) {
     },
     querySelector(selector) {
       return findFirst(this, selector);
+    },
+    remove() {
+      if(!this.parentElement) return;
+      this.parentElement.children = this.parentElement.children.filter(
+        (child) => child !== this,
+      );
+      this.parentElement.childElementCount = this.parentElement.children.length;
+      this.parentElement = null;
     },
     setAttribute(name, value) {
       this.attributes[name] = value;
@@ -66,6 +92,7 @@ function makeElement(tag, register) {
 }
 
 function matchesSelector(element, selector) {
+  if(!element.className) return false;
   const cleanSelector = selector.replace(":visible", "");
   if(cleanSelector.startsWith("#")) return element.id === cleanSelector.slice(1);
   if(cleanSelector.startsWith(".")) {
@@ -75,9 +102,15 @@ function matchesSelector(element, selector) {
 }
 
 function findAll(root, selector, results = []) {
+  if(selector.includes(" ")) {
+    const parts = selector.split(/\s+/);
+    const parents = findAll(root, parts[0]);
+    parents.forEach((parent) => findAll(parent, parts.slice(1).join(" "), results));
+    return results;
+  }
   root.children.forEach((child) => {
     if(matchesSelector(child, selector)) results.push(child);
-    findAll(child, selector, results);
+    if(child.children) findAll(child, selector, results);
   });
   return results;
 }
@@ -96,6 +129,7 @@ function loadScript(sandbox, scriptName) {
 
 function loadKassaApp({hash = ""} = {}) {
   const elements = {};
+  const documentListeners = {};
   const eventSources = [];
   const fetchCalls = [];
   const textfillCalls = [];
@@ -109,8 +143,21 @@ function loadKassaApp({hash = ""} = {}) {
 
   const document = {
     body,
+    addEventListener(type, handler) {
+      documentListeners[type] = handler;
+    },
     createElement(tag) {
       return makeElement(tag, register);
+    },
+    createTextNode(text) {
+      return {
+        nodeType: 3,
+        parentElement: null,
+        textContent: text,
+        cloneNode() {
+          return {...this};
+        },
+      };
     },
     getElementById(id) {
       return elements[id] || null;
@@ -145,7 +192,6 @@ function loadKassaApp({hash = ""} = {}) {
     },
   };
   const sandbox = {
-    $: (callback) => callback(),
     Date,
     EventSource,
     URLSearchParams,
@@ -169,9 +215,11 @@ function loadKassaApp({hash = ""} = {}) {
   loadScript(sandbox, "kassa-dom.js");
   loadScript(sandbox, "kassa-buttons.js");
   loadScript(sandbox, "kassa-app.js");
+  documentListeners.DOMContentLoaded();
 
   return {
     body,
+    documentListeners,
     elements,
     eventSources,
     fetchCalls,
