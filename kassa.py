@@ -86,9 +86,7 @@ class Session:
                     self.help.update(self.plugins[plugname].help())
                 except Exception:
                     logger.exception("Plugin %s help failed", plugname)
-        logger.debug(
-            "session_plugins_loaded sid=%s plugins=%s", self.SID, self.plugins
-        )
+        logger.debug("session_plugins_loaded sid=%s plugins=%s", self.SID, self.plugins)
         self.receipt = self.plugins["receipt"]
         self.accounts = self.plugins["accounts"]
         self.products = self.plugins["products"]
@@ -265,7 +263,9 @@ def on_message(client, _userdata, msg):
 
 def run():
     logging_level = getattr(
-        logging, str(config_get("logging", "level", default="INFO")).upper(), logging.INFO
+        logging,
+        str(config_get("logging", "level", default="INFO")).upper(),
+        logging.INFO,
     )
     logging.basicConfig(
         level=logging_level,
