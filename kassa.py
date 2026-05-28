@@ -1,5 +1,8 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
+# Broad exception handling is intentional in this plugin host: plugin failures
+# should be logged and isolated instead of stopping the active kassa session.
+# pylint: disable=broad-exception-caught
 import glob
 import logging
 import os

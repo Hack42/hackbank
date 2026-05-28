@@ -78,36 +78,35 @@ class declaratie:
                 True, "buttons", json.dumps({"special": "numbers"})
             )
             return True
+        if -5000 < value < 5000:
+            self.value = value
+            if self.soort == "verkoop":
+                self.master.send_message(
+                    True, "message", "Why do you give us E %.2f?" % self.value
+                )
+                self.value = -self.value
+            elif self.soort == "declaratie":
+                self.master.send_message(
+                    True, "message", "Where did you spend E %.2f on?" % self.value
+                )
+            elif self.soort == "afroom":
+                self.reden = "Afroom"
+                self.ascash = -value
+                self.asbank = value
+                return self.final()
+            self.master.send_message(
+                True, "buttons", json.dumps({"special": "keyboard"})
+            )
+            self.master.donext(self, "reason")
         else:
-            if -5000 < value < 5000:
-                self.value = value
-                if self.soort == "verkoop":
-                    self.master.send_message(
-                        True, "message", "Why do you give us E %.2f?" % self.value
-                    )
-                    self.value = -self.value
-                elif self.soort == "declaratie":
-                    self.master.send_message(
-                        True, "message", "Where did you spend E %.2f on?" % self.value
-                    )
-                elif self.soort == "afroom":
-                    self.reden = "Afroom"
-                    self.ascash = -value
-                    self.asbank = value
-                    return self.final()
-                self.master.send_message(
-                    True, "buttons", json.dumps({"special": "keyboard"})
-                )
-                self.master.donext(self, "reason")
-            else:
-                self.master.donext(self, "amount")
-                self.master.send_message(
-                    True, "message", "Enter an amount between 0.01 and 4999.99:"
-                )
-                self.master.send_message(
-                    True, "buttons", json.dumps({"special": "numbers"})
-                )
-            return True
+            self.master.donext(self, "amount")
+            self.master.send_message(
+                True, "message", "Enter an amount between 0.01 and 4999.99:"
+            )
+            self.master.send_message(
+                True, "buttons", json.dumps({"special": "numbers"})
+            )
+        return True
 
     def reason(self, text):
         self.reden = text
@@ -144,17 +143,16 @@ class declaratie:
         except ValueError:
             self.askbar("")
             return True
-        else:
-            if -5000 < value < 5000:
-                if value > self.value:
-                    return self.askbar(
-                        "E %.2f is larger than E %.2f ; " % (value, self.value)
-                    )
-                self.asbar = value
-                if self.asbar == self.value:
-                    return self.final()
-                return self.askcash("")
-            return self.askbar("Not between 0.01 and 4999.99; ")
+        if -5000 < value < 5000:
+            if value > self.value:
+                return self.askbar(
+                    "E %.2f is larger than E %.2f ; " % (value, self.value)
+                )
+            self.asbar = value
+            if self.asbar == self.value:
+                return self.final()
+            return self.askcash("")
+        return self.askbar("Not between 0.01 and 4999.99; ")
 
     def askcash(self, error):
         self.master.donext(self, "runascash")
@@ -188,18 +186,16 @@ class declaratie:
             value = float(text)
         except ValueError:
             return self.askcash("")
-        else:
-            if 0 <= value < 5000:
-                if value > (self.value - self.asbar):
-                    return self.askcash(
-                        "E %.2f is larger than E %.2f ; "
-                        % (value, self.value - self.asbar)
-                    )
-                self.ascash = value
-                if (self.ascash + self.asbar) == self.value:
-                    return self.final()
-                return self.askbank("")
-            return self.askcash("Not between 0 and 4999.99; ")
+        if 0 <= value < 5000:
+            if value > (self.value - self.asbar):
+                return self.askcash(
+                    "E %.2f is larger than E %.2f ; " % (value, self.value - self.asbar)
+                )
+            self.ascash = value
+            if (self.ascash + self.asbar) == self.value:
+                return self.final()
+            return self.askbank("")
+        return self.askcash("Not between 0 and 4999.99; ")
 
     def askbank(self, error):
         self.master.donext(self, "runasbank")
@@ -234,18 +230,17 @@ class declaratie:
             value = float(text)
         except ValueError:
             return self.askbank("")
-        else:
-            if -5000 < value < 5000:
-                if value > (self.value - self.asbar - self.ascash):
-                    return self.askbank(
-                        "E %.2f is larger than E %.2f ; "
-                        % (value, self.value - self.asbar - self.ascash)
-                    )
-                self.asbank = value
-                if (self.ascash + self.asbar + self.asbank) == self.value:
-                    return self.final()
-                return self.askbank("The numbers do not match; ")
-            return self.askbank("Not between 0.01 and 4999.99; ")
+        if -5000 < value < 5000:
+            if value > (self.value - self.asbar - self.ascash):
+                return self.askbank(
+                    "E %.2f is larger than E %.2f ; "
+                    % (value, self.value - self.asbar - self.ascash)
+                )
+            self.asbank = value
+            if (self.ascash + self.asbar + self.asbank) == self.value:
+                return self.final()
+            return self.askbank("The numbers do not match; ")
+        return self.askbank("Not between 0.01 and 4999.99; ")
 
     def bon(self):
         self.master.POS.printdeclaratie(

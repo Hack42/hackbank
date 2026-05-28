@@ -2,10 +2,12 @@
 import base64
 import binascii
 import json
-import time
-import pickle
-import serial
 import logging
+import pickle
+import time
+
+import serial
+
 from config import config_get
 
 logger = logging.getLogger(__name__)
@@ -32,7 +34,7 @@ CUT = b"\x1bm\n"
 DRAWER = b"\x1b\x700AA"
 
 
-class POS:
+class POS:  # pylint: disable=too-many-public-methods
     bonnetjes = {}
     ser = None
     lastbonID = 0

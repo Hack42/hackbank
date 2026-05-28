@@ -54,31 +54,26 @@ class give:
                 True, "buttons", json.dumps({"special": "numbers"})
             )
             return True
+        if 0 < value < 1000:
+            self.value = value
+            self.master.donext(self, "reason")
+            self.master.send_message(
+                True,
+                "message",
+                "Why are you giving " + str(self.value) + " to " + self.userto + "?",
+            )
+            self.master.send_message(
+                True, "buttons", json.dumps({"special": "keyboard"})
+            )
         else:
-            if 0 < value < 1000:
-                self.value = value
-                self.master.donext(self, "reason")
-                self.master.send_message(
-                    True,
-                    "message",
-                    "Why are you giving "
-                    + str(self.value)
-                    + " to "
-                    + self.userto
-                    + "?",
-                )
-                self.master.send_message(
-                    True, "buttons", json.dumps({"special": "keyboard"})
-                )
-            else:
-                self.master.donext(self, "amount")
-                self.master.send_message(
-                    True, "message", "Enter an amount between 0.01 and 999.99:"
-                )
-                self.master.send_message(
-                    True, "buttons", json.dumps({"special": "numbers"})
-                )
-            return True
+            self.master.donext(self, "amount")
+            self.master.send_message(
+                True, "message", "Enter an amount between 0.01 and 999.99:"
+            )
+            self.master.send_message(
+                True, "buttons", json.dumps({"special": "numbers"})
+            )
+        return True
 
     def reason(self, text):
         if text == "abort":
