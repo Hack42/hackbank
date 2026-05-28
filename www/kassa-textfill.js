@@ -1,29 +1,41 @@
 var cachepixels = {};
 var cachetop = {};
 
-(function($) {
-    $.fn.textfill = function(options) {
+(function(window, $) {
+    function textfillElement(element, options) {
         var fontSize = options.maxFontPixels;
-        var maxHeight = $(this).parent().height();
-        var maxWidth = $(this).parent().width();
+        var parent = element.parentElement;
+        var maxHeight = parent ? parent.offsetHeight : 0;
+        var maxWidth = parent ? parent.offsetWidth : 0;
+        var text = element.textContent;
         var textHeight;
         var textWidth;
-        if(cachepixels[this.text()] > 0) {
-            this.css('font-size', cachepixels[this.text()] + 'vh');
-            this.css('top', cachetop[this.text()]);
-            return this;
+        if(cachepixels[text] > 0) {
+            element.style.fontSize = cachepixels[text] + 'vh';
+            element.style.top = cachetop[text];
+            return element;
         }
         do {
-            this.css('font-size', fontSize + 'vh');
-            textHeight = this.height();
-            textWidth = this.width();
-            cachepixels[this.text()] = fontSize;
+            element.style.fontSize = fontSize + 'vh';
+            textHeight = element.offsetHeight;
+            textWidth = element.offsetWidth;
+            cachepixels[text] = fontSize;
             fontSize = fontSize - 0.9;
         } while ((textHeight > maxHeight || textWidth > maxWidth) && fontSize > 0.5);
-        textHeight = this.height();
-        var mytop = (maxHeight - textHeight) / 2;
-        this.css('top', mytop);
-        cachetop[this.text()] = mytop;
+        textHeight = element.offsetHeight;
+        cachetop[text] = ((maxHeight - textHeight) / 2) + 'px';
+        element.style.top = cachetop[text];
+        return element;
+    }
+
+    window.HackBankTextfill = {
+        fillElement: textfillElement,
+    };
+
+    $.fn.textfill = function(options) {
+        this.each(function() {
+            textfillElement(this, options);
+        });
         return this;
     };
-})(jQuery);
+})(window, jQuery);

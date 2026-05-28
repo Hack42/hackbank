@@ -1,4 +1,4 @@
-(function(window, document, $) {
+(function(window, document) {
   function firstElement(selector) {
     return document.querySelector(selector);
   }
@@ -52,19 +52,30 @@
   }
 
   function fillVisibleText(selector) {
-    $(selector).each(function() {
-      $(this).textfill({maxFontPixels: 5});
+    allElements(selector).forEach(function(element) {
+      window.HackBankTextfill.fillElement(element, {maxFontPixels: 5});
     });
   }
 
   function topButton(className, id, text) {
-    return $('<div>', {class: "Knopje Button " + className, id: id})
-      .append($('<span>', {class: "Paginatext", text: text}));
+    return elementWithText("div", "Knopje Button " + className, id, "Paginatext", text);
   }
 
   function buttonElement(className, id, text) {
-    return $('<div>', {class: className, id: id})
-      .append($('<span>', {class: "Knopjetext", text: text}));
+    return elementWithText("div", className, id, "Knopjetext", text);
+  }
+
+  function elementWithText(tagName, className, id, textClassName, text) {
+    var element = document.createElement(tagName);
+    var label = document.createElement("span");
+
+    element.className = className;
+    element.id = id;
+    label.className = textClassName;
+    label.textContent = text;
+    element.appendChild(label);
+
+    return element;
   }
 
   window.HackBankDom = {
@@ -83,4 +94,4 @@
     showElement: showElement,
     topButton: topButton,
   };
-})(window, document, jQuery);
+})(window, document);

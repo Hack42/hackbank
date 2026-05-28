@@ -4,38 +4,26 @@ const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
 
-function fakeJQueryFactory(selectorMap) {
-  function createElement(tagWithBrackets, attrs) {
-    return {
-      attrs: attrs || {},
-      children: [],
-      tag: tagWithBrackets.replace(/[<>]/g, ""),
-      append(child) {
-        this.children.push(child);
-        return this;
-      },
-    };
-  }
-
-  return function jquery(selector, attrs) {
-    if(typeof selector === "object") {
-      return selector;
-    }
-    if(typeof selector === "string" && selector.startsWith("<")) {
-      return createElement(selector, attrs);
-    }
-    const elements = selectorMap[selector] || [];
-    return {
-      each(callback) {
-        elements.forEach((element, index) => callback.call(element, index, element));
-        return this;
-      },
-    };
+function fakeElement(tag) {
+  return {
+    children: [],
+    className: "",
+    id: "",
+    tag,
+    textContent: "",
+    appendChild(child) {
+      this.children.push(child);
+      return child;
+    },
   };
 }
 
 function loadDomHelpers({elements = {}, selectorMap = {}} = {}) {
+  const textfillCalls = [];
   const document = {
+    createElement(tag) {
+      return fakeElement(tag);
+    },
     getElementById(id) {
       return elements[id] || null;
     },
@@ -48,8 +36,13 @@ function loadDomHelpers({elements = {}, selectorMap = {}} = {}) {
   };
   const sandbox = {
     document,
-    jQuery: fakeJQueryFactory(selectorMap),
-    window: {},
+    window: {
+      HackBankTextfill: {
+        fillElement(element, options) {
+          textfillCalls.push({element, options});
+        },
+      },
+    },
   };
   const script = fs.readFileSync(
     path.join(__dirname, "../../www/kassa-dom.js"),
@@ -58,14 +51,17 @@ function loadDomHelpers({elements = {}, selectorMap = {}} = {}) {
 
   vm.runInNewContext(script, sandbox, {filename: "kassa-dom.js"});
 
-  return sandbox.window.HackBankDom;
+  return {
+    helpers: sandbox.window.HackBankDom,
+    textfillCalls,
+  };
 }
 
 test("DOM helpers show, hide, clear and scroll existing elements", () => {
   const panel = {style: {display: "block"}};
   const log = {scrollHeight: 42, scrollTop: 0};
   const message = {textContent: "old"};
-  const helpers = loadDomHelpers({
+  const {helpers} = loadDomHelpers({
     elements: {
       "#panel": panel,
       "#log": log,
@@ -88,7 +84,7 @@ test("DOM helpers show, hide, clear and scroll existing elements", () => {
 
 test("search helpers read, set and append the Zoek input", () => {
   const input = {value: "ab"};
-  const helpers = loadDomHelpers({elements: {Zoek: input}});
+  const {helpers} = loadDomHelpers({elements: {Zoek: input}});
 
   assert.equal(helpers.searchInput(), input);
   assert.equal(helpers.searchValue(), "ab");
@@ -99,23 +95,32 @@ test("search helpers read, set and append the Zoek input", () => {
   assert.equal(input.value, "cdef");
 });
 
-test("button helpers build jQuery elements and fill visible text", () => {
-  const label = {
-    textfillOptions: null,
-    textfill(options) {
-      this.textfillOptions = options;
-    },
-  };
-  const helpers = loadDomHelpers({selectorMap: {".Buttontext:visible": [label]}});
+test("button helpers build native elements and fill visible text", () => {
+  const label = {};
+  const {helpers, textfillCalls} = loadDomHelpers({
+    selectorMap: {".Buttontext:visible": [label]},
+  });
 
   const button = helpers.buttonElement("Knopje normal", "ok", "OK");
   assert.equal(button.tag, "div");
-  assert.equal(button.attrs.class, "Knopje normal");
-  assert.equal(button.attrs.id, "ok");
+  assert.equal(button.className, "Knopje normal");
+  assert.equal(button.id, "ok");
   assert.equal(button.children[0].tag, "span");
-  assert.equal(button.children[0].attrs.class, "Knopjetext");
-  assert.equal(button.children[0].attrs.text, "OK");
+  assert.equal(button.children[0].className, "Knopjetext");
+  assert.equal(button.children[0].textContent, "OK");
 
   helpers.fillVisibleText(".Buttontext:visible");
-  assert.equal(label.textfillOptions.maxFontPixels, 5);
+  assert.equal(textfillCalls.length, 1);
+  assert.equal(textfillCalls[0].element, label);
+  assert.equal(textfillCalls[0].options.maxFontPixels, 5);
+});
+
+test("topButton builds a native pagination button", () => {
+  const {helpers} = loadDomHelpers();
+  const button = helpers.topButton("normal cash", "cash", "cash");
+
+  assert.equal(button.className, "Knopje Button normal cash");
+  assert.equal(button.id, "cash");
+  assert.equal(button.children[0].className, "Paginatext");
+  assert.equal(button.children[0].textContent, "cash");
 });
