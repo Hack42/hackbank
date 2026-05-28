@@ -15,6 +15,7 @@ $(function() {
   var tabenable=0;
   var question="";
   var locked=0;
+  var buttons=window.HackBankButtons;
   var dom=window.HackBankDom;
   var allElements=dom.allElements;
   var appendSearchValue=dom.appendSearchValue;
@@ -55,7 +56,7 @@ $(function() {
   function showAccountButtons(activeButtonId, accountType, tabMode) {
     activateTopButton(activeButtonId);
     showElement('#Secondscreen');
-    makepages('normal',accountstobuttons(accounts,accountType));
+    makepages('normal',buttons.accountsToButtons(accounts,members,nonmembers,accountType));
     prependCashButton();
     focus();
     tabenable=tabMode;
@@ -122,99 +123,7 @@ $(function() {
   }
   function setupproducts(name,msg) {
     prods[name]=JSON.parse(msg);
-    groups={};
-    Object.keys(prods).forEach(function(idx) {
-      var stuff=prods[idx];
-      groups[stuff.group]=(groups[stuff.group] || 0) + 1;
-      var barcode=0;
-      stuff.aliases.forEach(function(stuff2) {
-        if(stuff2 > 9999999) barcode=1;
-      });
-      if(barcode === 0) {
-        nobcgroup[name]=prods[name];
-      }
-    });
-  }
-  function productstobuttons(products) {
-    var buttons=[];
-    Object.keys(products).sort().forEach(function(v) {
-      buttons.push({'text': v,'display': v, class: v});
-    });
-    return buttons;
-  }
-  function commandstobuttons() {
-    var buttons=[];
-    Object.keys(commands).sort().forEach(function(v) {
-      buttons.push({'text': v,'display': commands[v], class: v});
-    });
-    return buttons;
-  }
-  function mycomparator(a,b) {
-    var alc = a.toLowerCase(), blc = b.toLowerCase();
-    return alc > blc ? 1 : alc < blc ? -1 : 0;
-  }
-  function compare_text_rev(a,b) {
-    if (a.text > b.text)
-      return -1;
-    else if (a.text < b.text)
-      return 1;
-    else 
-      return 0;
-  }
-  function compare_display(a,b) {
-    if (a.display < b.display)
-      return -1;
-    else if (a.display > b.display)
-      return 1;
-    else 
-      return 0;
-  }
-  function accountstobuttons(accounts,type) {
-    var buttons=[];
-    Object.keys(accounts).sort(mycomparator).forEach(function(v) {
-      var isMember = members.indexOf(v) !== -1;
-      var isNonMember = nonmembers.indexOf(v) !== -1;
-      if((isMember && type === 'm') || (isNonMember && type === 'o') || (!isMember && !isNonMember && type === 'x')) {
-        var extraclass=v;
-        if(accounts[v].amount < -13.37) {
-          extraclass=v+" rood";
-        } else if(accounts[v].amount < 0) {
-          extraclass=v+" orange";
-        }
-        buttons.push({'text': v,'display': v, rightclass: extraclass, right: accounts[v].amount.toFixed(2), 'fill': true});
-      }
-    });
-    //console.log(buttons);
-    return buttons;
-  }
-  function allproductstobuttons() {
-    var buttons=[];
-    Object.keys(prods).forEach(function(v) {
-      var button={'text': v,'display': prods[v].description,'right': prods[v].price.toFixed(2), rightclass:"green", class: v, aliases: prods[v].aliases};
-      if(stock[v] !== undefined && Number(stock[v]) !== 0) {
-        button['left']=stock[v];
-        button['leftclass']='orange';
-      }
-      buttons.push(button);
-    });
-    return buttons;
-  }
-  function productgrouptobuttons(group) {
-    var buttons=[];
-    var thisprods={};
-    Object.keys(prods).forEach(function(idx) {
-      var stuff=prods[idx];
-      if(stuff.group === group) thisprods[idx]=1;
-    });
-    Object.keys(thisprods).sort().forEach(function(v) {
-      var button={'text': v,'display': prods[v].description,'right': prods[v].price.toFixed(2), rightclass:"green", class: v};
-      if(stock[v] !== undefined && Number(stock[v]) !== 0) {
-        button['left']=stock[v];
-        button['leftclass']='orange';
-      }
-      buttons.push(button);
-    });
-    return buttons;
+    buttons.rebuildProductIndexes(prods, groups, nobcgroup);
   }
 
   function makepage_infobox() {
@@ -377,9 +286,9 @@ $(function() {
       activateTopButton('commands');
       showElement('#Secondscreen');
       if(buttons['sort'] === "text") {
-        buttons['custom'].sort(compare_text_rev);
+        buttons['custom'].sort(window.HackBankButtons.compareTextReverse);
       } else {
-        buttons['custom'].sort(compare_display);
+        buttons['custom'].sort(window.HackBankButtons.compareDisplay);
       }
       makepages('normal',buttons['custom']);
       focus();
@@ -389,7 +298,7 @@ $(function() {
     } else if (buttons['special'] === 'accountsamount') {
       activateTopButton('members');
       showElement('#Secondscreen');
-      makepages('normal',accountstobuttons(accounts,'m'));
+      makepages('normal',window.HackBankButtons.accountsToButtons(accounts,members,nonmembers,'m'));
       $('#TopButtons').prepend(topButton("shownumbers",'shownumbers',"Enter amount"));
       prependCashButton();
       focus();
@@ -422,7 +331,7 @@ $(function() {
     } else if (buttons['special'] === 'products') {
       activateTopButton('products');
       showElement('#Secondscreen');
-      makepages('productgroups',productstobuttons(groups).sort(compare_display));
+      makepages('productgroups',window.HackBankButtons.productsToButtons(groups).sort(window.HackBankButtons.compareDisplay));
       focus();
       tabenable=1;
     }
@@ -561,16 +470,6 @@ $(function() {
     };
   }
 
-  function buttonMatches(button, query) {
-    return button.text.toLowerCase().startsWith(query) || button.display.toLowerCase().startsWith(query);
-  }
-  function addMatchingButtons(matches, candidates, query) {
-    candidates.forEach(function(candidate) {
-       if(buttonMatches(candidate, query)) {
-           matches.push(candidate);
-       }
-    });
-  }
   function dotabfill(fill) {
     if(!tabenable) return;
     var dingen=searchValue().split(" ");
@@ -579,13 +478,13 @@ $(function() {
         return;
     }
     var buttons=[];
-    addMatchingButtons(buttons, accountstobuttons(accounts,'m'), zoek);
-    addMatchingButtons(buttons, accountstobuttons(accounts,'o'), zoek);
-    addMatchingButtons(buttons, accountstobuttons(accounts,'x'), zoek);
+    window.HackBankButtons.addMatchingButtons(buttons, window.HackBankButtons.accountsToButtons(accounts,members,nonmembers,'m'), zoek);
+    window.HackBankButtons.addMatchingButtons(buttons, window.HackBankButtons.accountsToButtons(accounts,members,nonmembers,'o'), zoek);
+    window.HackBankButtons.addMatchingButtons(buttons, window.HackBankButtons.accountsToButtons(accounts,members,nonmembers,'x'), zoek);
     if(tabenable === 1) {
-      addMatchingButtons(buttons, commandstobuttons(), zoek);
-      allproductstobuttons().forEach(function(v) {
-         if(buttonMatches(v, zoek)) {
+      window.HackBankButtons.addMatchingButtons(buttons, window.HackBankButtons.commandsToButtons(commands), zoek);
+      window.HackBankButtons.allProductsToButtons(prods, stock).forEach(function(v) {
+         if(window.HackBankButtons.buttonMatches(v, zoek)) {
            buttons.push(v);
          } else {
            var done2=0;
@@ -663,7 +562,7 @@ $(function() {
   }
 
   function handleProductGroupClick() {
-     makepages('normal',productgrouptobuttons(this.id).sort(compare_display));
+     makepages('normal',window.HackBankButtons.productGroupToButtons(prods, stock, this.id).sort(window.HackBankButtons.compareDisplay));
      focus();
   }
 
@@ -680,13 +579,13 @@ $(function() {
       case 'products':
          activateTopButton(this.id);
          locked=1;
-         makepages('productgroups',productstobuttons(groups).sort(compare_display));
+         makepages('productgroups',window.HackBankButtons.productsToButtons(groups).sort(window.HackBankButtons.compareDisplay));
          focus();
          break;
       case 'commands':
          activateTopButton(this.id);
          locked=0;
-         makepages('normal',commandstobuttons().sort(compare_display));
+         makepages('normal',window.HackBankButtons.commandsToButtons(commands).sort(window.HackBankButtons.compareDisplay));
          focus();
          break;
       case 'back':

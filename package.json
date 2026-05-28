@@ -2,7 +2,7 @@
   "name": "kassa",
   "private": true,
   "scripts": {
-    "lint:js": "eslint www/kassa-textfill.js www/kassa-dom.js www/kassa-app.js www/spaceconsole/all.js tests/js/*.test.js",
+    "lint:js": "eslint www/kassa-textfill.js www/kassa-dom.js www/kassa-buttons.js www/kassa-app.js www/spaceconsole/all.js tests/js/*.test.js",
     "test:js": "node --test tests/js/*.test.js"
   },
   "devDependencies": {
