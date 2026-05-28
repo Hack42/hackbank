@@ -1,32 +1,3 @@
-var cachepixels={};
-var cachetop={};
-(function($) {
-    $.fn.textfill = function(options) {
-        var fontSize = options.maxFontPixels;
-        var maxHeight = $(this).parent().height();
-        var maxWidth = $(this).parent().width();
-        var textHeight;
-        var textWidth;
-        if(cachepixels[this.text()]>0) {
-            this.css('font-size', cachepixels[this.text()]+'vh');
-            this.css('top',cachetop[this.text()]);
-            return this;
-        }
-        do {
-            this.css('font-size', fontSize+'vh');
-            textHeight = this.height();
-            textWidth = this.width();
-            cachepixels[this.text()]=fontSize;
-            fontSize = fontSize - 0.9;
-        } while ((textHeight > maxHeight || textWidth > maxWidth) && fontSize > 0.5);
-        textHeight = this.height();
-        var mytop=(maxHeight-textHeight)/2;
-        this.css('top',mytop);
-        cachetop[this.text()]=mytop;
-        return this;
-    };
-})(jQuery);
-
 $(function() {
   var session='main';
   if (window.location.hash !== '') {
@@ -44,6 +15,20 @@ $(function() {
   var tabenable=0;
   var question="";
   var locked=0;
+  var dom=window.HackBankDom;
+  var allElements=dom.allElements;
+  var appendSearchValue=dom.appendSearchValue;
+  var buttonElement=dom.buttonElement;
+  var clearElement=dom.clearElement;
+  var fillVisibleText=dom.fillVisibleText;
+  var hideElement=dom.hideElement;
+  var hideElements=dom.hideElements;
+  var scrollToBottom=dom.scrollToBottom;
+  var searchInput=dom.searchInput;
+  var searchValue=dom.searchValue;
+  var setSearchValue=dom.setSearchValue;
+  var showElement=dom.showElement;
+  var topButton=dom.topButton;
 
   function postmsg(topic,msg) {
     fetch("post.php", {
@@ -58,58 +43,6 @@ $(function() {
     }).catch(function(error) {
       console.error("Post failed", error);
     });
-  }
-  function firstElement(selector) {
-    return document.querySelector(selector);
-  }
-  function allElements(selector) {
-    return Array.prototype.slice.call(document.querySelectorAll(selector));
-  }
-  function showElement(selector) {
-    var element=firstElement(selector);
-    if(element) element.style.display='';
-  }
-  function hideElement(selector) {
-    var element=firstElement(selector);
-    if(element) element.style.display='none';
-  }
-  function hideElements(selector) {
-    allElements(selector).forEach(function(element) {
-      element.style.display='none';
-    });
-  }
-  function clearElement(selector) {
-    var element=firstElement(selector);
-    if(element) element.textContent='';
-  }
-  function scrollToBottom(selector) {
-    var element=firstElement(selector);
-    if(element) element.scrollTop=element.scrollHeight;
-  }
-  function searchInput() {
-    return document.getElementById('Zoek');
-  }
-  function searchValue() {
-    var input=searchInput();
-    return input ? input.value : "";
-  }
-  function setSearchValue(value) {
-    var input=searchInput();
-    if(input) input.value=value;
-  }
-  function appendSearchValue(value) {
-    setSearchValue(searchValue()+value);
-  }
-  function fillVisibleText(selector) {
-    $(selector).each(function() {
-       $(this).textfill({maxFontPixels: 5});
-    });
-  }
-  function topButton(className,id,text) {
-    return $('<div>',{class: "Knopje Button "+className,id: id}).append($('<span>',{class: "Paginatext",text: text}));
-  }
-  function buttonElement(className,id,text) {
-    return $('<div>',{class: className,id: id}).append($('<span>',{class: "Knopjetext",text: text}));
   }
   function prependCashButton() {
     $('#TopButtons').prepend(topButton("normal cash",'cash',"cash"));
