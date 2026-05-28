@@ -682,110 +682,6 @@ $(function() {
     postmsg('input',searchValue());
     setSearchValue("");
   }
-  $("body" ).on( "click",'div.shownumbers', function() {
-    locked=1;
-    showElement('#Secondscreen');
-    makepage_numbers();
-    focus();
-    tabenable=0;
-  });
-  $("body" ).on( "click",'div.normal', function() {
-    var dingen=searchValue().split(" ");
-    dingen[dingen.length-1]=this.id;
-    postmsg('input',dingen.join(" "));
-    setSearchValue("");
-    focus();
-  });
-  $("body" ).on( "click",'div.invoer', function() {
-    if(this.id === "enter") {
-      verwerkinput();
-    } else if(this.id === "backspace") {
-      setSearchValue(searchValue().substring(0, searchValue().length - 1));
-    } else if(this.id === "leeg") {
-      focus();
-      return;
-    } else if(this.id === "space") {
-      appendSearchValue(" ");
-    } else {
-      appendSearchValue(this.id);
-    }
-    //postmsg('input',this.id);
-    focus();
-  });
-  $("body" ).on( "click", 'div.page' ,function() {
-    hideElements('.Pagina');
-    showElement('#Page'+this.id);
-    fillVisibleText(".Buttontext:visible");
-    focus();
-  });
-  $("body" ).on( "click", 'div.productgroups' ,function() {
-     makepages('normal',productgrouptobuttons(this.id).sort(compare_display));
-     focus();
-  });
-  $("body").on("click", 'div.Knopje:not(.normal):not(.shownumbers):not(.invoer):not(.page):not(.productgroups)', function() {
-    switch(this.id) {
-      case 'members':
-         locked=0;
-         showAccountButtons(this.id,'m',tabenable);
-         break;
-      case 'otherusers':
-         locked=0;
-         showAccountButtons(this.id,'o',tabenable);
-         break;
-      case 'products':
-         activateTopButton(this.id);
-         locked=1;
-         makepages('productgroups',productstobuttons(groups).sort(compare_display));
-         focus();
-         break;
-      case 'commands':
-         activateTopButton(this.id);
-         locked=0;
-         makepages('normal',commandstobuttons().sort(compare_display));
-         focus();
-         break;
-      case 'back':
-         activateTopButton(this.id);
-         locked=0;
-         hideElement('#Secondscreen');
-         focus();
-         break;
-      case 'irc':
-         activateTopButton(this.id);
-         locked=0;
-         showElement('#IRCwindow');
-         if($('#IRCwindow').html() === "") {
-           $("#IRCwindow").append($('<iframe>',{src: 'http://kleintje:4200/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
-         }
-         break;
-      case 'spacecon':
-         activateTopButton(this.id);
-         locked=0;
-         showElement('#spacewindow');
-         if($('#spacewindow').html() === "") {
-           $("#spacewindow").append($('<iframe>',{src: '/spaceconsole/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
-         }
-         break;
-      case 'knopjes':
-         activateTopButton(this.id);
-         locked=0;
-         showElement('#Secondscreen');
-         hideElement('#IRCwindow');
-         hideElement('#spacewindow');
-         focus();
-         break;
-      default:
-        appendSearchValue(this.id);
-        verwerkinput();
-        focus();
-    }
-  });
-  $("body").on("click", '.KnopjeOK', function() {
-      runtext(searchValue());
-      setSearchValue("");
-      showusers('');
-      focus();
-  });
   var delay = (function(){
     var timer = 0;
     return function(callback, ms){
@@ -793,6 +689,113 @@ $(function() {
       timer = setTimeout(callback, ms);
     };
   })();
+
+  function bindButtonEvents() {
+    $("body" ).on( "click",'div.shownumbers', function() {
+      locked=1;
+      showElement('#Secondscreen');
+      makepage_numbers();
+      focus();
+      tabenable=0;
+    });
+    $("body" ).on( "click",'div.normal', function() {
+      var dingen=searchValue().split(" ");
+      dingen[dingen.length-1]=this.id;
+      postmsg('input',dingen.join(" "));
+      setSearchValue("");
+      focus();
+    });
+    $("body" ).on( "click",'div.invoer', function() {
+      if(this.id === "enter") {
+        verwerkinput();
+      } else if(this.id === "backspace") {
+        setSearchValue(searchValue().substring(0, searchValue().length - 1));
+      } else if(this.id === "leeg") {
+        focus();
+        return;
+      } else if(this.id === "space") {
+        appendSearchValue(" ");
+      } else {
+        appendSearchValue(this.id);
+      }
+      //postmsg('input',this.id);
+      focus();
+    });
+    $("body" ).on( "click", 'div.page' ,function() {
+      hideElements('.Pagina');
+      showElement('#Page'+this.id);
+      fillVisibleText(".Buttontext:visible");
+      focus();
+    });
+    $("body" ).on( "click", 'div.productgroups' ,function() {
+       makepages('normal',productgrouptobuttons(this.id).sort(compare_display));
+       focus();
+    });
+    $("body").on("click", 'div.Knopje:not(.normal):not(.shownumbers):not(.invoer):not(.page):not(.productgroups)', function() {
+      switch(this.id) {
+        case 'members':
+           locked=0;
+           showAccountButtons(this.id,'m',tabenable);
+           break;
+        case 'otherusers':
+           locked=0;
+           showAccountButtons(this.id,'o',tabenable);
+           break;
+        case 'products':
+           activateTopButton(this.id);
+           locked=1;
+           makepages('productgroups',productstobuttons(groups).sort(compare_display));
+           focus();
+           break;
+        case 'commands':
+           activateTopButton(this.id);
+           locked=0;
+           makepages('normal',commandstobuttons().sort(compare_display));
+           focus();
+           break;
+        case 'back':
+           activateTopButton(this.id);
+           locked=0;
+           hideElement('#Secondscreen');
+           focus();
+           break;
+        case 'irc':
+           activateTopButton(this.id);
+           locked=0;
+           showElement('#IRCwindow');
+           if($('#IRCwindow').html() === "") {
+             $("#IRCwindow").append($('<iframe>',{src: 'http://kleintje:4200/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
+           }
+           break;
+        case 'spacecon':
+           activateTopButton(this.id);
+           locked=0;
+           showElement('#spacewindow');
+           if($('#spacewindow').html() === "") {
+             $("#spacewindow").append($('<iframe>',{src: '/spaceconsole/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
+           }
+           break;
+        case 'knopjes':
+           activateTopButton(this.id);
+           locked=0;
+           showElement('#Secondscreen');
+           hideElement('#IRCwindow');
+           hideElement('#spacewindow');
+           focus();
+           break;
+        default:
+          appendSearchValue(this.id);
+          verwerkinput();
+          focus();
+      }
+    });
+    $("body").on("click", '.KnopjeOK', function() {
+        runtext(searchValue());
+        setSearchValue("");
+        showusers('');
+        focus();
+    });
+  }
 
   function buildLayout() {
     $('#body').append($('<div>',{id: 'Firstscreen'}));
@@ -864,6 +867,7 @@ $(function() {
   buildLeftButtons();
   buildActionButtons();
   fillVisibleText(".Knopjetext:visible");
+  bindButtonEvents();
   bindSearchInput();
   focus();
   postmsg('input','');
