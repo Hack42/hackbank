@@ -157,6 +157,38 @@ def test_writemembers():
     )
 
 
+def test_visible_members_uses_party_runtime_override():
+    party_mock = Mock()
+    party_mock.member_override.return_value = ["party"]
+    master_mock = Mock()
+    master_mock.plugins = {"party": party_mock}
+    acc = accounts("SID", master_mock)
+    acc.members = ["user1", "user2"]
+    acc.accounts = {
+        "party": {"amount": 0, "lastupdate": "2021-01-03"},
+        "user1": {"amount": 0, "lastupdate": "2021-01-02"},
+        "user2": {"amount": 0, "lastupdate": "2021-01-01"},
+    }
+
+    assert acc.visible_members() == ["party"]
+    acc._publish_members()
+
+    expected_calls = [
+        call(True, "nonmembers", '["user1", "user2"]'),
+        call(True, "members", '["party"]'),
+    ]
+    assert master_mock.send_message.call_args_list == expected_calls
+
+
+def test_visible_members_falls_back_to_members_file():
+    master_mock = Mock()
+    master_mock.plugins = {}
+    acc = accounts("SID", master_mock)
+    acc.members = ["user1"]
+
+    assert acc.visible_members() == ["user1"]
+
+
 def test_hook_balance():
     master_mock = Mock()
     acc = accounts("SID", master_mock)

@@ -199,6 +199,29 @@ class POS:  # pylint: disable=too-many-public-methods
         self.open()
         self.slowwrite(BON)
 
+    def makepartybon(self, started_amount, current_amount, settled_amount, started_at):
+        BON = PRINTER + LARGE + CENTER + LOGO
+        BON += NORMAL + b"Party mode afrekening\n\n"
+        BON += RIGHT + b"%s  -  Arnhem\n" % time.strftime("%Y-%m-%d %H:%M:%S").encode()
+        BON += LEFT + b"\n"
+        BON += b"Gestart:       %s\n" % started_at.encode()
+        BON += b"Begonnen met:  %8.2f\n" % started_amount
+        BON += b"Over:          %8.2f\n" % current_amount
+        BON += b"Afgerekend:    %8.2f\n" % settled_amount
+        BON += LEFT + FEED + CUT
+        return BON
+
+    def printparty(self, started_amount, current_amount, settled_amount, started_at):
+        self.open()
+        self.slowwrite(
+            self.makepartybon(
+                started_amount,
+                current_amount,
+                settled_amount,
+                started_at,
+            )
+        )
+
     def hook_post_checkout(self, user):
         self.loadbons()
         BON = b""

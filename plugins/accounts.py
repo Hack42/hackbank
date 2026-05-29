@@ -62,8 +62,11 @@ class accounts:
             self.accounts.items(), key=lambda x: x[1]["lastupdate"], reverse=True
         )
         # Extract the account names from the sorted list
+        visible_members = self.visible_members()
         account_names = [
-            account[0] for account in sorted_accounts if account[0] not in self.members
+            account[0]
+            for account in sorted_accounts
+            if account[0] not in visible_members
         ][0:125]
         self.master.send_message(True, "nonmembers", json.dumps(account_names))
 
@@ -100,15 +103,30 @@ class accounts:
                 if member.strip() and not member.lstrip().startswith("#")
             ]
 
+    def visible_members(self):
+        plugins = getattr(self.master, "plugins", {})
+        if isinstance(plugins, dict):
+            party = plugins.get("party")
+            if party is not None:
+                member_override = getattr(party, "member_override", None)
+                if member_override is not None:
+                    override = member_override()
+                    if override is not None:
+                        return override
+        return list(self.members)
+
     def _writemembers(self):
         with self.write_lock:
             _atomic_write(
                 "data/revbank.members", ["%s\n" % member for member in self.members]
             )
 
-    def _publish_members(self):
+    def publish_members(self):
         self.get_last_updated_accounts()
-        self.master.send_message(True, "members", json.dumps(self.members))
+        self.master.send_message(True, "members", json.dumps(self.visible_members()))
+
+    def _publish_members(self):
+        self.publish_members()
 
     def updateaccount(self, usr, value):
         logger.debug("update_account sid=%s user=%s value=%s", self.SID, usr, value)
@@ -190,7 +208,7 @@ class accounts:
         self.get_last_updated_accounts()
         for name, account in self.accounts.items():
             self.master.send_message(True, "accounts/" + name, json.dumps(account))
-        self.master.send_message(True, "members", json.dumps(self.members))
+        self.master.send_message(True, "members", json.dumps(self.visible_members()))
 
     def hook_pre_checkout(self, _text):
         self.readaccounts()
