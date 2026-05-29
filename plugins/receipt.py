@@ -1,4 +1,7 @@
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class receipt:
@@ -8,9 +11,11 @@ class receipt:
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
+        self.receipt = []
+        self.totals = {}
 
     def is_empty(self):
-        print("hooi", self.receipt)
+        logger.debug("receipt_state sid=%s receipt=%s", self.SID, self.receipt)
         if self.receipt:
             return False
         return True
@@ -82,6 +87,7 @@ class receipt:
                 and self.receipt[r]["value"] == Value
                 and self.receipt[r]["beni"] == Beni
                 and self.receipt[r]["Lose"] == Lose
+                and self.receipt[r]["product"] == Prod
             ):
                 self.receipt[r]["count"] += Count
                 self.receipt[r]["total"] = (
@@ -126,12 +132,12 @@ class receipt:
         try:
             num = int(text)
             self.receipt.pop(num)
-            self.master.send_message(True, "receipt", json.dumps(self.receipt))
-            self.updatetotals()
-            self.master.callhook("addremove", ())
+        except (TypeError, ValueError, IndexError):
             return True
-        except:
-            return True
+        self.master.send_message(True, "receipt", json.dumps(self.receipt))
+        self.updatetotals()
+        self.master.callhook("addremove", ())
+        return True
 
     def startup(self):
         self.updatetotals()

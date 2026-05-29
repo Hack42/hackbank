@@ -55,11 +55,18 @@ class TestPfand:
         assert self.pfand.input("other") is None
 
     def test_loadmarket(self):
-        market_data = "prod1 1.0\nprod2 2.0\n"
+        self.pfand.products = {"stale": 9.0}
+        market_data = "# comment\n\nprod1   1.0\nprod2\t2.0\nbad nope\nmalformed\n"
         mo = patch("builtins.open", mock_open(read_data=market_data))
         with mo:
             self.pfand.loadmarket()
             assert self.pfand.products == {"prod1": 1.0, "prod2": 2.0}
+
+    def test_instances_do_not_share_state(self):
+        self.pfand.products["prod1"] = 1.0
+        other = pfand_module.pfand("SID2", Mock())
+
+        assert other.products == {}
 
     def test_hook_abort(self):
         with patch.object(self.pfand, "startup"):

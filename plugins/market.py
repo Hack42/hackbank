@@ -1,5 +1,35 @@
 import json
-import re
+import os
+import tempfile
+import threading
+import logging
+from input_validation import (
+    filter_reserved_aliases,
+    is_reserved_input,
+    is_valid_alias,
+    is_valid_product_name,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def _atomic_write(path, lines):
+    directory = os.path.dirname(path) or "."
+    os.makedirs(directory, exist_ok=True)
+    fd, tmp_path = tempfile.mkstemp(
+        prefix=os.path.basename(path) + ".", dir=directory, text=True
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            for line in lines:
+                f.write(line)
+        os.replace(tmp_path, path)
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except FileNotFoundError:
+            pass
+        raise
 
 
 class market:
@@ -13,6 +43,7 @@ class market:
     newprodgroup = ""
     newproddesc = ""
     newprod = ""
+    write_lock = threading.Lock()
 
     def help(self):
         return {
@@ -22,19 +53,36 @@ class market:
             "market": "Market: Products",
         }
 
+    def is_reserved_input(self, text):
+        return is_reserved_input(text, master=self.master, plugin_help=self.help())
+
     def readproducts(self):
+        self.products = {}
+        self.aliases = {}
         with open("data/revbank.market", "r", encoding="utf-8") as f:
             lines = f.readlines()
-        print("ok", lines)
+        logger.debug("read_market_file sid=%s lines=%d", self.SID, len(lines))
         for line in lines:
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
             parts = " ".join(line.split()).split(" ", 4)
-            print(parts)
-            if len(parts) == 5 and not line.startswith("#"):
+            logger.debug("read_market_parts sid=%s parts=%s", self.SID, parts)
+            if len(parts) == 5:
                 aliases = parts[1].split(",")
                 name = aliases.pop(0)
+                if self.is_reserved_input(name):
+                    continue
+                aliases = filter_reserved_aliases(
+                    aliases, master=self.master, plugin_help=self.help()
+                )
+                try:
+                    price = float(parts[2])
+                    space = float(parts[3])
+                except ValueError:
+                    continue
                 self.products[name] = {
-                    "price": float(parts[2]),
-                    "space": float(parts[3]),
+                    "price": price,
+                    "space": space,
                     "description": parts[4],
                     "aliases": aliases,
                     "user": parts[0],
@@ -45,24 +93,24 @@ class market:
             self.master.send_message(True, "market/" + prod, json.dumps(product))
 
     def writeproducts(self):
-        with open("data/revbank.market", "w", encoding="utf-8") as f:
-            print(self.groups)
-            for group, groupvalue in self.groups.items():
-                f.write("# " + group + "\n")
-                for prod in groupvalue:
-                    product = self.products[prod]
-                    names = product["aliases"]
-                    names.insert(0, prod)
-                    f.write(
-                        "%-58s %7.2f  %s\n"
-                        % (
-                            ",".join(names),
-                            product["price"],
-                            product["description"],
-                        )
+        lines = [
+            "#                               Price =\n",
+            "# Seller   Barcode          Seller + Space  Description\n\n",
+        ]
+        with self.write_lock:
+            for prod, product in self.products.items():
+                names = [prod] + product["aliases"]
+                lines.append(
+                    "%-10s %-30s %7.2f %7.2f %s\n"
+                    % (
+                        product.get("user", self.newprodgroup),
+                        ",".join(names),
+                        product["price"],
+                        product.get("space", 0.0),
+                        product["description"],
                     )
-                f.write("\n")
-            f.close()
+                )
+            _atomic_write("data/revbank.market", lines)
 
     def __init__(self, SID, master):
         self.master = master
@@ -79,6 +127,8 @@ class market:
         self.newprod = ""
 
     def lookupprod(self, text):
+        if self.is_reserved_input(text):
+            return None
         prod = None
         if text in self.products:
             prod = text
@@ -103,7 +153,13 @@ class market:
                 "keyboard",
                 "Already known alias " + text + " for " + prod + "! Try again.",
             )
-        if len(text) < 6 or not re.compile("^[A-z0-9]+$").match(text):
+        if self.is_reserved_input(text):
+            return self.messageandbuttons(
+                "savealias",
+                "keyboard",
+                "That alias is a command; choose another alias.",
+            )
+        if not is_valid_alias(text):
             return self.messageandbuttons(
                 "savealias",
                 "keyboard",
@@ -144,26 +200,45 @@ class market:
             "Unknown product;What product do you want change price?",
         )
 
+    def delmarket(self, text):
+        if text == "abort":
+            return self.master.callhook("abort", None)
+        self.readproducts()
+        prod = self.lookupprod(text)
+        if prod:
+            del self.products[prod]
+            self.aliases = {}
+            for product_name, product in self.products.items():
+                for alias in product["aliases"]:
+                    self.aliases[alias] = product_name
+            self.writeproducts()
+            return True
+        return self.messageandbuttons(
+            "delmarket",
+            "keyboard",
+            "Unknown market product;What market product do you want to remove?",
+        )
+
     def saveprice(self, text):
         if text == "abort":
             return self.master.callhook("abort", None)
         try:
             price = float(text)
-            if not 0 < price < 1000:
-                return self.messageandbuttons(
-                    "saveprice", "numbers", "Price should be between 0 and 1000"
-                )
-            self.newprodprice = price
-            self.products[self.priceprod]["price"] = price
-            self.writeproducts()
-            self.readproducts()
-            return True
-        except:
+        except (TypeError, ValueError):
             return self.messageandbuttons(
                 "saveprice",
                 "numbers",
                 "Not a valid number; What is the price for" + self.newprod + "?",
             )
+        if not 0 < price < 1000:
+            return self.messageandbuttons(
+                "saveprice", "numbers", "Price should be between 0 and 1000"
+            )
+        self.newprodprice = price
+        self.products[self.priceprod]["price"] = price
+        self.writeproducts()
+        self.readproducts()
+        return True
 
     def addproductgroup(self, text):
         if text == "abort":
@@ -212,34 +287,34 @@ class market:
             return self.master.callhook("abort", None)
         try:
             price = float(text)
-            if not 0 < price < 1000:
-                return self.messageandbuttons(
-                    "addproductprice",
-                    "numbers",
-                    "Price should be between 0 and 1000",
-                )
-            self.newprodprice = price
-            self.master.donext(self, "addproductgroup")
-            self.master.send_message(
-                True, "message", "what productgroup to add the product to?"
-            )
-            self.master.send_message(
-                True,
-                "buttons",
-                json.dumps(
-                    {
-                        "special": "custom",
-                        "custom": [{"text": n, "display": n} for n in self.groups],
-                    }
-                ),
-            )
-            return True
-        except:
+        except (TypeError, ValueError):
             return self.messageandbuttons(
                 "addproductprice",
                 "numbers",
                 "Not a valid number; What is the price for" + self.newprod + "?",
             )
+        if not 0 < price < 1000:
+            return self.messageandbuttons(
+                "addproductprice",
+                "numbers",
+                "Price should be between 0 and 1000",
+            )
+        self.newprodprice = price
+        self.master.donext(self, "addproductgroup")
+        self.master.send_message(
+            True, "message", "what productgroup to add the product to?"
+        )
+        self.master.send_message(
+            True,
+            "buttons",
+            json.dumps(
+                {
+                    "special": "custom",
+                    "custom": [{"text": n, "display": n} for n in self.groups],
+                }
+            ),
+        )
+        return True
 
     def addproductdesc(self, text):
         if text == "abort":
@@ -265,7 +340,13 @@ class market:
             return self.messageandbuttons(
                 "addproduct", "keyboard", "Product already exists? What product to add?"
             )
-        if len(text) < 4 or not re.compile("^[A-z0-9]+$").match(text):
+        if self.is_reserved_input(text):
+            return self.messageandbuttons(
+                "addproduct",
+                "keyboard",
+                "That product name is a command; choose another name.",
+            )
+        if not is_valid_product_name(text):
             return self.messageandbuttons(
                 "addproduct",
                 "keyboard",
@@ -329,23 +410,19 @@ class market:
                 True, "buttons", json.dumps({"special": "custom", "custom": custom})
             )
             return True
+        if text == "addmarket":
+            return self.messageandbuttons(
+                "addalias", "keyboard", "What market product do you want to alias?"
+            )
+        if text == "changemarket":
+            return self.messageandbuttons(
+                "setprice", "keyboard", "What market product to change price for?"
+            )
+        if text == "delmarket":
+            return self.messageandbuttons(
+                "delmarket", "keyboard", "What market product do you want to remove?"
+            )
 
-        #        elif text=="aliasproduct":
-        #            return self.messageandbuttons('addalias','products','What product do you want to alias?')
-        #        elif text=="addproduct":
-        #            return self.messageandbuttons('addproduct','keyboard','What is the name of the product you want to add?')
-        #        elif text=="setprice":
-        #            return self.messageandbuttons('setprice','products','What product to change the price for?')
-        #        elif text.endswith('*'):
-        #            try:
-        #                value=float(text[:-1])
-        #                if value>0 and value<100:
-        #                    self.times=value
-        #                    self.master.send_message(True,'message',"What are you buying %d from?" % self.times)
-        #                    self.master.send_message(True,'buttons',json.dumps({'special':'products'}))
-        #                    return True
-        #            except:
-        #                pass
         return None
 
     def hook_abort(self, _void):

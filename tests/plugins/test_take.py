@@ -64,6 +64,16 @@ def test_who_invalid_amount():
     master_mock.donext.assert_called_with(take, "who")
 
 
+def test_who_non_numeric_amount():
+    master_mock = Mock()
+    take = take_module.take("SID", master_mock)
+    master_mock.accounts.accounts = {"user1": {}}
+    take.totakefrom = ["user1"]
+
+    assert take.who("not-a-number") == True
+    master_mock.donext.assert_called_with(take, "who")
+
+
 def test_who_unknown_user():
     master_mock = Mock()
     take = take_module.take("SID", master_mock)
@@ -94,3 +104,19 @@ def test_startup():
     take = take_module.take("SID", master_mock)
     take.startup()
     # No assertion needed, just checking if method exists and runs without error
+
+
+def test_instances_do_not_share_state():
+    master_mock = Mock()
+    take = take_module.take("SID", master_mock)
+    take.totakefrom.append("user1")
+    take.peruser = 10
+    take.myreason = "reason"
+    take.value = 20
+
+    other = take_module.take("SID2", Mock())
+
+    assert other.totakefrom == []
+    assert other.peruser == 0
+    assert other.myreason == ""
+    assert other.value == 0

@@ -8,6 +8,7 @@ class pfand:
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
+        self.products = {}
 
     def help(self):
         return {"pfand": "Return deposit"}
@@ -71,13 +72,19 @@ class pfand:
         return None
 
     def loadmarket(self):
+        self.products = {}
         with open("data/revbank.pfand", "r", encoding="utf-8") as f:
             lines = f.readlines()
         for line in lines:
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
             parts = " ".join(line.split()).split(" ", 2)
             if len(parts) == 2:
                 name = parts[0]
-                self.products[name] = float(parts[1])
+                try:
+                    self.products[name] = float(parts[1])
+                except ValueError:
+                    continue
 
     def hook_abort(self, _void):
         self.startup()

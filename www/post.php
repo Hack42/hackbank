@@ -1,16 +1,40 @@
 <?php
 header('Content-Type: application/json');
-require("phpMQTT.php");
 
-$mqtt_host = $_ENV["MQTT_HOST"];
-if (empty($mqtt_host)) {
-  $mqtt_host = "localhost";
+function fail_request($message) {
+  http_response_code(400);
+  echo json_encode(array("done" => 0, "error" => $message));
+  exit;
 }
 
+function request_string($key, $max_length) {
+  if (!isset($_REQUEST[$key]) || !is_string($_REQUEST[$key])) {
+    fail_request("Missing ".$key);
+  }
+  $value = $_REQUEST[$key];
+  if ($value === "" || strlen($value) > $max_length) {
+    fail_request("Invalid ".$key);
+  }
+  return $value;
+}
+
+require_once(__DIR__."/config.php");
+
+$topic = request_string("topic", 128);
+if (!isset($_REQUEST["msg"]) || !is_string($_REQUEST["msg"]) || strlen($_REQUEST["msg"]) > 512) {
+  fail_request("Invalid msg");
+}
+$msg = $_REQUEST["msg"];
+if (!preg_match('/^session\/[A-Za-z0-9_-]{1,64}\/input$/', $topic)) {
+  fail_request("Invalid topic");
+}
+
+require("phpMQTT.php");
 use Bluerhinos\phpMQTT;
-$mqtt = new phpMQTT($mqtt_host, 1883, "barclient".rand());
+$mqtt_config = kassa_mqtt_config();
+$mqtt = new phpMQTT($mqtt_config["host"], $mqtt_config["port"], "barclient".rand());
 if($mqtt->connect()){
-  $mqtt->publish("hack42bar/input/".$_REQUEST['topic'],$_REQUEST['msg'],1);
+  $mqtt->publish("hack42bar/input/".$topic, $msg, 1);
   $mqtt->close();
   echo json_encode(array("done" => 1));
   return ;

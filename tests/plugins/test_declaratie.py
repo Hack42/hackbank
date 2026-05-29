@@ -70,20 +70,13 @@ class TestDeclaratie:
             assert self.declaratie.amount("abort")
             mock_callhook.assert_called_with("abort", None)
 
-    def test_amount_abort_inside_exception_branch(self):
-        class DelayedAbort:
-            def __init__(self):
-                self.calls = 0
+    def test_amount_invalid_does_not_abort(self):
+        self.declaratie.soort = "declaratie"
 
-            def __eq__(self, other):
-                self.calls += 1
-                return self.calls > 1 and other == "abort"
+        assert self.declaratie.amount("not numeric") is True
 
-            def __float__(self):
-                raise ValueError("not numeric")
-
-        assert self.declaratie.amount(DelayedAbort()) is True
-        self.master_mock.callhook.assert_called_with("abort", None)
+        self.master_mock.callhook.assert_not_called()
+        self.master_mock.donext.assert_called_with(self.declaratie, "amount")
 
     def test_reason(self):
         self.declaratie.master.donext = Mock()
@@ -429,3 +422,22 @@ class TestDeclaratie:
             assert self.declaratie.input(command)
             assert self.declaratie.soort == command
             self.master_mock.donext.assert_called_with(self.declaratie, "who")
+
+    def test_instances_do_not_share_state(self):
+        self.declaratie.wie = "user1"
+        self.declaratie.value = 10
+        self.declaratie.reden = "reason"
+        self.declaratie.ascash = 1
+        self.declaratie.asbank = 2
+        self.declaratie.asbar = 3
+        self.declaratie.soort = "declaratie"
+
+        other = declaratie_module.declaratie("SID2", Mock())
+
+        assert other.wie == ""
+        assert other.value == 0
+        assert other.reden == ""
+        assert other.ascash == 0
+        assert other.asbank == 0
+        assert other.asbar == 0
+        assert other.soort == ""

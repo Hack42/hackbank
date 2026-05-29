@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import Mock, patch, mock_open, call
+import pytest
 import plugins.products as ProductsModule
 
 
@@ -9,13 +10,38 @@ class TestProducts(unittest.TestCase):
         self.products = ProductsModule.products("SID", self.master_mock)
 
     def test_readproducts(self):
-        product_data = "# Group1\nproduct1,alias1 2.50 Description1\n# Group2\nproduct2 1.50 Description2\n"
+        self.master_mock.help = {"deposit": "Deposit Money"}
+        self.products.products = {"stale_product": {}}
+        self.products.aliases = {"stale_alias": "stale_product"}
+        self.products.groups = {"StaleGroup": ["stale_product"]}
+        product_data = (
+            "\n"
+            "# Group1\n"
+            "product1,alias1   2.50   Description1\n"
+            "deposit,oldalias   1.00   Reserved product\n"
+            "product3,deposit,ok   3.00   Reserved aliases\n"
+            "\n"
+            "# Group2\n"
+            "product2\t1.50\tDescription2\n"
+            "badprice nope Bad description\n"
+            "#\n"
+            "malformed\n"
+        )
         with patch("builtins.open", mock_open(read_data=product_data)):
             self.products.readproducts()
             self.assertIn("product1", self.products.products)
             self.assertIn("product2", self.products.products)
+            self.assertIn("product3", self.products.products)
+            self.assertEqual(self.products.products["product3"]["aliases"], [])
+            self.assertNotIn("badprice", self.products.products)
+            self.assertNotIn("deposit", self.products.products)
+            self.assertNotIn("deposit", self.products.aliases)
+            self.assertNotIn("ok", self.products.aliases)
             self.assertIn("Group1", self.products.groups)
             self.assertIn("Group2", self.products.groups)
+            self.assertNotIn("stale_product", self.products.products)
+            self.assertNotIn("stale_alias", self.products.aliases)
+            self.assertNotIn("StaleGroup", self.products.groups)
 
     def test_help(self):
         self.assertEqual(
@@ -43,15 +69,29 @@ class TestProducts(unittest.TestCase):
             },
         }
         self.products.groups = {"Group1": ["product1"], "Group2": ["product2"]}
-        with patch("builtins.open", mock_open()) as mocked_file:
+        with patch("plugins.products._atomic_write") as mock_atomic_write:
             self.products.writeproducts()
-            mocked_file().write.assert_called()
+        mock_atomic_write.assert_called_once_with(
+            "data/revbank.products",
+            [
+                "# Group1\n",
+                "%-58s %7.2f  %s\n" % ("product1,alias1", 2.50, "Description1"),
+                "\n",
+                "# Group2\n",
+                "%-58s %7.2f  %s\n" % ("product2", 1.50, "Description2"),
+                "\n",
+            ],
+        )
+        self.assertEqual(self.products.products["product1"]["aliases"], ["alias1"])
+        self.assertEqual(self.products.products["product2"]["aliases"], [])
 
     def test_lookupprod(self):
+        self.master_mock.help = {"deposit": "Deposit Money"}
         self.products.products = {"product1": {}}
-        self.products.aliases = {"alias1": "product1"}
+        self.products.aliases = {"alias1": "product1", "deposit": "product1"}
         self.assertEqual(self.products.lookupprod("product1"), "product1")
         self.assertEqual(self.products.lookupprod("alias1"), "product1")
+        self.assertIsNone(self.products.lookupprod("deposit"))
         self.assertIsNone(self.products.lookupprod("nonexistent"))
 
     def test_messageandbuttons(self):
@@ -176,16 +216,19 @@ class TestProducts(unittest.TestCase):
             "product1": {"aliases": [], "price": 42, "description": "aa"}
         }
         self.products.aliasprod = "product1"
-        with patch("builtins.open", mock_open()):
+        with patch.object(self.products, "readproducts"), patch.object(
+            self.products, "writeproducts"
+        ):
             assert self.products.savealias("alias2")
             assert "alias2" in self.products.products["product1"]["aliases"]
 
     def test_saveprice_valid_price(self):
         self.products.products = {"product1": {"price": 2.5}}
         self.products.priceprod = "product1"
-        with patch("builtins.open", mock_open()):
+        with patch.object(self.products, "readproducts"), patch.object(
+            self.products, "writeproducts"
+        ):
             assert self.products.saveprice("3.0")
-            print("hooi", self.products.products)
             assert self.products.products["product1"]["price"] == 3.0
 
     def test_abort_paths_call_abort_hook(self):
@@ -210,6 +253,33 @@ class TestProducts(unittest.TestCase):
         self.products.aliases = {"alias1": "product1"}
         with patch.object(self.products, "readproducts"):
             assert self.products.savealias("alias1")
+        self.master_mock.donext.assert_called_with(self.products, "savealias")
+
+    def test_savealias_rejects_command_alias(self):
+        self.master_mock.help = {"deposit": "Deposit Money"}
+        self.products.products = {"product1": {"aliases": []}}
+        self.products.aliasprod = "product1"
+
+        with patch.object(self.products, "readproducts"), patch.object(
+            self.products, "writeproducts"
+        ) as mock_writeproducts:
+            assert self.products.savealias("deposit")
+
+        mock_writeproducts.assert_not_called()
+        assert self.products.products["product1"]["aliases"] == []
+        self.master_mock.donext.assert_called_with(self.products, "savealias")
+
+    def test_savealias_rejects_non_alnum_alias(self):
+        self.products.products = {"product1": {"aliases": []}}
+        self.products.aliasprod = "product1"
+
+        with patch.object(self.products, "readproducts"), patch.object(
+            self.products, "writeproducts"
+        ) as mock_writeproducts:
+            assert self.products.savealias("bad_alias")
+
+        mock_writeproducts.assert_not_called()
+        assert self.products.products["product1"]["aliases"] == []
         self.master_mock.donext.assert_called_with(self.products, "savealias")
 
     def test_saveprice_out_of_range(self):
@@ -269,14 +339,29 @@ class TestProducts(unittest.TestCase):
         self.master_mock.donext.assert_called_with(self.products, "addproduct")
 
         self.master_mock.reset_mock()
+        assert self.products.addproduct("bad_name")
+        self.master_mock.donext.assert_called_with(self.products, "addproduct")
+
+        self.master_mock.reset_mock()
         assert self.products.addproduct("product2")
         assert self.products.newprod == "product2"
         self.master_mock.donext.assert_called_with(self.products, "addproductdesc")
 
+    def test_addproduct_rejects_command_name(self):
+        self.master_mock.help = {"deposit": "Deposit Money"}
+
+        assert self.products.addproduct("deposit")
+
+        assert self.products.newprod == ""
+        self.master_mock.donext.assert_called_with(self.products, "addproduct")
+
     def test_input_product_commands_and_multiplier(self):
+        self.master_mock.help = {"deposit": "Deposit Money"}
         self.products.products = {
-            "product1": {"price": 2.5, "description": "Description1", "aliases": []}
+            "product1": {"price": 2.5, "description": "Description1", "aliases": []},
+            "deposit": {"price": 1.0, "description": "Reserved", "aliases": []},
         }
+        self.products.aliases = {"deposit": "product1"}
 
         assert self.products.input("2*")
         assert self.products.times == 2
@@ -286,6 +371,10 @@ class TestProducts(unittest.TestCase):
             True, 2.5, "Description1", 2.0, None, "product1"
         )
         assert self.products.times == 1
+
+        self.master_mock.reset_mock()
+        assert self.products.input("deposit") is None
+        self.master_mock.receipt.add.assert_not_called()
 
         for command, nextcall in (
             ("aliasproduct", "addalias"),
@@ -298,3 +387,22 @@ class TestProducts(unittest.TestCase):
 
         assert self.products.input("0*") is None
         assert self.products.input("not-a-number*") is None
+
+
+def test_atomic_write_writes_and_cleans_up_on_failure(tmp_path):
+    output = tmp_path / "missing" / "products.txt"
+    ProductsModule._atomic_write(str(output), ["line1\n", "line2\n"])
+
+    assert output.read_text(encoding="utf-8") == "line1\nline2\n"
+
+    with patch(
+        "plugins.products.tempfile.mkstemp", return_value=(123, "tmpfile")
+    ), patch(
+        "plugins.products.os.fdopen", side_effect=RuntimeError("write failed")
+    ), patch(
+        "plugins.products.os.unlink", side_effect=FileNotFoundError
+    ) as mock_unlink:
+        with pytest.raises(RuntimeError):
+            ProductsModule._atomic_write("data/revbank.products", ["line\n"])
+
+    mock_unlink.assert_called_once_with("tmpfile")

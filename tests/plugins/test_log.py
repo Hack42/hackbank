@@ -1,6 +1,7 @@
 from unittest.mock import patch, mock_open, MagicMock
 import plugins.log as log_module
-import time
+
+FIXED_TIME = "2026-05-28_11:42:25"
 
 
 class TestLog:
@@ -21,36 +22,37 @@ class TestLog:
         test_action = "TEST_ACTION"
         test_text = "Test text"
         mo = mock_open()
-        with patch("builtins.open", mo):
+        with patch("builtins.open", mo), patch(
+            "plugins.log.time.strftime", return_value=FIXED_TIME
+        ):
             self.log.log(test_action, test_text)
             mo.assert_called_with("data/revbank.log", "a", encoding="utf-8")
             handle = mo()
             handle.write.assert_called_with(
-                time.strftime("%Y-%m-%d_%H:%M:%S")
-                + " "
-                + test_action
-                + " "
-                + test_text
-                + "\n"
+                FIXED_TIME + " " + test_action + " " + test_text + "\n"
             )
 
     def test_hook_balance(self):
         test_args = ("user", 100.0, 90.0, 123)
         mo = mock_open()
-        with patch("builtins.open", mo):
+        with patch("builtins.open", mo), patch(
+            "plugins.log.time.strftime", return_value=FIXED_TIME
+        ):
             self.log.hook_balance(test_args)
             mo.assert_called_with("data/revbank.log", "a", encoding="utf-8")
             handle = mo()
-            expected_log = f"{time.strftime('%Y-%m-%d_%H:%M:%S')} BALANCE 123        user had +100.00, lost -10.00, now has +90.00\n"
+            expected_log = f"{FIXED_TIME} BALANCE 123        user had +100.00, lost -10.00, now has +90.00\n"
             handle.write.assert_called_with(expected_log)
 
     def test_hook_balance_gain(self):
         test_args = ("user", 90.0, 100.0, 123)
         mo = mock_open()
-        with patch("builtins.open", mo):
+        with patch("builtins.open", mo), patch(
+            "plugins.log.time.strftime", return_value=FIXED_TIME
+        ):
             self.log.hook_balance(test_args)
             handle = mo()
-            expected_log = f"{time.strftime('%Y-%m-%d_%H:%M:%S')} BALANCE 123        user had +90.00, gained +10.00, now has +100.00\n"
+            expected_log = f"{FIXED_TIME} BALANCE 123        user had +90.00, gained +10.00, now has +100.00\n"
             handle.write.assert_called_with(expected_log)
 
     def test_hook_post_checkout(self):
@@ -67,11 +69,13 @@ class TestLog:
         )
         self.log.master.transID = 456
         mo = mock_open()
-        with patch("builtins.open", mo):
+        with patch("builtins.open", mo), patch(
+            "plugins.log.time.strftime", return_value=FIXED_TIME
+        ):
             self.log.hook_post_checkout(None)
             mo.assert_called_with("data/revbank.log", "a", encoding="utf-8")
             handle = mo()
-            expected_log = f"{time.strftime('%Y-%m-%d_%H:%M:%S')} CHECKOUT 456        user 2 *      50.00 LOSE EUR     100.00 # Test\n"
+            expected_log = f"{FIXED_TIME} CHECKOUT 456        user 2 *      50.00 LOSE EUR     100.00 # Test\n"
             handle.write.assert_called_with(expected_log)
 
     def test_pre_input(self):
@@ -80,9 +84,11 @@ class TestLog:
         mo = mock_open()
         with patch("builtins.open", mo), patch.object(
             self.master_mock, "send_message"
-        ) as mock_send_message:
+        ) as mock_send_message, patch(
+            "plugins.log.time.strftime", return_value=FIXED_TIME
+        ):
             self.log.pre_input(test_text)
             mo.assert_called_with("data/revbank.log", "a", encoding="utf-8")
             handle = mo()
-            expected_log = f"{time.strftime('%Y-%m-%d_%H:%M:%S')} PROMPT Test Prompt >> {test_text}\n"
+            expected_log = f"{FIXED_TIME} PROMPT Test Prompt >> {test_text}\n"
             handle.write.assert_called_with(expected_log)

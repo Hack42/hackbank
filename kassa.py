@@ -1,13 +1,18 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
+# Broad exception handling is intentional in this plugin host: plugin failures
+# should be logged and isolated instead of stopping the active kassa session.
+# pylint: disable=broad-exception-caught
 import glob
+import logging
 import os
 import time
 import json
 import sys
-import traceback
 import paho.mqtt.client as mqtt
+from config import config_get
 
+logger = logging.getLogger(__name__)
 sessions = {}
 
 
@@ -40,31 +45,51 @@ class Session:
         self.SID = SID
         self.client = client
         self.plugins = {}
+        self.counter = 0
+        self.nextcall = {}
+        self.prompt = ""
+        self.help = {}
+        self.cache = {}
+        self.iets = 0
+        self.buttons = {}
+        self.stock = None
+        self.POS = None
+        self.log = None
+        self.receipt = None
+        self.accounts = None
+        self.products = None
 
     def startup(self):
-        print("Startup", self.SID)
+        logger.info("session_startup sid=%s", self.SID)
         for fname in glob.glob("plugins/*.py"):
             plugname = os.path.splitext(os.path.basename(fname))[0]
             if plugname != "__init__" and not plugname in self.plugins:
                 if plugname in sys.modules:
                     del sys.modules[plugname]
-        print(self.plugins)
+        logger.debug(
+            "session_plugins_before_load sid=%s plugins=%s", self.SID, self.plugins
+        )
         for fname in glob.glob("plugins/*.py"):
             plugname = os.path.splitext(os.path.basename(fname))[0]
-            print(plugname)
+            logger.debug("plugin_discovered sid=%s plugin=%s", self.SID, plugname)
             if plugname != "__init__" and not plugname in self.plugins:
                 if plugname in sys.modules:
                     del sys.modules[plugname]
                 self.plugins[plugname] = self.import_from(
                     "plugins." + plugname, plugname
                 )(self.SID, self)
-                print(plugname, self.import_from("plugins." + plugname, plugname))
+                logger.debug(
+                    "plugin_loaded sid=%s plugin=%s class=%r",
+                    self.SID,
+                    plugname,
+                    self.import_from("plugins." + plugname, plugname),
+                )
                 self.send_message(True, "message", "loaded plugin " + plugname)
                 try:
                     self.help.update(self.plugins[plugname].help())
-                except:
-                    print(traceback.format_exc())
-        print(self.plugins)
+                except Exception:
+                    logger.exception("Plugin %s help failed", plugname)
+        logger.debug("session_plugins_loaded sid=%s plugins=%s", self.SID, self.plugins)
         self.receipt = self.plugins["receipt"]
         self.accounts = self.plugins["accounts"]
         self.products = self.plugins["products"]
@@ -76,22 +101,22 @@ class Session:
         for _plug, plugin in self.plugins.items():
             try:
                 plugin.startup()
-            except:
-                print(traceback.format_exc())
+            except Exception:
+                logger.exception("Plugin %s startup failed", _plug)
         self.send_message(True, "commands", json.dumps(self.help))
         self.send_message(True, "message", "Enter product, command or username")
-        print(self.plugins)
+        logger.info("session_ready sid=%s plugins=%s", self.SID, sorted(self.plugins))
 
     def realcallhook(self, hook, arg):
         for _plug, plugin in self.plugins.items():
             try:
-                getattr(plugin, "hook_" + hook)
-                try:
-                    getattr(plugin, "hook_" + hook)(arg)
-                except:
-                    print(traceback.format_exc())
+                hook_func = getattr(plugin, "hook_" + hook)
             except AttributeError:
-                pass
+                continue
+            try:
+                hook_func(arg)
+            except Exception:
+                logger.exception("Plugin %s hook_%s failed", _plug, hook)
 
     def callhook(self, hook, arg):
         self.realcallhook("pre_" + hook, arg)
@@ -105,11 +130,13 @@ class Session:
     def pre_input(self, text):
         for _plug, plugin in self.plugins.items():
             try:
-                plugin.pre_input(text)
+                pre_input = getattr(plugin, "pre_input")
             except AttributeError:
-                pass
-            except:
-                print(traceback.format_exc())
+                continue
+            try:
+                pre_input(text)
+            except Exception:
+                logger.exception("Plugin %s pre_input failed", _plug)
 
     def handle_nextcall(self, text):
         if not self.nextcall:
@@ -118,12 +145,16 @@ class Session:
             plug = self.nextcall["plug"]
             func = self.nextcall["function"]
             self.nextcall = {}
-            print(text)
-            print(self.nextcall)
-            print(getattr(plug, func))
+            logger.debug(
+                "nextcall sid=%s plugin=%s function=%s input=%r",
+                self.SID,
+                plug.__class__.__name__,
+                func,
+                text,
+            )
             return bool(getattr(plug, func)(text))
-        except:
-            print(traceback.format_exc())
+        except Exception:
+            logger.exception("Nextcall failed")
             return False
 
     def input(self, text):
@@ -159,13 +190,15 @@ class Session:
         if not done:
             for _plug, plugin in self.plugins.items():
                 try:
-                    if plugin.input(part):
+                    plugin_input = getattr(plugin, "input")
+                except AttributeError:
+                    continue
+                try:
+                    if plugin_input(part):
                         done = 1
                         break
-                except AttributeError:
-                    print(traceback.format_exc())
-                except:
-                    print(traceback.format_exc())
+                except Exception:
+                    logger.exception("Plugin %s input failed", _plug)
 
         if not done:
             if self.plugins.get("withdraw") and self.plugins["withdraw"].withdraw(part):
@@ -182,10 +215,11 @@ class Session:
             != message
             or len(topic) < 8
         ):
-            print(
+            logger.debug(
+                "send_message sid=%s retain=%s topic=%s message=%r",
+                self.SID,
                 retain,
-                "hack42bar/output/session/" + self.SID + "/" + topic,
-                ":",
+                topic,
                 message,
             )
             self.cache["hack42bar/output/session/" + self.SID + "/" + topic] = message
@@ -201,7 +235,7 @@ class Session:
 def get_session(SID, client):
     global sessions  # pylint: disable=global-variable-not-assigned
     if not SID in sessions:
-        print("Starting new session", SID)
+        logger.info("starting_new_session sid=%s", SID)
         sessions[SID] = Session(SID, client)
         sessions[SID].startup()
         client.publish("hack42bar/output/sessions", json.dumps(list(sessions.keys())))
@@ -213,37 +247,51 @@ def run_session(client, SID, action, data):
         session = get_session(SID, client)
         session.input(data.decode())
     else:
-        print("unhandled", action)
+        logger.warning("unhandled_session_action sid=%s action=%s", SID, action)
 
 
 def on_connect(client, _userdata, _flags, rc):
-    print("Connected with result code " + str(rc))
+    logger.info("mqtt_connected rc=%s", rc)
     client.subscribe("hack42bar/input/#")
 
 
 def on_message(client, _userdata, msg):
-    # print(msg.topic+" "+str(msg.payload))
     elms = msg.topic.split("/")
     msg = msg.payload
-    if len(elms) < 3:
+    if len(elms) < 5:
         return
     # try:
     run_session(client, elms[3], elms[4], msg)
 
 
 def run():
+    logging_level = getattr(
+        logging,
+        str(config_get("logging", "level", default="INFO")).upper(),
+        logging.INFO,
+    )
+    logging.basicConfig(
+        level=logging_level,
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
     while 1:
         try:
+            mqtt_config = config_get("mqtt", default={})
             client = mqtt.Client()
             client.on_connect = on_connect
             client.on_message = on_message
 
-            client.connect("localhost", 1883, 60)
+            client.connect(
+                mqtt_config["host"],
+                int(mqtt_config["port"]),
+                int(mqtt_config["keepalive"]),
+            )
             client.loop_start()
             while True:
                 time.sleep(1)
             # client.loop_forever()
-        except:
+        except Exception:
+            logger.exception("Kassa MQTT loop failed")
             time.sleep(5)
 
 

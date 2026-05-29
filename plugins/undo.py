@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 import json
+import copy
 import pickle
 import time
-import traceback
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class undo:
@@ -20,11 +23,11 @@ class undo:
             "restore": "Restore a transaction",
         }
 
-    def hook_checkout(self, text):
+    def hook_post_checkout(self, text):
         self.loadundo()
         self.undo[self.master.transID] = {
-            "totals": self.master.receipt.totals,
-            "receipt": self.master.receipt.receipt,
+            "totals": copy.deepcopy(self.master.receipt.totals),
+            "receipt": copy.deepcopy(self.master.receipt.receipt),
             "beni": text,
         }
         self.writeundo()
@@ -52,16 +55,31 @@ class undo:
             fk = sorted(self.undo.keys())
             del self.undo[fk[0]]
 
-        with open("data/revbank.UNDO", "wb") as output:
-            pickle.dump(self.undo, output)
+        with open("data/revbank.UNDO", "w", encoding="utf-8") as output:
+            json.dump(self.undo, output)
 
     def loadundo(self):
+        self.undo = {}
         try:
             with open("data/revbank.UNDO", "rb") as f:
-                self.undo = pickle.load(f)
-                f.close()
-        except:
-            pass
+                data = f.read()
+        except OSError:
+            return
+
+        try:
+            try:
+                loaded = json.loads(data.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                loaded = pickle.loads(data)
+            self.undo = {int(transID): value for transID, value in loaded.items()}
+        except (
+            AttributeError,
+            EOFError,
+            TypeError,
+            ValueError,
+            pickle.PickleError,
+        ):
+            return
 
     def doundo(self, text):
         if text == "abort":
@@ -69,25 +87,59 @@ class undo:
             return True
         try:
             transID = int(text)
-            if transID in self.undo:
-                self.master.callhook(
-                    "undo",
-                    (
-                        transID,
-                        self.undo[transID]["totals"],
-                        self.undo[transID]["receipt"],
-                        self.undo[transID]["beni"],
-                    ),
-                )
+        except (TypeError, ValueError):
+            self.listundo()
+            return True
+
+        if transID in self.undo:
+            entry = self._get_undo_entry(transID)
+            if entry is None:
+                self.listundo()
                 return True
-            print(self.undo.keys())
-            print(f"transID not in undo: {transID}")
+            totals, receipt, beni = entry
+            self.master.callhook(
+                "undo",
+                (transID, totals, receipt, beni),
+            )
+            return True
+
+        logger.warning(
+            "undo_transaction_not_found sid=%s trans_id=%s available=%s",
+            self.SID,
+            transID,
+            sorted(self.undo.keys()),
+        )
+        self.listundo()
+        return True
+
+    def _get_undo_entry(self, transID):
+        try:
+            return (
+                self.undo[transID]["totals"],
+                self.undo[transID]["receipt"],
+                self.undo[transID]["beni"],
+            )
+        except (KeyError, TypeError):
+            return None
+
+    def _restore_receipt(self, receipt, beni):
+        try:
+            for rr in receipt:
+                nowbeni = None
+                if rr["beni"] != beni:
+                    nowbeni = rr["beni"]
+                self.master.receipt.add(
+                    rr["Lose"],
+                    rr["value"],
+                    rr["description"],
+                    rr["count"],
+                    nowbeni,
+                    rr["product"],
+                )
+        except (KeyError, TypeError):
             self.listundo()
             return True
-        except:
-            traceback.print_exc()
-            self.listundo()
-            return True
+        return True
 
     def dorestore(self, text):
         if text == "abort":
@@ -95,37 +147,22 @@ class undo:
             return True
         try:
             transID = int(text)
-            if transID in self.undo:
-                receipt = self.undo[transID]["receipt"]
-                beni = self.undo[transID]["beni"]
-                self.master.callhook(
-                    "undo",
-                    (
-                        transID,
-                        self.undo[transID]["totals"],
-                        self.undo[transID]["receipt"],
-                        self.undo[transID]["beni"],
-                    ),
-                )
-                for rr in receipt:
-                    nowbeni = None
-                    if rr["beni"] != beni:
-                        nowbeni = rr["beni"]
-                    self.master.receipt.add(
-                        rr["Lose"],
-                        rr["value"],
-                        rr["description"],
-                        rr["count"],
-                        nowbeni,
-                        rr["product"],
-                    )
-                return True
+        except (TypeError, ValueError):
             self.listundo()
             return True
-        except:
-            traceback.print_exc()
+
+        if transID not in self.undo:
             self.listundo()
             return True
+
+        entry = self._get_undo_entry(transID)
+        if entry is None:
+            self.listundo()
+            return True
+
+        totals, receipt, beni = entry
+        self.master.callhook("undo", (transID, totals, receipt, beni))
+        return self._restore_receipt(receipt, beni)
 
     def listundo(self, restore=False):
         self.loadundo()

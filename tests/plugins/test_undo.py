@@ -15,19 +15,47 @@ def test_undo_help():
     assert undo.help() == expected_help
 
 
-def test_undo_hook_checkout():
+def test_undo_hook_post_checkout():
     master_mock = Mock()
     undo = undo_module.undo("SID", master_mock)
     master_mock.receipt = Mock(totals={}, receipt=[])
 
     with patch.object(undo, "loadundo"), patch.object(undo, "writeundo"):
-        undo.hook_checkout("text")
+        undo.hook_post_checkout("text")
         undo.writeundo.assert_called()
         assert undo.undo[master_mock.transID] == {
             "totals": master_mock.receipt.totals,
             "receipt": master_mock.receipt.receipt,
             "beni": "text",
         }
+
+
+def test_undo_hook_post_checkout_stores_snapshot():
+    master_mock = Mock()
+    undo = undo_module.undo("SID", master_mock)
+    master_mock.transID = 123
+    master_mock.receipt = Mock(
+        totals={"user": -2.5},
+        receipt=[
+            {
+                "Lose": True,
+                "value": 2.5,
+                "description": "Product",
+                "count": 1,
+                "beni": "user",
+                "product": "product1",
+            }
+        ],
+    )
+
+    with patch.object(undo, "loadundo"), patch.object(undo, "writeundo"):
+        undo.hook_post_checkout("user")
+
+    master_mock.receipt.totals["user"] = 0
+    master_mock.receipt.receipt[0]["count"] = 99
+
+    assert undo.undo[123]["totals"] == {"user": -2.5}
+    assert undo.undo[123]["receipt"][0]["count"] == 1
 
 
 def test_undo_hook_undo():
@@ -69,11 +97,14 @@ def test_undo_writeundo():
     with patch("builtins.open", mock_open()) as mock_file:
         undo.writeundo()
         assert len(undo.undo) == 50
-        mock_file.assert_called_with("data/revbank.UNDO", "wb")
+        mock_file.assert_called_with("data/revbank.UNDO", "w", encoding="utf-8")
         mock_file().write.assert_called()
+        written = "".join(call.args[0] for call in mock_file().write.call_args_list)
+        loaded = json.loads(written)
+        assert len(loaded) == 50
 
 
-def test_undo_loadundo():
+def test_undo_loadundo_pickle_backwards_compatible():
     master_mock = Mock()
     undo = undo_module.undo("SID", master_mock)
     mock_data = pickle.dumps({1: "data"})
@@ -83,7 +114,17 @@ def test_undo_loadundo():
         assert undo.undo == {1: "data"}
 
 
-def test_undo_loadundo_ignores_errors():
+def test_undo_loadundo_json():
+    master_mock = Mock()
+    undo = undo_module.undo("SID", master_mock)
+    mock_data = json.dumps({"1": "data"}).encode("utf-8")
+
+    with patch("builtins.open", mock_open(read_data=mock_data)):
+        undo.loadundo()
+        assert undo.undo == {1: "data"}
+
+
+def test_undo_loadundo_clears_stale_state_on_errors():
     master_mock = Mock()
     undo = undo_module.undo("SID", master_mock)
     undo.undo = {1: "old"}
@@ -91,7 +132,18 @@ def test_undo_loadundo_ignores_errors():
     with patch("builtins.open", side_effect=OSError("missing")):
         undo.loadundo()
 
-    assert undo.undo == {1: "old"}
+    assert undo.undo == {}
+
+
+def test_undo_loadundo_invalid_data_clears_stale_state():
+    master_mock = Mock()
+    undo = undo_module.undo("SID", master_mock)
+    undo.undo = {1: "old"}
+
+    with patch("builtins.open", mock_open(read_data=b"not json or pickle")):
+        undo.loadundo()
+
+    assert undo.undo == {}
 
 
 def test_undo_doundo_abort():
@@ -110,6 +162,18 @@ def test_undo_doundo_valid_transID():
     with patch.object(undo.master, "callhook"):
         assert undo.doundo("123") == True
         undo.master.callhook.assert_called()
+
+
+def test_undo_doundo_lists_when_entry_is_malformed():
+    master_mock = Mock()
+    undo = undo_module.undo("SID", master_mock)
+    undo.undo = {123: {"totals": {}}}
+
+    with patch.object(undo, "listundo") as mock_listundo:
+        assert undo.doundo("123") == True
+
+    mock_listundo.assert_called_once()
+    master_mock.callhook.assert_not_called()
 
 
 def test_undo_doundo_invalid_transID():
@@ -186,6 +250,29 @@ def test_undo_dorestore_paths():
         assert undo.listundo.call_count == 2
 
 
+def test_undo_dorestore_lists_when_entry_is_malformed():
+    master_mock = Mock()
+    undo = undo_module.undo("SID", master_mock)
+    undo.undo = {123: {"totals": {}}}
+
+    with patch.object(undo, "listundo") as mock_listundo:
+        assert undo.dorestore("123") == True
+
+    mock_listundo.assert_called_once()
+    master_mock.callhook.assert_not_called()
+
+
+def test_undo_restore_receipt_lists_on_invalid_receipt_entry():
+    master_mock = Mock()
+    undo = undo_module.undo("SID", master_mock)
+
+    with patch.object(undo, "listundo") as mock_listundo:
+        assert undo._restore_receipt([{"missing": "fields"}], "buyer") == True
+
+    mock_listundo.assert_called_once()
+    master_mock.receipt.add.assert_not_called()
+
+
 def test_undo_listundo():
     master_mock = Mock()
     undo = undo_module.undo("SID", master_mock)
@@ -194,7 +281,8 @@ def test_undo_listundo():
         "%Y-%m-%d %H:%M:%S", undo_module.time.localtime(123 + 1300000000)
     )
 
-    undo.listundo()
+    with patch.object(undo, "loadundo"):
+        undo.listundo()
     calls = [
         call(
             True,
@@ -224,7 +312,8 @@ def test_undo_listundo_restore_and_limit():
         i: {"totals": {"user": i}, "receipt": [], "beni": "text"} for i in range(60)
     }
 
-    undo.listundo(restore=True)
+    with patch.object(undo, "loadundo"):
+        undo.listundo(restore=True)
 
     master_mock.send_message.assert_any_call(
         True, "message", "Select a transaction to restore"

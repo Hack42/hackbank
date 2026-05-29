@@ -7,6 +7,40 @@ from unittest.mock import patch
 from plugins.stickers import stickers
 
 
+def test_uses_configured_printer_host():
+    with patch(
+        "plugins.stickers.config_get",
+        return_value={
+            "model": "QL-820NWB",
+            "host": "printer.example.test",
+            "port": 9101,
+        },
+    ):
+        sticky = stickers("main", Mock())
+
+    assert sticky.MODEL == "QL-820NWB"
+    assert sticky.PRINTER == "tcp://printer.example.test:9101"
+
+
+def test_uses_configured_printer_identifier():
+    with patch(
+        "plugins.stickers.config_get",
+        return_value={
+            "model": "QL-710W",
+            "identifier": "tcp://printer-id.example.test:9100",
+        },
+    ):
+        sticky = stickers("main", Mock())
+
+    assert sticky.PRINTER == "tcp://printer-id.example.test:9100"
+
+
+def test_printer_identifier_falls_back_to_default_printer():
+    sticky = stickers("main", Mock())
+
+    assert sticky.printer_identifier({}) == sticky.PRINTER
+
+
 @patch("builtins.open")
 @patch("plugins.stickers.brother_ql.backends.helpers")
 def test_eigendom(_cups, _open):
@@ -264,6 +298,24 @@ def test_toolnum_prints_label(_cups):
 
     assert sticky.toolnum("1")
     assert sticky.copies == 1
+
+
+def test_number_print_errors_show_printer_message():
+    master = Mock()
+    sticky = stickers("main", master)
+
+    with patch.object(sticky, "barcodeprint", side_effect=RuntimeError("print failed")):
+        assert sticky.barcodenum("1")
+
+    master.donext.assert_called_once_with(sticky, "barcodenum")
+    assert master.send_message.call_args_list == [
+        call(
+            True,
+            "message",
+            "Printer error; sticker not printed. Check printer and try again.",
+        ),
+        call(True, "buttons", '{"special": "numbers"}'),
+    ]
 
 
 @patch("plugins.stickers.brother_ql.backends.helpers")

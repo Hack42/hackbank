@@ -1,7 +1,9 @@
 import json
 from pathlib import Path
 from unittest.mock import Mock, patch, call
+import pytest
 import kassa
+from plugins.products import products
 
 
 def test_session_startup():
@@ -221,7 +223,7 @@ def test_input_with_nextcall_successful():
     assert session.nextcall == {}
 
 
-def test_startup_handles_help_and_plugin_startup_errors():
+def test_startup_handles_help_and_plugin_startup_errors(caplog):
     client_mock = Mock()
     session = kassa.Session("SID", client_mock)
 
@@ -258,15 +260,18 @@ def test_startup_handles_help_and_plugin_startup_errors():
     def import_from(_module, name):
         return plugin_classes[name]
 
-    with patch(
-        "glob.glob", return_value=[f"plugins/{name}.py" for name in plugin_classes]
-    ):
-        session.import_from = Mock(side_effect=import_from)
-        session.startup()
+    with caplog.at_level("ERROR", logger="kassa"):
+        with patch(
+            "glob.glob", return_value=[f"plugins/{name}.py" for name in plugin_classes]
+        ):
+            session.import_from = Mock(side_effect=import_from)
+            session.startup()
 
     assert "badhelp" in session.plugins
     assert "badstartup" in session.plugins
     assert session.help == {"good": "Good command"}
+    assert "Plugin badhelp help failed" in caplog.text
+    assert "Plugin badstartup startup failed" in caplog.text
 
 
 def test_startup_removes_existing_plugin_module():
@@ -286,15 +291,17 @@ def test_startup_removes_existing_plugin_module():
         assert sys_modules_name not in kassa.sys.modules
 
 
-def test_realcallhook_handles_plugin_hook_exception():
+def test_realcallhook_handles_plugin_hook_exception(caplog):
     session = kassa.Session("SID", Mock())
     plugin_mock = Mock()
     plugin_mock.hook_test_hook.side_effect = RuntimeError("boom")
     session.plugins = {"test_plugin": plugin_mock}
 
-    session.realcallhook("test_hook", "test_arg")
+    with caplog.at_level("ERROR", logger="kassa"):
+        session.realcallhook("test_hook", "test_arg")
 
     plugin_mock.hook_test_hook.assert_called_with("test_arg")
+    assert "Plugin test_plugin hook_test_hook failed" in caplog.text
 
 
 def test_realcallhook_ignores_plugins_without_hook():
@@ -304,7 +311,7 @@ def test_realcallhook_ignores_plugins_without_hook():
     session.realcallhook("missing", "arg")
 
 
-def test_handle_nextcall_missing_and_exception():
+def test_handle_nextcall_missing_and_exception(caplog):
     session = kassa.Session("SID", Mock())
     assert session.handle_nextcall("text") is False
 
@@ -312,8 +319,11 @@ def test_handle_nextcall_missing_and_exception():
     plugin_mock.fail.side_effect = RuntimeError("boom")
     session.nextcall = {"plug": plugin_mock, "function": "fail"}
 
-    assert session.handle_nextcall("text") is False
+    with caplog.at_level("ERROR", logger="kassa"):
+        assert session.handle_nextcall("text") is False
+
     assert session.nextcall == {}
+    assert "Nextcall failed" in caplog.text
 
 
 def test_input_unknown_sets_message_and_calls_wrong_hook():
@@ -345,7 +355,7 @@ def test_input_unknown_sets_message_and_calls_wrong_hook():
     )
 
 
-def test_handle_part_plugin_attribute_and_generic_exceptions_then_withdraw():
+def test_handle_part_plugin_attribute_and_generic_exceptions_then_withdraw(caplog):
     session = kassa.Session("SID", Mock())
     missing_input_plugin = Mock()
     del missing_input_plugin.input
@@ -360,8 +370,11 @@ def test_handle_part_plugin_attribute_and_generic_exceptions_then_withdraw():
         "withdraw": withdraw_mock,
     }
 
-    assert session.handle_part("10") == 1
+    with caplog.at_level("ERROR", logger="kassa"):
+        assert session.handle_part("10") == 1
+
     withdraw_mock.withdraw.assert_called_with("10")
+    assert "Plugin failing input failed" in caplog.text
 
 
 def test_handle_part_falls_back_to_newuser():
@@ -384,6 +397,58 @@ def test_handle_part_falls_back_to_newuser():
     accounts_mock.newuser.assert_called_with("newuser")
 
 
+def test_session_product_add_flow_rejects_invalid_name():
+    client_mock = Mock()
+    session = kassa.Session("SID", client_mock)
+    products_plugin = products("SID", session)
+    withdraw_mock = Mock()
+    withdraw_mock.input.return_value = False
+    withdraw_mock.withdraw.return_value = False
+    accounts_mock = Mock()
+    accounts_mock.input.return_value = False
+    accounts_mock.newuser.return_value = False
+    session.plugins = {
+        "products": products_plugin,
+        "withdraw": withdraw_mock,
+        "accounts": accounts_mock,
+    }
+    session.products = products_plugin
+
+    session.input("addproduct")
+    session.input("bad_name")
+
+    assert products_plugin.newprod == ""
+    assert session.nextcall == {"plug": products_plugin, "function": "addproduct"}
+    client_mock.publish.assert_any_call(
+        "hack42bar/output/session/SID/message",
+        "only [A-z0-9] is allowed as product name, what name do you want to add?",
+        1,
+        True,
+    )
+
+
+def test_run_logs_and_sleeps_after_mqtt_loop_exception(caplog):
+    client = Mock()
+    client.connect.side_effect = RuntimeError("connect failed")
+
+    with patch(
+        "kassa.config_get",
+        return_value={"host": "localhost", "port": 1883, "keepalive": 60},
+    ), patch("kassa.mqtt.Client", return_value=client), patch(
+        "kassa.logging.basicConfig"
+    ), patch(
+        "kassa.time.sleep", side_effect=KeyboardInterrupt
+    ), caplog.at_level(
+        "ERROR", logger="kassa"
+    ), pytest.raises(
+        KeyboardInterrupt
+    ):
+        kassa.run()
+
+    assert "Kassa MQTT loop failed" in caplog.text
+    client.loop_start.assert_not_called()
+
+
 def test_send_message_updates_prompt_buttons_and_skips_cached_long_topic():
     client_mock = Mock()
     session = kassa.Session("SID", client_mock)
@@ -396,6 +461,33 @@ def test_send_message_updates_prompt_buttons_and_skips_cached_long_topic():
     assert session.prompt == "hello"
     assert session.buttons == "{}"
     assert client_mock.publish.call_count == 3
+
+
+def test_send_message_logs_debug(caplog):
+    client_mock = Mock()
+    session = kassa.Session("SID", client_mock)
+
+    with caplog.at_level("DEBUG", logger="kassa"):
+        session.send_message(True, "message", "hello")
+
+    assert (
+        "send_message sid=SID retain=True topic=message message='hello'" in caplog.text
+    )
+
+
+def test_session_mutable_state_is_per_instance():
+    first = kassa.Session("SID1", Mock())
+    second = kassa.Session("SID2", Mock())
+
+    first.help["command"] = "description"
+    first.cache["topic"] = "message"
+    first.nextcall["function"] = "next"
+    first.buttons["special"] = "custom"
+
+    assert second.help == {}
+    assert second.cache == {}
+    assert second.nextcall == {}
+    assert second.buttons == {}
 
 
 def test_get_session_reuses_existing_session():
@@ -420,19 +512,26 @@ def test_get_session_starts_new_session():
     client_mock.publish.assert_called_with("hack42bar/output/sessions", '["SID"]')
 
 
-def test_run_session_unhandled_action(capsys):
-    kassa.run_session(Mock(), "SID", "unknown", b"data")
-    assert "unhandled unknown" in capsys.readouterr().out
+def test_run_session_unhandled_action(caplog):
+    with caplog.at_level("WARNING", logger="kassa"):
+        kassa.run_session(Mock(), "SID", "unknown", b"data")
+
+    assert "unhandled_session_action sid=SID action=unknown" in caplog.text
 
 
 def test_on_message_short_topic_is_ignored():
     client_mock = Mock()
     msg_mock = Mock()
-    msg_mock.topic = "short/topic"
     msg_mock.payload = b"data"
 
     with patch("kassa.run_session") as mock_run_session:
-        kassa.on_message(client_mock, None, msg_mock)
+        for topic in (
+            "short/topic",
+            "hack42bar/input/session",
+            "hack42bar/input/session/1234",
+        ):
+            msg_mock.topic = topic
+            kassa.on_message(client_mock, None, msg_mock)
 
     mock_run_session.assert_not_called()
 
@@ -450,6 +549,21 @@ def test_run_sets_up_client_and_stops_on_keyboard_interrupt():
 
     client_mock.connect.assert_called_with("localhost", 1883, 60)
     client_mock.loop_start.assert_called_once()
+
+
+def test_run_uses_configured_mqtt():
+    client_mock = Mock()
+
+    with patch("kassa.mqtt.Client", return_value=client_mock), patch(
+        "kassa.config_get",
+        return_value={"host": "mqtt.example.test", "port": 1884, "keepalive": 30},
+    ), patch("kassa.time.sleep", side_effect=[KeyboardInterrupt, KeyboardInterrupt]):
+        try:
+            kassa.run()
+        except KeyboardInterrupt:
+            pass
+
+    client_mock.connect.assert_called_with("mqtt.example.test", 1884, 30)
 
 
 def test_startup_removes_module_in_second_import_pass():

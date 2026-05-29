@@ -1,21 +1,68 @@
 <?php
 header('Content-type: application/json');
-require("phpMQTT.php");
-$mqtt = new phpMQTT("192.168.142.66", 1883, "barcmnd".rand());
+function fail_request($message) {
+  http_response_code(400);
+  echo json_encode(array("message" => $message));
+  exit;
+}
 
+function request_string($key, $max_length) {
+  if (!isset($_REQUEST[$key]) || !is_string($_REQUEST[$key])) {
+    fail_request("Missing ".$key);
+  }
+  $value = $_REQUEST[$key];
+  if ($value === "" || strlen($value) > $max_length) {
+    fail_request("Invalid ".$key);
+  }
+  return $value;
+}
 
+require_once(__DIR__."/../config.php");
+$action = request_string("action", 16);
+$device = "";
+$value = "";
+switch ($action) {
+  case 'toggle':
+    $device = request_string("device", 64);
+    if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $device)) {
+      fail_request("Invalid device");
+    }
+    break;
+  case 'volume':
+    $value = request_string("value", 4);
+    if (!preg_match('/^[0-9]{1,3}$/', $value) || intval($value) > 100) {
+      fail_request("Invalid value");
+    }
+    break;
+  case 'go':
+  case 'gdd':
+  case 'gd':
+  case 'bo':
+  case 'bd':
+  case 'ko':
+  case 'kd':
+    break;
+  default:
+    fail_request("Invalid action");
+}
+
+require("../phpMQTT.php");
+use Bluerhinos\phpMQTT;
+$mqtt_config = kassa_mqtt_config();
+$mqtt = new phpMQTT($mqtt_config["host"], $mqtt_config["port"], "barcmnd".rand());
 
 if(!$mqtt->connect()){
   echo json_encode(array("message"=>"MQTT error"));
         exit(1);
 }
 
-
-switch($_REQUEST["action"]) {
+switch($action) {
   case 'toggle':
-    $mqtt->publish("hack42/cmnd/".$_REQUEST["device"]."/POWER","toggle");
+    $mqtt->publish("hack42/cmnd/".$device."/POWER","toggle");
+    break;
   case 'volume':
-    $mqtt->publish("hack42/cmnd/sound/volume",$_REQUEST["value"]);
+    $mqtt->publish("hack42/cmnd/sound/volume",$value);
+    break;
   case 'go':
     $mqtt->publish("hack42/stookkelder/gebouw","open");
     $mqtt->publish("hack42/touser/m1","Gebouw gaat open ".date("d/M H:i"),0,1);
@@ -45,7 +92,6 @@ switch($_REQUEST["action"]) {
     $mqtt->publish("hack42/touser/m1","Kapel gaat uit ".date("d/M H:i"),0,1);
     break;
   default:
-    echo json_encode(array("message"=>"Wrong password"));
     break;
 }
 ?>

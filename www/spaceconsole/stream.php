@@ -13,8 +13,11 @@ function procmsg($topic,$msg){
 }
 
 ##
-require("phpMQTT.php");
-$mqtt = new phpMQTT("192.168.142.66", 1883, "barclient".rand());
+require_once(__DIR__."/../config.php");
+require("../phpMQTT.php");
+use Bluerhinos\phpMQTT;
+$mqtt_config = kassa_mqtt_config();
+$mqtt = new phpMQTT($mqtt_config["host"], $mqtt_config["port"], "barclient".rand());
 if(!$mqtt->connect()){
 	exit(1);
 }

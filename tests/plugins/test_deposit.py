@@ -68,20 +68,18 @@ def test_deposit_value_non_numeric():
     master_mock = Mock()
     deposit = deposit_module.deposit("SID", master_mock)
 
-    with patch("plugins.deposit.traceback.print_exc") as mock_traceback:
-        assert deposit.value("not_a_number") == True
-        mock_traceback.assert_called()
-        master_mock.donext.assert_called_with(deposit, "value")
-        master_mock.send_message.assert_has_calls(
-            [
-                call(
-                    True,
-                    "message",
-                    "Not a valid number! How much do you want to deposit?",
-                ),
-                call(True, "buttons", json.dumps({"special": "numbers"})),
-            ]
-        )
+    assert deposit.value("not_a_number") == True
+    master_mock.donext.assert_called_with(deposit, "value")
+    master_mock.send_message.assert_has_calls(
+        [
+            call(
+                True,
+                "message",
+                "Not a valid number! How much do you want to deposit?",
+            ),
+            call(True, "buttons", json.dumps({"special": "numbers"})),
+        ]
+    )
 
 
 def test_deposit_startup():

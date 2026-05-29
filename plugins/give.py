@@ -9,6 +9,9 @@ class give:
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
+        self.userto = ""
+        self.value = 0
+        self.myreason = ""
 
     def help(self):
         return {"give": "Give Money to other user"}
@@ -33,36 +36,12 @@ class give:
         return True
 
     def amount(self, text):
+        if text == "abort":
+            self.master.callhook("abort", None)
+            return True
         try:
             value = float(text)
-            if 0 < value < 1000:
-                self.value = value
-                self.master.donext(self, "reason")
-                self.master.send_message(
-                    True,
-                    "message",
-                    "Why are you giving "
-                    + str(self.value)
-                    + " to "
-                    + self.userto
-                    + "?",
-                )
-                self.master.send_message(
-                    True, "buttons", json.dumps({"special": "keyboard"})
-                )
-            else:
-                self.master.donext(self, "amount")
-                self.master.send_message(
-                    True, "message", "Enter an amount between 0.01 and 999.99:"
-                )
-                self.master.send_message(
-                    True, "buttons", json.dumps({"special": "numbers"})
-                )
-            return True
-        except:
-            if text == "abort":
-                self.master.callhook("abort", None)
-                return True
+        except ValueError:
             self.master.donext(self, "amount")
             self.master.send_message(
                 True,
@@ -75,6 +54,26 @@ class give:
                 True, "buttons", json.dumps({"special": "numbers"})
             )
             return True
+        if 0 < value < 1000:
+            self.value = value
+            self.master.donext(self, "reason")
+            self.master.send_message(
+                True,
+                "message",
+                "Why are you giving " + str(self.value) + " to " + self.userto + "?",
+            )
+            self.master.send_message(
+                True, "buttons", json.dumps({"special": "keyboard"})
+            )
+        else:
+            self.master.donext(self, "amount")
+            self.master.send_message(
+                True, "message", "Enter an amount between 0.01 and 999.99:"
+            )
+            self.master.send_message(
+                True, "buttons", json.dumps({"special": "numbers"})
+            )
+        return True
 
     def reason(self, text):
         if text == "abort":

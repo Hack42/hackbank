@@ -2,6 +2,7 @@ from unittest.mock import patch, mock_open, MagicMock, call
 import plugins.market as market_module
 import json
 import re
+import pytest
 
 
 class TestMarket:
@@ -10,14 +11,34 @@ class TestMarket:
         self.market = market_module.market("SID", self.master_mock)
 
     def test_readproducts(self):
-        market_data = "user1 product1 2.50 1.00 description1\n"
+        self.master_mock.help = {"deposit": "Deposit Money"}
+        self.market.products = {"stale_product": {}}
+        self.market.aliases = {"stale_alias": "stale_product"}
+        market_data = (
+            "# comment\n"
+            "\n"
+            "user1   product1   2.50   1.00   description1\n"
+            "user1   deposit,oldalias   1.00   0.00   reserved product\n"
+            "user1   product3,deposit,ok   3.00   0.50   reserved aliases\n"
+            "user1   badprice   nope   1.00   description\n"
+            "user1   badspace   2.50   nope   description\n"
+            "malformed\n"
+        )
         mo = mock_open(read_data=market_data)
         with patch("builtins.open", mo):
             self.market.readproducts()
-            print("hooi", self.market.products)
             assert "product1" in self.market.products
+            assert "product3" in self.market.products
+            assert self.market.products["product3"]["aliases"] == []
             assert self.market.products["product1"]["price"] == 2.50
             assert self.market.products["product1"]["description"] == "description1"
+            assert "deposit" not in self.market.products
+            assert "deposit" not in self.market.aliases
+            assert "ok" not in self.market.aliases
+            assert "badprice" not in self.market.products
+            assert "badspace" not in self.market.products
+            assert "stale_product" not in self.market.products
+            assert "stale_alias" not in self.market.aliases
 
     def test_instances_do_not_share_state(self):
         self.market.products["product1"] = {}
@@ -43,33 +64,37 @@ class TestMarket:
             "product1": {
                 "aliases": ["alias1"],
                 "price": 2.50,
+                "space": 1.00,
                 "description": "description1",
+                "user": "user1",
             }
         }
-        self.market.groups = {"group1": ["product1"]}
-        mo = mock_open()
-        with patch("builtins.open", mo):
+        with patch("plugins.market._atomic_write") as mock_atomic_write:
             self.market.writeproducts()
-            mo.assert_called_with("data/revbank.market", "w", encoding="utf-8")
-            handle = mo()
-            expected_product = "%-58s %7.2f  %s\n" % (
-                "product1,alias1",
-                2.50,
-                "description1",
-            )
-            handle.write.assert_has_calls(
-                [
-                    call("# group1\n"),
-                    call(expected_product),
-                    call("\n"),
-                ]
-            )
+        expected_product = "%-10s %-30s %7.2f %7.2f %s\n" % (
+            "user1",
+            "product1,alias1",
+            2.50,
+            1.00,
+            "description1",
+        )
+        mock_atomic_write.assert_called_once_with(
+            "data/revbank.market",
+            [
+                "#                               Price =\n",
+                "# Seller   Barcode          Seller + Space  Description\n\n",
+                expected_product,
+            ],
+        )
+        assert self.market.products["product1"]["aliases"] == ["alias1"]
 
     def test_lookupprod(self):
+        self.master_mock.help = {"deposit": "Deposit Money"}
         self.market.products = {"product1": "details1"}
-        self.market.aliases = {"alias1": "product1"}
+        self.market.aliases = {"alias1": "product1", "deposit": "product1"}
         assert self.market.lookupprod("product1") == "product1"
         assert self.market.lookupprod("alias1") == "product1"
+        assert self.market.lookupprod("deposit") is None
         assert self.market.lookupprod("unknown") is None
 
     def test_messageandbuttons(self):
@@ -112,6 +137,33 @@ class TestMarket:
 
         assert self.market.products["product1"]["aliases"] == ["alias123"]
 
+    def test_savealias_rejects_command_alias(self):
+        self.master_mock.help = {"deposit": "Deposit Money"}
+        self.market.products = {"product1": {"aliases": []}}
+        self.market.aliasprod = "product1"
+
+        with patch.object(self.market, "readproducts"), patch.object(
+            self.market, "writeproducts"
+        ) as mock_writeproducts:
+            assert self.market.savealias("deposit") is True
+
+        mock_writeproducts.assert_not_called()
+        assert self.market.products["product1"]["aliases"] == []
+        self.master_mock.donext.assert_called_with(self.market, "savealias")
+
+    def test_savealias_rejects_non_alnum_alias(self):
+        self.market.products = {"product1": {"aliases": []}}
+        self.market.aliasprod = "product1"
+
+        with patch.object(self.market, "readproducts"), patch.object(
+            self.market, "writeproducts"
+        ) as mock_writeproducts:
+            assert self.market.savealias("bad_alias") is True
+
+        mock_writeproducts.assert_not_called()
+        assert self.market.products["product1"]["aliases"] == []
+        self.master_mock.donext.assert_called_with(self.market, "savealias")
+
     def test_addalias(self):
         self.market.products = {"product1": {"aliases": []}}
         assert self.market.addalias("product1")
@@ -135,13 +187,12 @@ class TestMarket:
     def test_saveprice(self):
         self.market.priceprod = "product1"
         self.market.newprodprice = 3.0
-        self.market.products = {"product1": {"price": 2.5}}
-        market_data = "user1 product1,alias1,alias2 2.50 1.00 description1\n"
-        mo = mock_open(read_data=market_data)
-        with patch("builtins.open", mo):
+        self.market.products = {"product1": {"price": 2.5, "aliases": []}}
+        with patch.object(self.market, "readproducts"), patch.object(
+            self.market, "writeproducts"
+        ):
             self.market.saveprice("3.0")
-            print(self.market.products)
-            assert self.market.products["product1"]["price"] == 2.5
+            assert self.market.products["product1"]["price"] == 3.0
 
     def test_addproductgroup(self):
         self.market.newprod = "product1"
@@ -231,6 +282,39 @@ class TestMarket:
             assert self.market.addproductgroup("group1")
             assert "group1" in self.market.groups
 
+    def test_delmarket_removes_product_and_aliases(self):
+        market_data = (
+            "user1 product1,alias1 2.50 1.00 description1\n"
+            "user2 product2,alias2 3.50 0.50 description2\n"
+        )
+        mo = mock_open(read_data=market_data)
+        with patch("builtins.open", mo):
+            assert self.market.delmarket("alias1")
+
+        assert "product1" not in self.market.products
+        assert "alias1" not in self.market.aliases
+        assert "product2" in self.market.products
+
+    def test_delmarket_abort_and_unknown_product(self):
+        assert self.market.delmarket("abort") is self.master_mock.callhook.return_value
+        self.master_mock.callhook.assert_called_with("abort", None)
+
+        self.master_mock.reset_mock()
+        with patch.object(self.market, "readproducts"):
+            assert self.market.delmarket("unknown") is True
+
+        self.master_mock.donext.assert_called_with(self.market, "delmarket")
+        self.master_mock.send_message.assert_has_calls(
+            [
+                call(
+                    True,
+                    "message",
+                    "Unknown market product;What market product do you want to remove?",
+                ),
+                call(True, "buttons", '{"special": "keyboard"}'),
+            ]
+        )
+
     def test_addproductprice_invalid_price(self):
         self.market.newprod = "product1"
         self.market.newproddesc = "description"
@@ -263,14 +347,33 @@ class TestMarket:
         assert self.market.addproduct("abort") is self.master_mock.callhook.return_value
         self.master_mock.callhook.assert_called_with("abort", None)
         assert self.market.addproduct("bad!") is True
+        self.master_mock.reset_mock()
+        assert self.market.addproduct("bad_name") is True
+        self.master_mock.donext.assert_called_with(self.market, "addproduct")
+
+    def test_addproduct_rejects_command_name(self):
+        self.master_mock.help = {"deposit": "Deposit Money"}
+
+        assert self.market.addproduct("deposit") is True
+
+        assert self.market.newprod == ""
+        self.master_mock.donext.assert_called_with(self.market, "addproduct")
 
     def test_input_unknown_product(self):
         self.market.products = {}
         assert not self.market.input("unknownprod")
 
     def test_input_market(self):
-        self.market.products = {}
+        self.market.products = {
+            "market": {
+                "price": 2.0,
+                "user": "user1",
+                "description": "reserved name",
+                "space": 0.5,
+            }
+        }
         assert self.market.input("market")
+        self.master_mock.receipt.add.assert_not_called()
 
     def test_input_market_lists_products(self):
         self.market.products = {
@@ -282,3 +385,30 @@ class TestMarket:
         assert json.loads(payload)["custom"] == [
             {"text": "product1", "display": "Description", "right": "2.50 (0.50)"}
         ]
+
+    def test_input_market_admin_commands(self):
+        assert self.market.input("addmarket")
+        self.master_mock.donext.assert_called_with(self.market, "addalias")
+
+        self.master_mock.reset_mock()
+        assert self.market.input("changemarket")
+        self.master_mock.donext.assert_called_with(self.market, "setprice")
+
+        self.master_mock.reset_mock()
+        assert self.market.input("delmarket")
+        self.master_mock.donext.assert_called_with(self.market, "delmarket")
+
+
+def test_atomic_write_writes_and_cleans_up_on_failure(tmp_path):
+    output = tmp_path / "missing" / "market.txt"
+    market_module._atomic_write(str(output), ["line1\n", "line2\n"])
+
+    assert output.read_text(encoding="utf-8") == "line1\nline2\n"
+
+    with patch("plugins.market.tempfile.mkstemp", return_value=(123, "tmpfile")), patch(
+        "plugins.market.os.fdopen", side_effect=RuntimeError("write failed")
+    ), patch("plugins.market.os.unlink", side_effect=FileNotFoundError) as mock_unlink:
+        with pytest.raises(RuntimeError):
+            market_module._atomic_write("data/revbank.market", ["line\n"])
+
+    mock_unlink.assert_called_once_with("tmpfile")

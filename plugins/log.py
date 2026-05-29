@@ -55,5 +55,8 @@ class log:
         pass
 
     def pre_input(self, text):
-        self.log("PROMPT", self.master.prompt.decode() + " >> " + text)
+        prompt = self.master.prompt
+        if isinstance(prompt, bytes):
+            prompt = prompt.decode()
+        self.log("PROMPT", prompt + " >> " + text)
         # self.master.send_message(False,'log',self.master.prompt+" >> "+text)

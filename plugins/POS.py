@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
-import traceback
+import base64
+import binascii
 import json
-import time
+import logging
 import pickle
+import time
+
 import serial
+
+from config import config_get
+
+logger = logging.getLogger(__name__)
 
 DISPLAY = b"\x1b=\x02\x1b@"
 PRINTER = b"\x1b=\x01\x1b@"
@@ -27,7 +34,7 @@ CUT = b"\x1bm\n"
 DRAWER = b"\x1b\x700AA"
 
 
-class POS:
+class POS:  # pylint: disable=too-many-public-methods
     bonnetjes = {}
     ser = None
     lastbonID = 0
@@ -35,18 +42,22 @@ class POS:
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
+        self.bonnetjes = {}
+        self.ser = None
+        self.lastbonID = 0
 
     def open(self):
         if self.ser is not None:
             return
+        serial_config = config_get("pos", "serial", default={})
         self.ser = serial.Serial(  # pylint: disable=no-member
-            port="/dev/ttyUSB0",  # pylint: disable=no-member
-            baudrate=19200,  # pylint: disable=no-member
+            port=serial_config["port"],  # pylint: disable=no-member
+            baudrate=int(serial_config["baudrate"]),  # pylint: disable=no-member
             parity=serial.PARITY_NONE,  # pylint: disable=no-member
             stopbits=serial.STOPBITS_ONE,  # pylint: disable=no-member
             bytesize=serial.EIGHTBITS,  # pylint: disable=no-member
         )
-        print("Serial open")
+        logger.info("pos_serial_open sid=%s port=%s", self.SID, serial_config["port"])
 
     def help(self):
         return {
@@ -76,8 +87,7 @@ class POS:
         self.ser.write(out)
 
     def hook_checkout(self, user):
-        if user == "cash":
-            self.drawer()
+        pass
 
     def hook_addremove(self, args):
         # Update display
@@ -99,13 +109,22 @@ class POS:
             )
             self.writebons()
 
+    def projected_balance(self, user):
+        checkout_balances = getattr(self.master.accounts, "checkout_balances", {})
+        if not isinstance(checkout_balances, dict):
+            checkout_balances = {}
+        account = self.master.accounts.accounts[user]
+        balance_before_checkout = checkout_balances.get(user, account["amount"])
+        return balance_before_checkout + self.master.receipt.totals[user]
+
     def makebon(self, user):
         BON = PRINTER + LARGE + CENTER + LOGO
-        if (
-            self.master.accounts.accounts[user]["amount"]
-            + self.master.receipt.totals[user]
-        ) < -13.37:
-            BON += b"SALDO TE LAAG\n"
+        is_cash = user == "cash"
+        projected_balance = None
+        if not is_cash:
+            projected_balance = self.projected_balance(user)
+            if projected_balance < -13.37:
+                BON += b"SALDO TE LAAG\n"
         BON += NORMAL + b"Bon transactie %d\n" % self.master.transID
         BON += (
             BARCODE_T
@@ -141,10 +160,8 @@ class POS:
         BON += b" " + b"-" * 38 + b"\n"
         BON += b" %-26s% 12.2f\n" % (b"Totaal", self.master.receipt.totals[user])
         BON += b"\nU bent geholpen door: %s\n" % user.encode()
-        if user != b"cash":
-            BON += b"\n         Nieuw saldo: %5.2f\n" % (
-                self.master.accounts.accounts[user]["amount"]
-            )
+        if not is_cash:
+            BON += b"\n         Nieuw saldo: %5.2f\n" % projected_balance
         BON += (
             b"\n"
             + CENTER
@@ -219,31 +236,77 @@ class POS:
             return True
         try:
             bonID = int(text)
-            if bonID in self.bonnetjes:
-                self.bon(bonID)
-                return True
+        except (TypeError, ValueError):
             self.listbons()
             return True
-        except:
-            traceback.print_exc()
-            self.listbons()
+
+        if bonID in self.bonnetjes:
+            self.bon(bonID)
             return True
+
+        self.listbons()
+        return True
 
     def writebons(self):
         while len(self.bonnetjes) > 50:
             fk = sorted(self.bonnetjes.keys())
             del self.bonnetjes[fk[0]]
 
-        with open("data/revbank.POS", "wb") as output:
-            pickle.dump(self.bonnetjes, output)
+        with open("data/revbank.POS", "w", encoding="utf-8") as output:
+            json.dump(self.serialize_bons(self.bonnetjes), output)
 
     def loadbons(self):
+        self.bonnetjes = {}
         try:
             with open("data/revbank.POS", "rb") as f:
-                self.bonnetjes = pickle.load(f)
-                f.close()
-        except:
-            pass
+                data = f.read()
+        except OSError:
+            return
+
+        try:
+            try:
+                loaded = json.loads(data.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                loaded = pickle.loads(data)
+            self.bonnetjes = self.deserialize_bons(loaded)
+        except (
+            AttributeError,
+            EOFError,
+            KeyError,
+            TypeError,
+            ValueError,
+            binascii.Error,
+            pickle.PickleError,
+        ):
+            return
+
+    def serialize_bons(self, bonnetjes):
+        output = {}
+        for bonID, bon in bonnetjes.items():
+            serialized = dict(bon)
+            bon_data = serialized["bon"]
+            if isinstance(bon_data, bytes):
+                serialized["bon"] = {
+                    "encoding": "base64",
+                    "data": base64.b64encode(bon_data).decode("ascii"),
+                }
+            else:
+                serialized["bon"] = {"encoding": "text", "data": bon_data}
+            output[str(bonID)] = serialized
+        return output
+
+    def deserialize_bons(self, bonnetjes):
+        output = {}
+        for bonID, bon in bonnetjes.items():
+            deserialized = dict(bon)
+            bon_data = deserialized["bon"]
+            if isinstance(bon_data, dict):
+                if bon_data.get("encoding") == "base64":
+                    deserialized["bon"] = base64.b64decode(bon_data["data"])
+                else:
+                    deserialized["bon"] = bon_data.get("data", "")
+            output[int(bonID)] = deserialized
+        return output
 
     def listbons(self):
         self.loadbons()

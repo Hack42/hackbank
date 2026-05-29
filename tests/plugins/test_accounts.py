@@ -2,13 +2,20 @@ import json
 
 from unittest.mock import Mock, call
 from unittest.mock import patch, mock_open
+import pytest
 
 from plugins.accounts import accounts
+import plugins.accounts as accounts_module
 
 
 def test_help():
     acc = accounts("main", Mock())
-    assert acc.help() == {"adduseralias": "Add user key alias"}
+    assert acc.help() == {
+        "addmember": "Add user to members",
+        "adduseralias": "Add user key alias",
+        "delmember": "Remove user from members",
+        "members": "Manage members",
+    }
 
 
 def test_init():
@@ -46,6 +53,8 @@ def test_updateaccount_ignores_cash():
 def test_readaccounts():
     master_mock = Mock()
     acc = accounts("SID", master_mock)
+    acc.accounts = {"stale_user": {"amount": 1.0, "lastupdate": "old"}}
+    acc.aliases = {"stale_alias": "stale_user"}
 
     # Correctly formatted mock data
     mock_accounts_data = "user1 100.0 2021-01-01\nuser2 200.0 2021-01-02"
@@ -69,6 +78,39 @@ def test_readaccounts():
         # Assertions for aliases file
         assert acc.aliases["alias1"] == "user1"
         assert acc.aliases["alias2"] == "user2"
+        assert "stale_user" not in acc.accounts
+        assert "stale_alias" not in acc.aliases
+
+
+def test_readaccounts_tolerates_comments_blanks_and_whitespace():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+
+    mock_accounts_data = (
+        "# comment\n"
+        "\n"
+        "user1     +100.00   2021-01-01\n"
+        "malformed\n"
+        "user2\t-20.50\t2021-01-02 extra-field\n"
+    )
+    mock_aliases_data = (
+        "# comment\n" "\n" "alias1     user1\n" "bad alias line\n" "alias2\tuser2\n"
+    )
+
+    def custom_mock_open(filename, _bla, _bla2):
+        if filename == "data/revbank.accounts":
+            return mock_open(read_data=mock_accounts_data)()
+        if filename == "data/revbank.aliases":
+            return mock_open(read_data=mock_aliases_data)()
+
+    with patch("plugins.accounts.codecs.open", side_effect=custom_mock_open):
+        acc.readaccounts()
+
+    assert acc.accounts == {
+        "user1": {"amount": 100.0, "lastupdate": "2021-01-01"},
+        "user2": {"amount": -20.5, "lastupdate": "2021-01-02"},
+    }
+    assert acc.aliases == {"alias1": "user1", "alias2": "user2"}
 
 
 def test_writeaccount():
@@ -82,33 +124,37 @@ def test_writeaccount():
     }
     acc.aliases = {"alias1": "user1", "alias2": "user2"}
 
-    # Mock file handles
-    mock_file_handles = {
-        "data/revbank.accounts": mock_open(),
-        "data/revbank.aliases": mock_open(),
-    }
-
-    # Custom side effect function for mock_open
-    def custom_open_mock(file_name, *args, **kwargs):
-        return mock_file_handles[file_name]()
-
-    with patch("builtins.open", side_effect=custom_open_mock):
+    with patch("plugins.accounts._atomic_write") as mock_atomic_write:
         acc.writeaccount()
 
-        # Assertions for accounts file write
-        accounts_file_handle = mock_file_handles["data/revbank.accounts"]
-        accounts_file_handle().write.assert_has_calls(
-            [
-                call("user1              +100.00 2021-01-01\n"),
-                call("user2              +200.00 2021-01-02\n"),
-            ]
-        )
+    mock_atomic_write.assert_has_calls(
+        [
+            call(
+                "data/revbank.accounts",
+                [
+                    "user1              +100.00 2021-01-01\n",
+                    "user2              +200.00 2021-01-02\n",
+                ],
+            ),
+            call(
+                "data/revbank.aliases",
+                ["alias1 user1\n", "alias2 user2\n"],
+            ),
+        ]
+    )
 
-        # Assertions for aliases file write
-        aliases_file_handle = mock_file_handles["data/revbank.aliases"]
-        aliases_file_handle().write.assert_has_calls(
-            [call("alias1 user1\n"), call("alias2 user2\n")]
-        )
+
+def test_writemembers():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+    acc.members = ["user1", "user2"]
+
+    with patch("plugins.accounts._atomic_write") as mock_atomic_write:
+        acc._writemembers()
+
+    mock_atomic_write.assert_called_once_with(
+        "data/revbank.members", ["user1\n", "user2\n"]
+    )
 
 
 def test_hook_balance():
@@ -166,11 +212,13 @@ def test_hook_pre_checkout(mock_readaccounts, mock_time):
     mock_time.return_value = 1300000100.0
     master_mock = Mock()
     acc = accounts("SID", master_mock)
+    acc.accounts = {"user1": {"amount": 12.5, "lastupdate": "old"}}
 
     acc.hook_pre_checkout("some text")
 
     mock_readaccounts.assert_called_once()
     assert acc.master.transID == 100
+    assert acc.checkout_balances == {"user1": 12.5}
 
 
 @patch("plugins.accounts.accounts.updateaccount")
@@ -232,7 +280,11 @@ def test_createnew(_mock_strftime):
     assert master_mock.send_message.call_args_list == expected_calls
 
 
-@patch("builtins.open", new_callable=mock_open, read_data="user1\nuser2\n")
+@patch(
+    "builtins.open",
+    new_callable=mock_open,
+    read_data="# comment\n\nuser1\n  user2  \n",
+)
 def test_startup(mock_file):
     master_mock = Mock()
     acc = accounts("SID", master_mock)
@@ -272,6 +324,134 @@ def test_messageandbuttons():
         call(True, "buttons", '{"special": "custom_buttons"}'),
     ]
     assert master_mock.send_message.call_args_list == expected_calls
+
+
+def test_messageandcustom():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+    custom = [{"text": "option", "display": "Option"}]
+
+    acc._messageandcustom("next_function", custom, "Test message")
+
+    master_mock.donext.assert_called_with(acc, "next_function")
+    expected_calls = [
+        call(True, "message", "Test message"),
+        call(
+            True,
+            "buttons",
+            '{"special": "custom", "custom": [{"text": "option", "display": "Option"}]}',
+        ),
+    ]
+    assert master_mock.send_message.call_args_list == expected_calls
+
+
+def test_membersmenu():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+
+    assert acc._membersmenu() is True
+
+    expected_calls = [
+        call(True, "message", "Please select a members command"),
+        call(
+            True,
+            "buttons",
+            '{"special": "custom", "custom": [{"text": "addmember", "display": "Add member"}, {"text": "delmember", "display": "Remove member"}]}',
+        ),
+    ]
+    assert master_mock.send_message.call_args_list == expected_calls
+
+
+@patch("plugins.accounts._atomic_write")
+def test_addmember(mock_atomic_write):
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+    acc.accounts = {
+        "user1": {"amount": 0, "lastupdate": "2021-01-02"},
+        "user2": {"amount": 0, "lastupdate": "2021-01-01"},
+    }
+
+    assert acc._addmember("user1") is True
+
+    assert acc.members == ["user1"]
+    mock_atomic_write.assert_called_once_with("data/revbank.members", ["user1\n"])
+    expected_calls = [
+        call(True, "nonmembers", '["user2"]'),
+        call(True, "members", '["user1"]'),
+        call(True, "message", "Member added: user1"),
+    ]
+    assert master_mock.send_message.call_args_list == expected_calls
+
+
+def test_addmember_invalid_and_abort():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+    acc.accounts = {"user1": {"amount": 0, "lastupdate": "2021-01-01"}}
+    acc.members = ["user1"]
+
+    assert acc._addmember("missing") is True
+    master_mock.donext.assert_called_with(acc, "_addmember")
+    master_mock.send_message.assert_has_calls(
+        [
+            call(True, "message", "Unknown account; What user do you want to add?"),
+            call(True, "buttons", '{"special": "accounts"}'),
+        ]
+    )
+
+    master_mock.reset_mock()
+    assert acc._addmember("user1") is True
+    master_mock.donext.assert_called_with(acc, "_addmember")
+    master_mock.send_message.assert_has_calls(
+        [
+            call(True, "message", "Already a member; What user do you want to add?"),
+            call(True, "buttons", '{"special": "accounts"}'),
+        ]
+    )
+
+    master_mock.reset_mock()
+    assert acc._addmember("abort") == master_mock.callhook.return_value
+    master_mock.callhook.assert_called_once_with("abort", None)
+
+
+@patch("plugins.accounts._atomic_write")
+def test_delmember(mock_atomic_write):
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+    acc.accounts = {"user1": {"amount": 0, "lastupdate": "2021-01-01"}}
+    acc.members = ["user1"]
+
+    assert acc._delmember("user1") is True
+
+    assert acc.members == []
+    mock_atomic_write.assert_called_once_with("data/revbank.members", [])
+    expected_calls = [
+        call(True, "nonmembers", '["user1"]'),
+        call(True, "members", "[]"),
+        call(True, "message", "Member removed: user1"),
+    ]
+    assert master_mock.send_message.call_args_list == expected_calls
+
+
+def test_delmember_invalid_and_abort():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+    acc.members = ["user1"]
+
+    assert acc._delmember("missing") is True
+    master_mock.donext.assert_called_with(acc, "_delmember")
+    expected_calls = [
+        call(True, "message", "Unknown member; What member do you want to remove?"),
+        call(
+            True,
+            "buttons",
+            '{"special": "custom", "custom": [{"text": "user1", "display": "user1"}]}',
+        ),
+    ]
+    assert master_mock.send_message.call_args_list == expected_calls
+
+    master_mock.reset_mock()
+    assert acc._delmember("abort") == master_mock.callhook.return_value
+    master_mock.callhook.assert_called_once_with("abort", None)
 
 
 @patch("builtins.open")
@@ -379,6 +559,49 @@ def test_input_adduseralias_and_unknown():
     assert acc.input("missing") is None
 
 
+def test_input_members_commands():
+    master_mock = Mock()
+    master_mock.receipt.is_empty.return_value = True
+    acc = accounts("SID", master_mock)
+    acc.members = ["user1"]
+
+    assert acc.input("members") is True
+    master_mock.send_message.assert_has_calls(
+        [
+            call(True, "message", "Please select a members command"),
+            call(
+                True,
+                "buttons",
+                '{"special": "custom", "custom": [{"text": "addmember", "display": "Add member"}, {"text": "delmember", "display": "Remove member"}]}',
+            ),
+        ]
+    )
+
+    master_mock.reset_mock()
+    assert acc.input("addmember") is True
+    master_mock.donext.assert_called_with(acc, "_addmember")
+    master_mock.send_message.assert_has_calls(
+        [
+            call(True, "message", "What user do you want to add?"),
+            call(True, "buttons", '{"special": "accounts"}'),
+        ]
+    )
+
+    master_mock.reset_mock()
+    assert acc.input("delmember") is True
+    master_mock.donext.assert_called_with(acc, "_delmember")
+    master_mock.send_message.assert_has_calls(
+        [
+            call(True, "message", "What member do you want to remove?"),
+            call(
+                True,
+                "buttons",
+                '{"special": "custom", "custom": [{"text": "user1", "display": "user1"}]}',
+            ),
+        ]
+    )
+
+
 def test_newuser():
     master_mock = Mock()
     acc = accounts("SID", master_mock)
@@ -406,3 +629,24 @@ def test_newuser_no_positive_gain():
     ]
 
     assert acc.newuser("new_user") is None
+
+
+def test_atomic_write_creates_parent_directory(tmp_path):
+    output = tmp_path / "missing" / "revbank.accounts"
+    accounts_module._atomic_write(str(output), ["line1\n", "line2\n"])
+
+    assert output.read_text(encoding="utf-8") == "line1\nline2\n"
+
+
+def test_atomic_write_removes_temp_file_when_write_fails():
+    with patch(
+        "plugins.accounts.tempfile.mkstemp", return_value=(123, "tmpfile")
+    ), patch(
+        "plugins.accounts.os.fdopen", side_effect=RuntimeError("write failed")
+    ), patch(
+        "plugins.accounts.os.unlink", side_effect=FileNotFoundError
+    ) as mock_unlink:
+        with pytest.raises(RuntimeError):
+            accounts_module._atomic_write("data/revbank.accounts", ["line\n"])
+
+    mock_unlink.assert_called_once_with("tmpfile")

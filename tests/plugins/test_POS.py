@@ -14,12 +14,39 @@ class TestPOS:
             self.POS.open()
             assert self.POS.ser is not None
 
+    def test_open_uses_configured_serial_port(self):
+        serial_mock = Mock()
+        with patch("plugins.POS.serial", new=serial_mock), patch(
+            "plugins.POS.config_get",
+            return_value={"port": "/dev/test-printer", "baudrate": 9600},
+        ):
+            self.POS.open()
+
+        serial_mock.Serial.assert_called_with(
+            port="/dev/test-printer",
+            baudrate=9600,
+            parity=serial_mock.PARITY_NONE,
+            stopbits=serial_mock.STOPBITS_ONE,
+            bytesize=serial_mock.EIGHTBITS,
+        )
+
     def test_open_when_already_open(self):
         self.POS.ser = Mock()
 
         self.POS.open()
 
         self.POS.ser.write.assert_not_called()
+
+    def test_instances_do_not_share_state(self):
+        self.POS.bonnetjes[123] = {"bon": b"Test"}
+        self.POS.ser = Mock()
+        self.POS.lastbonID = 123
+
+        other = POS_module.POS("SID2", Mock())
+
+        assert other.bonnetjes == {}
+        assert other.ser is None
+        assert other.lastbonID == 0
 
     def test_help_and_hook_addremove(self):
         assert self.POS.help() == {
@@ -94,10 +121,54 @@ class TestPOS:
 
         assert b"SALDO TE LAAG" in bon
 
+    def test_makebon_uses_checkout_balance_snapshot_for_new_balance(self):
+        self.POS.master.receipt = Mock(
+            receipt=[
+                {
+                    "product": "test",
+                    "beni": "user",
+                    "count": 1,
+                    "total": 5.0,
+                    "description": "test",
+                }
+            ],
+            totals={"user": -5},
+        )
+        self.POS.master.transID = 42
+        self.POS.master.accounts.accounts = {"user": {"amount": 15}}
+        self.POS.master.accounts.checkout_balances = {"user": 20}
+
+        bon = self.POS.makebon("user")
+
+        assert b"Nieuw saldo: 15.00" in bon
+        assert b"Nieuw saldo: 10.00" not in bon
+
+    def test_makebon_cash_does_not_require_account(self):
+        self.POS.master.receipt = Mock(
+            receipt=[
+                {
+                    "product": "test",
+                    "beni": "cash",
+                    "count": 1,
+                    "total": 1.0,
+                    "description": "cash sale",
+                }
+            ],
+            totals={"cash": -100},
+        )
+        self.POS.master.transID = 42
+        self.POS.master.accounts.accounts = {}
+
+        bon = self.POS.makebon("cash")
+
+        assert b"cash sale" in bon
+        assert b"Nieuw saldo" not in bon
+        assert b"SALDO TE LAAG" not in bon
+
     def test_hook_checkout(self):
-        with patch.object(self.POS, "drawer"):
+        with patch.object(self.POS, "drawer") as mock_drawer:
             self.POS.hook_checkout("cash")
-            self.POS.drawer.assert_called()
+            mock_drawer.assert_not_called()
 
     def test_printdeclaratie(self):
         with patch.object(self.POS, "open"), patch.object(self.POS, "slowwrite"):
@@ -115,7 +186,7 @@ class TestPOS:
             self.POS.hook_post_checkout("cash")
             self.POS.loadbons.assert_called()
             self.POS.writebons.assert_called()
-            self.POS.drawer.assert_called()
+            self.POS.drawer.assert_called_once()
 
     def test_hook_post_checkout_deposit_opens_drawer_for_non_cash(self):
         self.POS.master.receipt = Mock(
@@ -170,17 +241,52 @@ class TestPOS:
             mock_listbons.assert_called_once()
 
     def test_writebons(self):
-        with patch("builtins.open", new_callable=mock_open):
-            self.POS.bonnetjes = {123: {"bon": "Test"}}
+        with patch("builtins.open", mock_open()) as mocked_file:
+            self.POS.bonnetjes = {123: {"totals": {"user": 1.0}, "bon": b"Test"}}
             self.POS.writebons()
-            # Assert file operation
+            mocked_file.assert_called_with("data/revbank.POS", "w", encoding="utf-8")
+            written = "".join(
+                call.args[0] for call in mocked_file().write.call_args_list
+            )
+            loaded = json.loads(written)
+            assert loaded["123"]["bon"]["encoding"] == "base64"
 
-    def test_loadbons(self):
+    def test_loadbons_pickle_backwards_compatible(self):
         with patch(
             "builtins.open", mock_open(read_data=pickle.dumps({123: {"bon": "Test"}}))
         ):
             self.POS.loadbons()
             assert 123 in self.POS.bonnetjes
+
+    def test_loadbons_json(self):
+        data = json.dumps(
+            {
+                "123": {
+                    "totals": {"user": 1.0},
+                    "bon": {"encoding": "base64", "data": "VGVzdA=="},
+                }
+            }
+        ).encode("utf-8")
+        with patch("builtins.open", mock_open(read_data=data)):
+            self.POS.loadbons()
+            assert self.POS.bonnetjes == {
+                123: {"totals": {"user": 1.0}, "bon": b"Test"}
+            }
+
+    def test_loadbons_missing_file_clears_bons(self):
+        self.POS.bonnetjes = {123: {"bon": "stale"}}
+
+        with patch("builtins.open", side_effect=OSError("missing")):
+            self.POS.loadbons()
+
+        assert self.POS.bonnetjes == {}
+
+    def test_deserialize_bons_uses_text_payload_for_non_base64_dict(self):
+        result = self.POS.deserialize_bons(
+            {"123": {"totals": {}, "bon": {"encoding": "text", "data": "Test"}}}
+        )
+
+        assert result == {123: {"totals": {}, "bon": "Test"}}
 
     def test_listbons(self):
         self.POS.bonnetjes = {123: {"totals": {"user": 1.0}, "bon": "Test"}}
@@ -263,23 +369,31 @@ class TestPOS:
     def test_selectbon_invalid_bonID(self):
         self.setup_method(None)
         self.POS.bonnetjes = {}
-        with patch.object(self.POS, "bon"), patch(
-            "plugins.POS.traceback.print_exc"
-        ) as mock_traceback:
+        with patch.object(self.POS, "bon"), patch.object(
+            self.POS, "listbons"
+        ) as mock_listbons:
             assert self.POS.selectbon("invalid")
-            mock_traceback.assert_called()
+            self.POS.bon.assert_not_called()
+            mock_listbons.assert_called_once()
 
     def test_writebons_max_receipts(self):
-        with patch("builtins.open", new_callable=mock_open()):
+        with patch("builtins.open", mock_open()):
             self.POS.bonnetjes = {i: {"bon": "Test"} for i in range(60)}
             self.POS.writebons()
             assert len(self.POS.bonnetjes) == 50
 
     def test_loadbons_file_error(self):
-        self.POS.bonnetjes = {}
-        with patch("builtins.open", new_callable=mock_open(), side_effect=Exception):
+        self.POS.bonnetjes = {123: {"bon": "stale"}}
+        with patch("builtins.open", new_callable=mock_open(), side_effect=OSError):
             self.POS.loadbons()
-            assert self.POS.bonnetjes == {}  # remains empty
+            assert self.POS.bonnetjes == {}
+
+    def test_loadbons_invalid_data_clears_stale_bons(self):
+        self.POS.bonnetjes = {123: {"bon": "stale"}}
+        with patch("builtins.open", mock_open(read_data=b"not json or pickle")):
+            self.POS.loadbons()
+
+        assert self.POS.bonnetjes == {}
 
     def test_listbons_max_receipts(self):
         self.POS.bonnetjes = {

@@ -1,16 +1,28 @@
 # -*- coding: utf-8 -*-
-import traceback
 import json
 import re
 import io
 import time
 import base64
 import urllib.parse
+import warnings
+import logging
 from PIL import Image, ImageDraw, ImageFont
 import pyqrcode
-import brother_ql.conversion
-import brother_ql.backends.helpers
-import brother_ql.raster
+from config import config_get
+
+with warnings.catch_warnings():
+    warnings.filterwarnings(
+        "ignore",
+        message="The 'warn' method is deprecated, use 'warning' instead",
+        category=DeprecationWarning,
+    )
+    import brother_ql.conversion
+    import brother_ql.backends.helpers
+    import brother_ql.raster
+
+
+logger = logging.getLogger(__name__)
 
 
 class stickers:  # pylint: disable=too-many-public-methods
@@ -21,7 +33,7 @@ class stickers:  # pylint: disable=too-many-public-methods
     LOGOFILE = "images/hack42.png"
     FONT = "images/arialbd.ttf"
     printer = "QL710W"
-    PRINTER = "tcp://192.168.42.167:9100"
+    PRINTER = "tcp://localhost:9100"
     MODEL = "QL-710W"
     SPACE = (
         0  # spacing around qrcode, should be 4 but our printer prints on white labels
@@ -38,18 +50,30 @@ class stickers:  # pylint: disable=too-many-public-methods
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
+        printer_config = config_get("stickers", "printer", default={})
+        self.MODEL = printer_config.get("model", self.MODEL)
+        self.PRINTER = self.printer_identifier(printer_config)
+
+    def printer_identifier(self, printer_config):
+        if printer_config.get("identifier"):
+            return printer_config["identifier"]
+        host = printer_config.get("host")
+        port = printer_config.get("port", 9100)
+        if host:
+            return f"tcp://{host}:{port}"
+        return self.PRINTER
 
     def help(self):
         return {"stickers": "All sticker commands"}
 
     def barcodeprint(self):
         if re.compile("^[0-9A-Z]+$").match(self.barcode):
-            print("Qrcode: alphanum")
+            logger.debug("qrcode_mode sid=%s mode=alphanumeric", self.SID)
             qrcode_image = pyqrcode.create(
                 self.barcode, error="L", version=1, mode="alphanumeric"
             ).png_as_base64_str(scale=5)
         else:
-            print("Qrcode: binary")
+            logger.debug("qrcode_mode sid=%s mode=binary", self.SID)
             qrcode_image = pyqrcode.create(
                 self.barcode, error="L", version=2, mode="binary"
             ).png_as_base64_str(scale=5)
@@ -169,7 +193,7 @@ class stickers:  # pylint: disable=too-many-public-methods
         qrname = "https://hack42.nl/wiki/Tool:" + urllib.parse.quote(
             self.name.replace(" ", "_")
         )
-        print("Qrcode: binary")
+        logger.debug("qrcode_mode sid=%s mode=binary", self.SID)
         qrcode_image = pyqrcode.create(qrname, error="L", mode="binary")
         qrcode_image = qrcode_image.png_as_base64_str(
             scale=int((label_size - margin) / qrcode_image.get_png_size())
@@ -252,21 +276,10 @@ class stickers:  # pylint: disable=too-many-public-methods
     def barcodenum(self, text):
         if text == "abort":
             return self.master.callhook("abort", None)
-        try:
-            self.copies = int(text)
-            if not 0 < self.copies < 100:
-                return self.messageandbuttons(
-                    "barcodenum",
-                    "numbers",
-                    "Only 1 <> 99 allowed; How many do you want?",
-                )
-            self.barcodeprint()
-            return True
-        except:
-            traceback.print_exc()
-            return self.messageandbuttons(
-                "barcodenum", "numbers", "NaN ; How many do you want?"
-            )
+        result = self.read_copy_count(text, "barcodenum")
+        if result is not None:
+            return result
+        return self.print_label(self.barcodeprint, "barcodenum")
 
     def barcodecount(self, text):
         prod = self.master.products.lookupprod(text)
@@ -297,24 +310,48 @@ class stickers:  # pylint: disable=too-many-public-methods
         self.master.send_message(True, "buttons", json.dumps({"special": buttons}))
         return True
 
+    def read_copy_count(self, text, nextcall):
+        try:
+            copies = int(text)
+        except (TypeError, ValueError):
+            return self.messageandbuttons(
+                nextcall, "numbers", "NaN ; How many do you want?"
+            )
+        if not 0 < copies < 100:
+            return self.messageandbuttons(
+                nextcall,
+                "numbers",
+                "Only 1 <> 99 allowed; How many do you want?",
+            )
+        self.copies = copies
+        return None
+
+    def print_label(self, print_func, nextcall):
+        try:
+            print_func()
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.exception(
+                "Sticker print failed sid=%s printer=%s", self.SID, self.PRINTER
+            )
+            self.master.donext(self, nextcall)
+            self.master.send_message(
+                True,
+                "message",
+                "Printer error; sticker not printed. Check printer and try again.",
+            )
+            self.master.send_message(
+                True, "buttons", json.dumps({"special": "numbers"})
+            )
+            return True
+        return True
+
     def eigendomnum(self, text):
         if text == "abort":
             return self.master.callhook("abort", None)
-        try:
-            self.copies = int(text)
-            if not 0 < self.copies < 100:
-                return self.messageandbuttons(
-                    "eigendomnum",
-                    "numbers",
-                    "Only 1 <> 99 allowed; How many do you want?",
-                )
-            self.eigendomprint()
-            return True
-        except:
-            traceback.print_exc()
-            return self.messageandbuttons(
-                "eigendomnum", "numbers", "NaN ; How many do you want?"
-            )
+        result = self.read_copy_count(text, "eigendomnum")
+        if result is not None:
+            return result
+        return self.print_label(self.eigendomprint, "eigendomnum")
 
     def eigendomcount(self, text):
         if text == "abort":
@@ -325,53 +362,26 @@ class stickers:  # pylint: disable=too-many-public-methods
     def foodnum(self, text):
         if text == "abort":
             return self.master.callhook("abort", None)
-        try:
-            self.copies = int(text)
-            if not 0 < self.copies < 100:
-                return self.messageandbuttons(
-                    "foodnum", "numbers", "Only 1 <> 99 allowed; How many do you want?"
-                )
-            self.foodprint()
-            return True
-        except:
-            traceback.print_exc()
-            return self.messageandbuttons(
-                "foodnum", "numbers", "NaN ; How many do you want?"
-            )
+        result = self.read_copy_count(text, "foodnum")
+        if result is not None:
+            return result
+        return self.print_label(self.foodprint, "foodnum")
 
     def thtnum(self, text):
         if text == "abort":
             return self.master.callhook("abort", None)
-        try:
-            self.copies = int(text)
-            if not 0 < self.copies < 100:
-                return self.messageandbuttons(
-                    "thtnum", "numbers", "Only 1 <> 99 allowed; How many do you want?"
-                )
-            self.thtprint()
-            return True
-        except:
-            traceback.print_exc()
-            return self.messageandbuttons(
-                "thtnum", "numbers", "NaN ; How many do you want?"
-            )
+        result = self.read_copy_count(text, "thtnum")
+        if result is not None:
+            return result
+        return self.print_label(self.thtprint, "thtnum")
 
     def toolnum(self, text):
         if text == "abort":
             return self.master.callhook("abort", None)
-        try:
-            self.copies = int(text)
-            if not 0 < self.copies < 100:
-                return self.messageandbuttons(
-                    "toolnum", "numbers", "Only 1 <> 99 allowed; How many do you want?"
-                )
-            self.toolprint()
-            return True
-        except:
-            traceback.print_exc()
-            return self.messageandbuttons(
-                "toolnum", "numbers", "NaN ; How many do you want?"
-            )
+        result = self.read_copy_count(text, "toolnum")
+        if result is not None:
+            return result
+        return self.print_label(self.toolprint, "toolnum")
 
     def foodname(self, text):
         if text == "abort":

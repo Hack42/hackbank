@@ -1,6 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+import logging
+
 import paho.mqtt.client as mqtt
+from config import config_get
+
+logger = logging.getLogger(__name__)
 
 
 class door:
@@ -9,15 +14,21 @@ class door:
         self.SID = SID
 
     def help(self):
-        print("Help")
+        logger.debug("door_help sid=%s", self.SID)
         return {"dooropen": "Door open"}
 
     def input(self, text):
         if text == "dooropen":
+            mqtt_config = config_get("door", "mqtt", default={})
             client = mqtt.Client()
-            client.connect("mqtt.space.hack42.nl", 1883, 60)
-            client.publish("hack42/brandhok/deuropen", "closed", 1, True)
-            client.publish("hack42/brandhok/deuropen", "open", 1, True)
+            topic = mqtt_config["topic"]
+            client.connect(
+                mqtt_config["host"],
+                int(mqtt_config["port"]),
+                int(mqtt_config["keepalive"]),
+            )
+            client.publish(topic, "closed", 1, True)
+            client.publish(topic, "open", 1, True)
             client.disconnect()
             return True
         return None

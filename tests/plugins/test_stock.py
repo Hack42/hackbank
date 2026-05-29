@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch, mock_open, call
 import plugins.stock as stock_module
 import json
+import pytest
 
 
 def test_stock_constructor():
@@ -152,8 +153,16 @@ def test_stock_startup_with_patched_readstock():
 def test_stock_readstock():
     master_mock = Mock()
     stock = stock_module.stock("SID", master_mock)
-    stock_data = "product1 10\nproduct2 20"
-    stock_alias_data = "alias1 product1 2\nalias2 product2 3"
+    stock.stock = {"stale_product": 99}
+    stock.stockalias = {"stale_alias": {"prod": "stale_product", "multi": 1}}
+    stock_data = "# comment\n\nproduct1   10\nproduct2\t20\nbad nope\nmalformed\n"
+    stock_alias_data = (
+        "# comment\n\n"
+        "alias1   product1   2\n"
+        "alias2\tproduct2\t3\n"
+        "badalias product1 nope\n"
+        "bad line"
+    )
 
     def custom_mock_open_read(filename, *args, **kwargs):
         if filename == "data/revbank.stock":
@@ -168,6 +177,8 @@ def test_stock_readstock():
             "alias1": {"prod": "product1", "multi": 2},
             "alias2": {"prod": "product2", "multi": 3},
         }
+        assert "stale_product" not in stock.stock
+        assert "stale_alias" not in stock.stockalias
 
 
 def test_stock_writestock():
@@ -175,12 +186,16 @@ def test_stock_writestock():
     stock = stock_module.stock("SID", master_mock)
     stock.stock = {"product1": 10, "product2": 20}
 
-    def custom_mock_open_write(filename, *args, **kwargs):
-        return mock_open()()
-
-    with patch("builtins.open", side_effect=custom_mock_open_write) as mock_file:
+    with patch.object(stock_module, "_atomic_write") as mock_atomic_write:
         stock.writestock()
-        mock_file.assert_called_with("data/revbank.stock", "w", encoding="utf-8")
+
+    mock_atomic_write.assert_called_once_with(
+        "data/revbank.stock",
+        [
+            "product1               +10\n",
+            "product2               +20\n",
+        ],
+    )
 
 
 def test_stock_input_voorraad():
@@ -253,7 +268,6 @@ def test_stock_inkoop_amount_too_large_number():
 
     assert stock.inkoop_amount("5000") == True
     master_mock.donext.assert_called_with(stock, "inkoop_amount")
-    print(master_mock.send_message.call_args_list)
     master_mock.send_message.assert_has_calls(
         [
             call(
@@ -326,12 +340,15 @@ def test_stock_voorraad_amount_valid():
     stock = stock_module.stock("SID", master_mock)
     stock.prod = "product1"
 
-    assert stock.voorraad_amount("10") == True
-    master_mock.donext.assert_called_with(stock, "voorraad_amount")
+    with patch.object(stock, "setstock") as mock_setstock:
+        assert stock.voorraad_amount("10") == True
+
+    mock_setstock.assert_called_with("product1", 10)
+    master_mock.donext.assert_called_with(stock, "voorraad")
     master_mock.send_message.assert_has_calls(
         [
-            call(True, "message", "Not a number, how much product1 is in stock"),
-            call(True, "buttons", '{"special": "numbers"}'),
+            call(True, "message", "What product to set the stock?"),
+            call(True, "buttons", '{"special": "products"}'),
         ]
     )
 
@@ -457,12 +474,21 @@ def test_stock_voorraad_amount_error_handling():
     stock = stock_module.stock("SID", master_mock)
     stock.prod = "product1"
 
-    with patch.object(stock, "setstock", side_effect=Exception("Set stock error")):
-        assert stock.voorraad_amount("1000") == True
-        # Check that error handling branches are covered
-        master_mock.send_message.assert_has_calls(
-            [
-                call(True, "message", "Not a number, how much product1 is in stock"),
-                call(True, "buttons", '{"special": "numbers"}'),
-            ]
-        )
+    with patch.object(stock, "setstock", side_effect=RuntimeError("Set stock error")):
+        with pytest.raises(RuntimeError, match="Set stock error"):
+            stock.voorraad_amount("1000")
+
+
+def test_stock_atomic_write_writes_and_cleans_up_on_failure(tmp_path):
+    output = tmp_path / "missing" / "stock.txt"
+    stock_module._atomic_write(str(output), ["line1\n", "line2\n"])
+
+    assert output.read_text(encoding="utf-8") == "line1\nline2\n"
+
+    with patch("plugins.stock.tempfile.mkstemp", return_value=(123, "tmpfile")), patch(
+        "plugins.stock.os.fdopen", side_effect=RuntimeError("write failed")
+    ), patch("plugins.stock.os.unlink", side_effect=FileNotFoundError) as mock_unlink:
+        with pytest.raises(RuntimeError):
+            stock_module._atomic_write("data/revbank.stock", ["line\n"])
+
+    mock_unlink.assert_called_once_with("tmpfile")
