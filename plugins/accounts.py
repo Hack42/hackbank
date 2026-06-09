@@ -132,6 +132,12 @@ class accounts:
         logger.debug("update_account sid=%s user=%s value=%s", self.SID, usr, value)
         if usr == "cash":
             return
+        if usr not in self.accounts:
+            logger.warning("missing_account_created_during_checkout user=%s", usr)
+            self.accounts[usr] = {
+                "amount": 0,
+                "lastupdate": time.strftime("%Y-%m-%d_%H:%M:%S"),
+            }
         had = self.accounts[usr]["amount"]
         self.accounts[usr]["amount"] += value
         has = self.accounts[usr]["amount"]
@@ -179,7 +185,7 @@ class accounts:
                 "amount": 0,
                 "lastupdate": time.strftime("%Y-%m-%d_%H:%M:%S"),
             }
-            return self.input(self.newaccount)
+            return self._use_account(self.newaccount)
         if text == "no":
             return True
         if text == "abort":
@@ -308,26 +314,41 @@ class accounts:
             return self.messageandbuttons("addalias", "keyboard", "What alias to add?")
         return None
 
-    # This handles the input
-    def input(self, text):
-        if self.master.receipt.is_empty() and (
-            text in self.accounts or text in self.aliases
-        ):
-            if text in self.aliases:
-                text = self.aliases[text]
+    def _resolve_account(self, text):
+        if text not in self.accounts and text not in self.aliases:
+            return None
+        original_text = text
+        self.readaccounts()
+        if text in self.aliases:
+            text = self.aliases[text]
+        if text in self.accounts:
+            return text
+        self.master.send_message(
+            True, "message", "Account " + original_text + " no longer exists"
+        )
+        self.get_last_updated_accounts()
+        return False
+
+    def _use_account(self, account):
+        if self.master.receipt.is_empty():
             self.master.send_message(
-                False, "infobox/account", json.dumps(self.accounts[text])
+                False, "infobox/account", json.dumps(self.accounts[account])
             )
             self.master.send_message(
                 True, "buttons", json.dumps({"special": "infobox"})
             )
             return True
-        if text in self.accounts or text in self.aliases:
-            if text in self.aliases:
-                text = self.aliases[text]
-            self.master.callhook("checkout", text)
-            self.master.callhook("endsession", text)
+        self.master.callhook("checkout", account)
+        self.master.callhook("endsession", account)
+        return True
+
+    # This handles the input
+    def input(self, text):
+        account = self._resolve_account(text)
+        if account is False:
             return True
+        if account is not None:
+            return self._use_account(account)
         command_handlers = {
             "adduseralias": lambda: self.messageandbuttons(
                 "askalias", "accounts", "What user do you want to alias?"

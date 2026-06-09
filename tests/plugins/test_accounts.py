@@ -50,6 +50,24 @@ def test_updateaccount_ignores_cash():
     master_mock.callhook.assert_not_called()
 
 
+@patch("time.strftime")
+def test_updateaccount_creates_missing_account(mock_strftime):
+    mock_strftime.return_value = "2026-06-09_21:02:10"
+    master_mock = Mock()
+    master_mock.transID = 481031730
+    acc = accounts("SID", master_mock)
+
+    acc.updateaccount("TestAccountMissing", -2.5)
+
+    assert acc.accounts["TestAccountMissing"] == {
+        "amount": -2.5,
+        "lastupdate": "2026-06-09_21:02:10",
+    }
+    master_mock.callhook.assert_called_with(
+        "balance", ("TestAccountMissing", 0, -2.5, 481031730)
+    )
+
+
 def test_readaccounts():
     master_mock = Mock()
     acc = accounts("SID", master_mock)
@@ -551,7 +569,8 @@ def test_input_existing_account():
     acc.aliases = {}
 
     # Test with existing account
-    acc.input("user1")
+    with patch.object(acc, "readaccounts"):
+        acc.input("user1")
     expected_calls = [
         call(False, "infobox/account", "{}"),
         call(True, "buttons", '{"special": "infobox"}'),
@@ -565,20 +584,67 @@ def test_input_alias_empty_receipt_and_checkout_paths():
     acc.accounts = {"user1": {"amount": 12.0}}
     acc.aliases = {"alias1": "user1"}
 
-    master_mock.receipt.is_empty.return_value = True
-    assert acc.input("alias1") is True
+    with patch.object(acc, "readaccounts"):
+        master_mock.receipt.is_empty.return_value = True
+        assert acc.input("alias1") is True
+        master_mock.send_message.assert_has_calls(
+            [
+                call(False, "infobox/account", '{"amount": 12.0}'),
+                call(True, "buttons", '{"special": "infobox"}'),
+            ]
+        )
+
+        master_mock.reset_mock()
+        master_mock.receipt.is_empty.return_value = False
+        assert acc.input("alias1") is True
+        master_mock.callhook.assert_has_calls(
+            [call("checkout", "user1"), call("endsession", "user1")]
+        )
+
+
+def test_input_stale_account_is_rejected_before_checkout():
+    master_mock = Mock()
+    master_mock.receipt.is_empty.return_value = False
+    acc = accounts("SID", master_mock)
+    acc.accounts = {"TestAccountMissing": {"amount": 12.0, "lastupdate": "old"}}
+    acc.aliases = {}
+
+    def clear_accounts():
+        acc.accounts = {}
+        acc.aliases = {}
+
+    with patch.object(acc, "readaccounts", side_effect=clear_accounts):
+        assert acc.input("TestAccountMissing") is True
+
+    master_mock.callhook.assert_not_called()
     master_mock.send_message.assert_has_calls(
         [
-            call(False, "infobox/account", '{"amount": 12.0}'),
-            call(True, "buttons", '{"special": "infobox"}'),
+            call(True, "message", "Account TestAccountMissing no longer exists"),
+            call(True, "nonmembers", "[]"),
         ]
     )
 
-    master_mock.reset_mock()
+
+def test_input_alias_to_stale_account_is_rejected_before_checkout():
+    master_mock = Mock()
     master_mock.receipt.is_empty.return_value = False
-    assert acc.input("alias1") is True
-    master_mock.callhook.assert_has_calls(
-        [call("checkout", "user1"), call("endsession", "user1")]
+    acc = accounts("SID", master_mock)
+    acc.accounts = {"user1": {"amount": 12.0, "lastupdate": "old"}}
+    acc.aliases = {"alias1": "user1"}
+
+    def clear_accounts():
+        acc.accounts = {}
+        acc.aliases = {"alias1": "user1"}
+
+    with patch.object(acc, "readaccounts", side_effect=clear_accounts):
+        assert acc.input("alias1") is True
+
+    master_mock.callhook.assert_not_called()
+    master_mock.send_message.assert_has_calls(
+        [
+            call(True, "message", "Account alias1 no longer exists"),
+            call(True, "nonmembers", "[]"),
+        ]
     )
 
 
