@@ -113,7 +113,7 @@ class POS:  # pylint: disable=too-many-public-methods
         checkout_balances = getattr(self.master.accounts, "checkout_balances", {})
         if not isinstance(checkout_balances, dict):
             checkout_balances = {}
-        account = self.master.accounts.accounts[user]
+        account = self.master.accounts.accounts.get(user, {"amount": 0})
         balance_before_checkout = checkout_balances.get(user, account["amount"])
         return balance_before_checkout + self.master.receipt.totals[user]
 
