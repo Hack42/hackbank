@@ -199,17 +199,22 @@ class TestPOS:
             self.POS.slowwrite.assert_called()
 
     def test_makepartybon(self):
-        bon = self.POS.makepartybon(
-            started_amount=100.0,
-            current_amount=72.5,
-            settled_amount=27.5,
-            started_at="2026-05-28_20:00:00",
-        )
+        settlement = {
+            "started_amount": 100.0,
+            "current_amount": 72.5,
+            "settled_amount": 27.5,
+            "started_at": "2026-05-28_20:00:00",
+            "credited_amount": 25.0,
+        }
+
+        bon = self.POS.makepartybon(settlement)
 
         assert b"Party mode afrekening" in bon
         assert b"Gestart:       2026-05-28_20:00:00" in bon
         assert b"Begonnen met:" in bon
         assert b"  100.00" in bon
+        assert b"Bijgestort:" in bon
+        assert b"   25.00" in bon
         assert b"Over:" in bon
         assert b"   72.50" in bon
         assert b"Afgerekend:" in bon
@@ -219,7 +224,15 @@ class TestPOS:
         with patch.object(self.POS, "open") as mock_open_pos, patch.object(
             self.POS, "slowwrite"
         ) as mock_slowwrite:
-            self.POS.printparty(100.0, 72.5, 27.5, "2026-05-28_20:00:00")
+            self.POS.printparty(
+                {
+                    "started_amount": 100.0,
+                    "current_amount": 72.5,
+                    "settled_amount": 27.5,
+                    "started_at": "2026-05-28_20:00:00",
+                    "credited_amount": 25.0,
+                }
+            )
 
         mock_open_pos.assert_called_once()
         mock_slowwrite.assert_called_once()
