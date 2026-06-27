@@ -36,12 +36,14 @@ def test_loadstate_missing_file_is_inactive(tmp_path, monkeypatch):
     plugin = party("SID", make_master())
     plugin.active = True
     plugin.started_amount = 10.0
+    plugin.credited_amount = 5.0
     plugin.started_at = "old"
 
     plugin.loadstate()
 
     assert not plugin.active
     assert plugin.started_amount == 0.0
+    assert plugin.credited_amount == 0.0
     assert plugin.started_at == ""
 
 
@@ -62,6 +64,7 @@ def test_writestate_and_loadstate_roundtrip(tmp_path, monkeypatch):
     plugin = party("SID", make_master())
     plugin.active = True
     plugin.started_amount = 42.5
+    plugin.credited_amount = 12.5
     plugin.started_at = "2026-05-28_20:00:00"
 
     plugin.writestate()
@@ -70,7 +73,63 @@ def test_writestate_and_loadstate_roundtrip(tmp_path, monkeypatch):
     loaded.loadstate()
     assert loaded.active
     assert loaded.started_amount == 42.5
+    assert loaded.credited_amount == 12.5
     assert loaded.started_at == "2026-05-28_20:00:00"
+
+
+def test_loadstate_without_credit_reconstructs_party_deposits_from_log(
+    tmp_path, monkeypatch
+):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "data").mkdir()
+    (tmp_path / STATE_FILE).write_text(
+        json.dumps(
+            {
+                "active": True,
+                "started_amount": 0.0,
+                "started_at": "2026-06-24_15:19:52",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "data/revbank.log").write_text(
+        "\n".join(
+            [
+                "2026-06-24_15:18:00 BALANCE 1          party had +0.00, gained +10.00, now has +10.00",
+                "2026-06-24_15:23:04 BALANCE 2          party had -1.42, gained +300.00, now has +298.58",
+                "2026-06-24_15:24:00 BALANCE 3          other had +0.00, gained +50.00, now has +50.00",
+                "2026-06-24_15:25:44 BALANCE 4          party had +298.58, lost -1.50, now has +297.08",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    plugin = party("SID", make_master())
+
+    plugin.loadstate()
+
+    assert plugin.active
+    assert plugin.started_amount == 0.0
+    assert plugin.credited_amount == 300.0
+    assert plugin.started_at == "2026-06-24_15:19:52"
+
+
+def test_credit_log_missing_file_returns_zero(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    plugin = party("SID", make_master())
+    plugin.started_at = "2026-06-24_15:19:52"
+
+    assert plugin._credited_amount_from_log() == 0.0
+
+
+def test_credit_log_read_errors_return_zero(tmp_path, monkeypatch, caplog):
+    monkeypatch.chdir(tmp_path)
+    plugin = party("SID", make_master())
+    plugin.started_at = "2026-06-24_15:19:52"
+
+    with patch("plugins.party.open", side_effect=OSError("log unavailable")):
+        assert plugin._credited_amount_from_log() == 0.0
+
+    assert "party_credit_log_load_failed" in caplog.text
 
 
 def test_atomic_write_removes_temp_file_when_write_fails(tmp_path, monkeypatch):
@@ -147,6 +206,7 @@ def test_partymodeon_persists_state_and_publishes_party_member(
     assert data == {
         "active": True,
         "started_amount": 100.0,
+        "credited_amount": 0.0,
         "started_at": "2026-05-28_20:00:00",
     }
 
@@ -174,6 +234,7 @@ def test_partymodeon_when_already_active_keeps_started_amount(tmp_path, monkeypa
             {
                 "active": True,
                 "started_amount": 75.0,
+                "credited_amount": 20.0,
                 "started_at": "2026-05-28_19:00:00",
             }
         ),
@@ -188,6 +249,7 @@ def test_partymodeon_when_already_active_keeps_started_amount(tmp_path, monkeypa
 
     assert plugin.active
     assert plugin.started_amount == 75.0
+    assert plugin.credited_amount == 20.0
     master.send_message.assert_any_call(True, "message", "Party mode is already on")
 
 
@@ -199,6 +261,7 @@ def test_startup_restores_active_party_mode(tmp_path, monkeypatch):
             {
                 "active": True,
                 "started_amount": 100.0,
+                "credited_amount": 0.0,
                 "started_at": "2026-05-28_20:00:00",
             }
         ),
@@ -224,6 +287,7 @@ def test_partymodeoff_prints_receipt_and_restores_members(tmp_path, monkeypatch)
             {
                 "active": True,
                 "started_amount": 100.0,
+                "credited_amount": 25.0,
                 "started_at": "2026-05-28_20:00:00",
             }
         ),
@@ -237,13 +301,20 @@ def test_partymodeoff_prints_receipt_and_restores_members(tmp_path, monkeypatch)
     assert plugin.input("partymodeoff") is True
 
     master.POS.printparty.assert_called_once_with(
-        100.0, 72.5, 27.5, "2026-05-28_20:00:00"
+        {
+            "started_amount": 100.0,
+            "credited_amount": 25.0,
+            "current_amount": 72.5,
+            "settled_amount": 52.5,
+            "started_at": "2026-05-28_20:00:00",
+        }
     )
     master.accounts.publish_members.assert_called_once()
     master.send_message.assert_any_call(
         True,
         "message",
-        "Party mode off; started EUR 100.00, left EUR 72.50, settled EUR 27.50",
+        "Party mode off; started EUR 100.00, credited EUR 25.00, "
+        "left EUR 72.50, settled EUR 52.50",
     )
     data = json.loads((tmp_path / STATE_FILE).read_text(encoding="utf-8"))
     assert data["active"] is False
@@ -269,6 +340,7 @@ def test_partymodeoff_keeps_active_when_print_fails(tmp_path, monkeypatch):
             {
                 "active": True,
                 "started_amount": 100.0,
+                "credited_amount": 0.0,
                 "started_at": "2026-05-28_20:00:00",
             }
         ),
@@ -290,6 +362,38 @@ def test_partymodeoff_keeps_active_when_print_fails(tmp_path, monkeypatch):
         "message",
         "Party mode receipt print failed: printer unreachable",
     )
+
+
+def test_hook_balance_tracks_party_deposits_while_active(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    plugin = party("SID", make_master())
+    plugin.active = True
+    plugin.started_amount = 0.0
+    plugin.credited_amount = 0.0
+    plugin.started_at = "2026-06-24_15:19:52"
+
+    plugin.hook_balance((PARTY_USER, -1.42, 298.58, 123))
+
+    assert plugin.credited_amount == 300.0
+    data = json.loads((tmp_path / STATE_FILE).read_text(encoding="utf-8"))
+    assert data["credited_amount"] == 300.0
+
+
+def test_hook_balance_ignores_losses_other_users_and_inactive_mode(
+    tmp_path, monkeypatch
+):
+    monkeypatch.chdir(tmp_path)
+    plugin = party("SID", make_master())
+    plugin.active = True
+    plugin.credited_amount = 10.0
+
+    plugin.hook_balance((PARTY_USER, 20.0, 18.0, 123))
+    plugin.hook_balance(("other", 0.0, 100.0, 124))
+    plugin.active = False
+    plugin.hook_balance((PARTY_USER, 0.0, 50.0, 125))
+
+    assert plugin.credited_amount == 10.0
+    assert not (tmp_path / STATE_FILE).exists()
 
 
 def test_input_ignores_other_text():
