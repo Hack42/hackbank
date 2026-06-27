@@ -198,6 +198,10 @@ document.addEventListener("DOMContentLoaded", function() {
     appendToElement(infobox, createElement('span',{class: 'NewSaldo',text: newsaldo.toFixed(2)}));
   }
   function setupaccounts(name,msg) {
+    if(msg === "") {
+      delete accounts[name];
+      return;
+    }
     accounts[name]=JSON.parse(msg);
   }
   function setupcommands(msg) {

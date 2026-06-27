@@ -5,6 +5,8 @@ import threading
 import time
 import codecs
 import logging
+import paho.mqtt.client as mqtt
+from config import config_get
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +130,48 @@ class accounts:
     def _publish_members(self):
         self.publish_members()
 
+    def _account_topic(self, name):
+        return "accounts/" + name
+
+    def _publish_account(self, name, account):
+        self.master.send_message(True, self._account_topic(name), json.dumps(account))
+
+    def _clear_account_topic(self, name):
+        self.master.send_message(True, self._account_topic(name), "")
+
+    def _retained_account_names(self):
+        names = set()
+        topic_prefix = "hack42bar/output/session/" + self.SID + "/accounts/"
+
+        def on_message(_client, _userdata, msg):
+            if msg.payload:
+                names.add(msg.topic[len(topic_prefix) :])
+
+        try:
+            mqtt_config = config_get("mqtt", default={})
+            client = mqtt.Client()
+            client.on_message = on_message
+            client.connect(
+                mqtt_config["host"],
+                int(mqtt_config["port"]),
+                int(mqtt_config["keepalive"]),
+            )
+            client.subscribe(topic_prefix + "+")
+            deadline = time.monotonic() + float(
+                mqtt_config.get("retained_scan_timeout", 0.5)
+            )
+            while time.monotonic() < deadline:
+                if client.loop(timeout=0.05) != mqtt.MQTT_ERR_SUCCESS:
+                    break
+            client.disconnect()
+        except (KeyError, OSError, TypeError, ValueError):
+            logger.exception("retained_account_scan_failed sid=%s", self.SID)
+        return names
+
+    def _clear_removed_account_topics(self):
+        for name in sorted(self._retained_account_names() - set(self.accounts)):
+            self._clear_account_topic(name)
+
     def updateaccount(self, usr, value):
         logger.debug("update_account sid=%s user=%s value=%s", self.SID, usr, value)
         if usr == "cash":
@@ -165,9 +209,7 @@ class accounts:
         self.master.send_message(
             False, "infobox/account/" + usr, json.dumps(self.accounts[usr])
         )
-        self.master.send_message(
-            True, "accounts/" + usr, json.dumps(self.accounts[usr])
-        )
+        self._publish_account(usr, self.accounts[usr])
 
     def hook_endsession(self, _text):
         self.writeaccount()
@@ -177,7 +219,7 @@ class accounts:
         self.readaccounts()
         self.get_last_updated_accounts()
         for name, account in self.accounts.items():
-            self.master.send_message(True, "accounts/" + name, json.dumps(account))
+            self._publish_account(name, account)
 
     def createnew(self, text):
         if text == "yes":
@@ -211,9 +253,10 @@ class accounts:
     def startup(self):
         self.readaccounts()
         self.readmembers()
+        self._clear_removed_account_topics()
         self.get_last_updated_accounts()
         for name, account in self.accounts.items():
-            self.master.send_message(True, "accounts/" + name, json.dumps(account))
+            self._publish_account(name, account)
         self.master.send_message(True, "members", json.dumps(self.visible_members()))
 
     def hook_pre_checkout(self, _text):

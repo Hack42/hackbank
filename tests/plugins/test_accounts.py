@@ -207,6 +207,90 @@ def test_visible_members_falls_back_to_members_file():
     assert acc.visible_members() == ["user1"]
 
 
+def test_retained_account_names_reads_existing_mqtt_topics():
+    class FakeMessage:
+        def __init__(self, topic, payload):
+            self.topic = topic
+            self.payload = payload
+
+    class FakeMqttClient:
+        def __init__(self):
+            self.on_message = None
+            self.connected = None
+            self.subscribed = None
+            self.disconnected = False
+
+        def connect(self, host, port, keepalive):
+            self.connected = (host, port, keepalive)
+
+        def subscribe(self, topic):
+            self.subscribed = topic
+
+        def loop(self, timeout=0):
+            assert timeout == 0.05
+            self.on_message(
+                self,
+                None,
+                FakeMessage("hack42bar/output/session/SID/accounts/user1", b"{}"),
+            )
+            self.on_message(
+                self,
+                None,
+                FakeMessage("hack42bar/output/session/SID/accounts/stale", b"{}"),
+            )
+            self.on_message(
+                self,
+                None,
+                FakeMessage("hack42bar/output/session/SID/accounts/empty", b""),
+            )
+            return 1
+
+        def disconnect(self):
+            self.disconnected = True
+
+    fake_client = FakeMqttClient()
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+
+    with patch("plugins.accounts.mqtt.Client", return_value=fake_client), patch(
+        "plugins.accounts.config_get",
+        return_value={"host": "mqtt.example.test", "port": 1884, "keepalive": 30},
+    ):
+        assert acc._retained_account_names() == {"user1", "stale"}
+
+    assert fake_client.connected == ("mqtt.example.test", 1884, 30)
+    assert fake_client.subscribed == "hack42bar/output/session/SID/accounts/+"
+    assert fake_client.disconnected is True
+
+
+def test_retained_account_names_logs_scan_failures(caplog):
+    class FailingMqttClient:
+        def connect(self, _host, _port, _keepalive):
+            raise OSError("mqtt down")
+
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+
+    with patch("plugins.accounts.mqtt.Client", return_value=FailingMqttClient()), patch(
+        "plugins.accounts.config_get",
+        return_value={"host": "mqtt.example.test", "port": 1884, "keepalive": 30},
+    ):
+        assert acc._retained_account_names() == set()
+
+    assert "retained_account_scan_failed sid=SID" in caplog.text
+
+
+def test_clear_removed_account_topics_clears_stale_retained_topics():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+    acc.accounts = {"user1": {"amount": 0, "lastupdate": "2021-01-01"}}
+
+    with patch.object(acc, "_retained_account_names", return_value={"stale", "user1"}):
+        acc._clear_removed_account_topics()
+
+    master_mock.send_message.assert_called_once_with(True, "accounts/stale", "")
+
+
 def test_hook_balance():
     master_mock = Mock()
     acc = accounts("SID", master_mock)
@@ -349,7 +433,7 @@ def test_startup(mock_file):
 
     with patch(
         "plugins.accounts.codecs.open", side_effect=custom_mock_open
-    ) as mock_file:
+    ), patch.object(acc, "_retained_account_names", return_value=set()):
         acc.startup()
 
     assert acc.members == ["user1", "user2"]
