@@ -70,9 +70,7 @@ def main(argv=None):
     parser.add_argument("--config", type=Path, help="config.yaml override")
     parser.add_argument("--port", help="override pos.serial.port")
     parser.add_argument("--baudrate", type=int, help="override pos.serial.baudrate")
-    parser.add_argument(
-        "--output", type=Path, help="export FS q bytes to a file"
-    )
+    parser.add_argument("--output", type=Path, help="export FS q bytes to a file")
     parser.add_argument("--write", action="store_true", help="replace printer NV logos")
     parser.add_argument(
         "--test-print", action="store_true", help="print logo after upload"
