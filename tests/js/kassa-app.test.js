@@ -18,8 +18,18 @@ function makeElement(tag, register) {
     scrollTop: 0,
     style: {},
     tag,
-    textContent: "",
+    _textContent: "",
     value: "",
+    get textContent() {
+      return this._textContent;
+    },
+    set textContent(value) {
+      this._textContent = String(value);
+      if(value === "") {
+        this.children = [];
+        this.childElementCount = 0;
+      }
+    },
     appendChild(child) {
       child.parentElement = this;
       this.children.push(child);
@@ -278,4 +288,32 @@ test("kassa app handles closed streams by scheduling one reconnect", () => {
   assert.equal(eventSources[0].closeCalled, true);
   assert.equal(timers.length, 1);
   assert.equal(timers[0].delay, 1000);
+});
+
+test("kassa app removes accounts when retained account messages are cleared", () => {
+  const {elements, eventSources} = loadKassaApp();
+  const sendStreamMessage = (topic, msg) => {
+    eventSources[0].onmessage({data: JSON.stringify([topic, msg])});
+  };
+  const accountButtonTexts = () => (
+    findAll(elements.MainButtons, ".Buttontext").map((element) => element.textContent)
+  );
+
+  sendStreamMessage(
+    "hack42bar/output/session/main/accounts/user1",
+    '{"amount": 1, "lastupdate": "now"}',
+  );
+  sendStreamMessage(
+    "hack42bar/output/session/main/accounts/stale",
+    '{"amount": 2, "lastupdate": "now"}',
+  );
+  sendStreamMessage("hack42bar/output/session/main/members", '["user1", "stale"]');
+  sendStreamMessage("hack42bar/output/session/main/buttons", '{"special": "accounts"}');
+
+  assert.deepEqual(accountButtonTexts(), ["stale", "user1"]);
+
+  sendStreamMessage("hack42bar/output/session/main/accounts/stale", "");
+  sendStreamMessage("hack42bar/output/session/main/buttons", '{"special": "accounts"}');
+
+  assert.deepEqual(accountButtonTexts(), ["user1"]);
 });

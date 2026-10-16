@@ -50,6 +50,24 @@ def test_updateaccount_ignores_cash():
     master_mock.callhook.assert_not_called()
 
 
+@patch("time.strftime")
+def test_updateaccount_creates_missing_account(mock_strftime):
+    mock_strftime.return_value = "2026-06-09_21:02:10"
+    master_mock = Mock()
+    master_mock.transID = 481031730
+    acc = accounts("SID", master_mock)
+
+    acc.updateaccount("TestAccountMissing", -2.5)
+
+    assert acc.accounts["TestAccountMissing"] == {
+        "amount": -2.5,
+        "lastupdate": "2026-06-09_21:02:10",
+    }
+    master_mock.callhook.assert_called_with(
+        "balance", ("TestAccountMissing", 0, -2.5, 481031730)
+    )
+
+
 def test_readaccounts():
     master_mock = Mock()
     acc = accounts("SID", master_mock)
@@ -187,6 +205,90 @@ def test_visible_members_falls_back_to_members_file():
     acc.members = ["user1"]
 
     assert acc.visible_members() == ["user1"]
+
+
+def test_retained_account_names_reads_existing_mqtt_topics():
+    class FakeMessage:
+        def __init__(self, topic, payload):
+            self.topic = topic
+            self.payload = payload
+
+    class FakeMqttClient:
+        def __init__(self):
+            self.on_message = None
+            self.connected = None
+            self.subscribed = None
+            self.disconnected = False
+
+        def connect(self, host, port, keepalive):
+            self.connected = (host, port, keepalive)
+
+        def subscribe(self, topic):
+            self.subscribed = topic
+
+        def loop(self, timeout=0):
+            assert timeout == 0.05
+            self.on_message(
+                self,
+                None,
+                FakeMessage("hack42bar/output/session/SID/accounts/user1", b"{}"),
+            )
+            self.on_message(
+                self,
+                None,
+                FakeMessage("hack42bar/output/session/SID/accounts/stale", b"{}"),
+            )
+            self.on_message(
+                self,
+                None,
+                FakeMessage("hack42bar/output/session/SID/accounts/empty", b""),
+            )
+            return 1
+
+        def disconnect(self):
+            self.disconnected = True
+
+    fake_client = FakeMqttClient()
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+
+    with patch("plugins.accounts.mqtt.Client", return_value=fake_client), patch(
+        "plugins.accounts.config_get",
+        return_value={"host": "mqtt.example.test", "port": 1884, "keepalive": 30},
+    ):
+        assert acc._retained_account_names() == {"user1", "stale"}
+
+    assert fake_client.connected == ("mqtt.example.test", 1884, 30)
+    assert fake_client.subscribed == "hack42bar/output/session/SID/accounts/+"
+    assert fake_client.disconnected is True
+
+
+def test_retained_account_names_logs_scan_failures(caplog):
+    class FailingMqttClient:
+        def connect(self, _host, _port, _keepalive):
+            raise OSError("mqtt down")
+
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+
+    with patch("plugins.accounts.mqtt.Client", return_value=FailingMqttClient()), patch(
+        "plugins.accounts.config_get",
+        return_value={"host": "mqtt.example.test", "port": 1884, "keepalive": 30},
+    ):
+        assert acc._retained_account_names() == set()
+
+    assert "retained_account_scan_failed sid=SID" in caplog.text
+
+
+def test_clear_removed_account_topics_clears_stale_retained_topics():
+    master_mock = Mock()
+    acc = accounts("SID", master_mock)
+    acc.accounts = {"user1": {"amount": 0, "lastupdate": "2021-01-01"}}
+
+    with patch.object(acc, "_retained_account_names", return_value={"stale", "user1"}):
+        acc._clear_removed_account_topics()
+
+    master_mock.send_message.assert_called_once_with(True, "accounts/stale", "")
 
 
 def test_hook_balance():
@@ -331,7 +433,7 @@ def test_startup(mock_file):
 
     with patch(
         "plugins.accounts.codecs.open", side_effect=custom_mock_open
-    ) as mock_file:
+    ), patch.object(acc, "_retained_account_names", return_value=set()):
         acc.startup()
 
     assert acc.members == ["user1", "user2"]
@@ -551,7 +653,8 @@ def test_input_existing_account():
     acc.aliases = {}
 
     # Test with existing account
-    acc.input("user1")
+    with patch.object(acc, "readaccounts"):
+        acc.input("user1")
     expected_calls = [
         call(False, "infobox/account", "{}"),
         call(True, "buttons", '{"special": "infobox"}'),
@@ -565,20 +668,67 @@ def test_input_alias_empty_receipt_and_checkout_paths():
     acc.accounts = {"user1": {"amount": 12.0}}
     acc.aliases = {"alias1": "user1"}
 
-    master_mock.receipt.is_empty.return_value = True
-    assert acc.input("alias1") is True
+    with patch.object(acc, "readaccounts"):
+        master_mock.receipt.is_empty.return_value = True
+        assert acc.input("alias1") is True
+        master_mock.send_message.assert_has_calls(
+            [
+                call(False, "infobox/account", '{"amount": 12.0}'),
+                call(True, "buttons", '{"special": "infobox"}'),
+            ]
+        )
+
+        master_mock.reset_mock()
+        master_mock.receipt.is_empty.return_value = False
+        assert acc.input("alias1") is True
+        master_mock.callhook.assert_has_calls(
+            [call("checkout", "user1"), call("endsession", "user1")]
+        )
+
+
+def test_input_stale_account_is_rejected_before_checkout():
+    master_mock = Mock()
+    master_mock.receipt.is_empty.return_value = False
+    acc = accounts("SID", master_mock)
+    acc.accounts = {"TestAccountMissing": {"amount": 12.0, "lastupdate": "old"}}
+    acc.aliases = {}
+
+    def clear_accounts():
+        acc.accounts = {}
+        acc.aliases = {}
+
+    with patch.object(acc, "readaccounts", side_effect=clear_accounts):
+        assert acc.input("TestAccountMissing") is True
+
+    master_mock.callhook.assert_not_called()
     master_mock.send_message.assert_has_calls(
         [
-            call(False, "infobox/account", '{"amount": 12.0}'),
-            call(True, "buttons", '{"special": "infobox"}'),
+            call(True, "message", "Account TestAccountMissing no longer exists"),
+            call(True, "nonmembers", "[]"),
         ]
     )
 
-    master_mock.reset_mock()
+
+def test_input_alias_to_stale_account_is_rejected_before_checkout():
+    master_mock = Mock()
     master_mock.receipt.is_empty.return_value = False
-    assert acc.input("alias1") is True
-    master_mock.callhook.assert_has_calls(
-        [call("checkout", "user1"), call("endsession", "user1")]
+    acc = accounts("SID", master_mock)
+    acc.accounts = {"user1": {"amount": 12.0, "lastupdate": "old"}}
+    acc.aliases = {"alias1": "user1"}
+
+    def clear_accounts():
+        acc.accounts = {}
+        acc.aliases = {"alias1": "user1"}
+
+    with patch.object(acc, "readaccounts", side_effect=clear_accounts):
+        assert acc.input("alias1") is True
+
+    master_mock.callhook.assert_not_called()
+    master_mock.send_message.assert_has_calls(
+        [
+            call(True, "message", "Account alias1 no longer exists"),
+            call(True, "nonmembers", "[]"),
+        ]
     )
 
 

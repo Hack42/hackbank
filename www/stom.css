@@ -446,6 +446,15 @@ font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   left: 0;
   position: absolute;
 }
+.account {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+.account .Buttontext,
+.account .extra {
+  text-shadow: 0 1px 2px #000;
+}
 .account.fullwidthButton {
   width: 9.75vw;
 }

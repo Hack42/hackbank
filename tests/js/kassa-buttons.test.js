@@ -55,6 +55,7 @@ test("accountsToButtons filters member types and marks negative balances", () =>
 
   assert.deepEqual(plain(helpers.accountsToButtons(accounts, ["alice"], ["bob"], "m")), [
     {
+      class: "account account-alice",
       display: "alice",
       fill: true,
       right: "-20.00",
@@ -64,6 +65,7 @@ test("accountsToButtons filters member types and marks negative balances", () =>
   ]);
   assert.deepEqual(plain(helpers.accountsToButtons(accounts, ["alice"], ["bob"], "o")), [
     {
+      class: "account account-bob",
       display: "bob",
       fill: true,
       right: "-2.00",
@@ -73,11 +75,36 @@ test("accountsToButtons filters member types and marks negative balances", () =>
   ]);
   assert.deepEqual(plain(helpers.accountsToButtons(accounts, ["alice"], ["bob"], "x")), [
     {
+      class: "account account-carol",
       display: "carol",
       fill: true,
       right: "3.50",
       rightclass: "carol",
       text: "carol",
+    },
+  ]);
+});
+
+test("account button classes are safe for CSS selectors", () => {
+  const helpers = loadButtonHelpers();
+  const accounts = {
+    "alice@example": {amount: 1},
+  };
+
+  assert.equal(helpers.cssSafeClassName("alice@example"), "alice-example");
+  assert.deepEqual(plain(helpers.accountsToButtons(
+    accounts,
+    ["alice@example"],
+    [],
+    "m",
+  )), [
+    {
+      class: "account account-alice-example",
+      display: "alice@example",
+      fill: true,
+      right: "1.00",
+      rightclass: "alice@example",
+      text: "alice@example",
     },
   ]);
 });

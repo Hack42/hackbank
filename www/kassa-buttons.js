@@ -17,6 +17,10 @@
     return 0;
   }
 
+  function cssSafeClassName(value) {
+    return String(value).replace(/[^A-Za-z0-9_-]/g, "-");
+  }
+
   function rebuildProductIndexes(products, groups, productsWithoutBarcode) {
     Object.keys(groups).forEach(function(group) {
       delete groups[group];
@@ -79,6 +83,7 @@
       buttons.push({
         text: user,
         display: user,
+        class: "account account-" + cssSafeClassName(user),
         rightclass: extraclass,
         right: amount.toFixed(2),
         fill: true,
@@ -144,6 +149,7 @@
     commandsToButtons: commandsToButtons,
     compareDisplay: compareDisplay,
     compareTextReverse: compareTextReverse,
+    cssSafeClassName: cssSafeClassName,
     productGroupToButtons: productGroupToButtons,
     productsToButtons: productsToButtons,
     rebuildProductIndexes: rebuildProductIndexes,
