@@ -52,7 +52,7 @@
   }
 
   function visibleCommandButtons(buttons) {
-    var hiddenSoundCommands=['deuroff', 'deuron', 'groovesalad', 'blues', 'killsounds', 'louder', 'quieter'];
+    var hiddenSoundCommands=['deuroff', 'deuron', 'groovesalad', 'blues', 'killsounds', 'louder', 'quieter', 'kassaoff', 'kassaon'];
     return buttons.filter(function(button) {
       return hiddenSoundCommands.indexOf(button.text) === -1;
     });
@@ -73,6 +73,7 @@
       var isNonMember = nonmembers.indexOf(user) !== -1;
       var amount = accounts[user].amount;
       var extraclass = user;
+      var theme = {jos: 'lockpicker', nino: 'ukraine', anus: 'plasma'}[user.toLowerCase()];
 
       if(
         !((isMember && type === 'm') ||
@@ -90,7 +91,7 @@
       buttons.push({
         text: user,
         display: user,
-        class: "account account-" + cssSafeClassName(user),
+        class: "account account-" + cssSafeClassName(user) + (theme ? " account-theme-" + theme : ""),
         rightclass: extraclass,
         right: amount.toFixed(2),
         fill: true,

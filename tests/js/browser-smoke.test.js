@@ -80,6 +80,7 @@ function writeKassaFixture(bodyScript) {
     ${scriptTag("kassa-dom.js")}
     ${scriptTag("kassa-buttons.js")}
     ${scriptTag("kassa-stream.js")}
+    ${scriptTag("kassa-audio.js")}
     ${scriptTag("kassa-app.js")}
     <script>${bodyScript}</script>
   </head>

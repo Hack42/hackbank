@@ -145,6 +145,7 @@ function loadKassaApp({hash = "", pageCapacity = 25, accountCapacity = 42} = {})
   const documentListeners = {};
   const eventSources = [];
   const fetchCalls = [];
+  const audioMountCalls = [];
   const textfillCalls = [];
   const timers = [];
   const register = (id, element) => {
@@ -173,7 +174,7 @@ function loadKassaApp({hash = "", pageCapacity = 25, accountCapacity = 42} = {})
       };
     },
     getElementById(id) {
-      return elements[id] || null;
+      return findFirst(body, `#${id}`) || elements[id] || null;
     },
     querySelector(selector) {
       if(selector === "#body") return body;
@@ -195,6 +196,13 @@ function loadKassaApp({hash = "", pageCapacity = 25, accountCapacity = 42} = {})
   }
 
   const window = {
+    HackBankAudio: {
+      mount(container) {
+        const mounted = {container, stopped: false};
+        audioMountCalls.push(mounted);
+        return {stop() { mounted.stopped = true; }};
+      },
+    },
     getComputedStyle() {
       return {getPropertyValue: (name) => String(name === "--accounts-per-page" ? accountCapacity : pageCapacity)};
     },
@@ -235,6 +243,7 @@ function loadKassaApp({hash = "", pageCapacity = 25, accountCapacity = 42} = {})
   documentListeners.DOMContentLoaded();
 
   return {
+    audioMountCalls,
     body,
     documentListeners,
     elements,
@@ -299,30 +308,41 @@ test("the command Enter button submits once, clears the input and restores focus
   assert.equal(input.focused, true);
 });
 
-test("the Hack42 logo aborts once even with an unfinished command in the input", () => {
+test("the entire Hack42 brand aborts once even with an unfinished command in the input", () => {
   const {elements, fetchCalls} = loadKassaApp({hash: "#bar"});
   elements.Zoek.value = "2* cola";
   elements.LogoAbort.eventListeners.click();
 
   assert.equal(elements.LogoAbort.tag, "button");
   assert.equal(elements.LogoAbort.type, "button");
+  assert(findFirst(elements.LogoAbort, ".brand-name"));
+  assert(findFirst(elements.LogoAbort, ".brand-caption"));
   assert.equal(fetchCalls.length, 2);
   assert.equal(String(fetchCalls[1].options.body), "topic=session%2Fbar%2Finput&msg=abort");
   assert.equal(elements.Zoek.value, "");
   assert.equal(elements.Zoek.focused, true);
 });
 
-test("custom sound menus omit the retired controls and keep the remaining choices", () => {
-  const {elements, eventSources, fetchCalls} = loadKassaApp();
+test("custom sound menus include volume controls and omit the retired choices", () => {
+  const {body, elements, eventSources, fetchCalls, audioMountCalls} = loadKassaApp();
   const names = ["abort", "ns", "deuron", "deuroff", "kassaon", "kassaoff", "killsounds", "groovesalad", "christmas", "blues", "quieter", "louder", "vergaderen"];
   eventSources[0].onmessage({data: JSON.stringify([
     "hack42bar/output/session/main/buttons",
     JSON.stringify({special: "custom", custom: names.map((name) => ({text: name, display: name}))}),
   ])});
   assert.deepEqual(findAll(elements.MainButtons, ".Buttontext").map((el) => el.textContent), [
-    "abort", "christmas", "kassaoff", "kassaon", "ns", "vergaderen",
+    "abort", "christmas", "ns", "vergaderen",
   ]);
+  assert.equal(audioMountCalls.length, 1);
+  assert.equal(audioMountCalls[0].container, findFirst(elements.MainButtons, ".sound-screen"));
+  assert(findFirst(elements.LeftButtons, "#sounds").classList.contains("activetop"));
   assert.equal(fetchCalls.length, 1);
+  body.eventListeners.click({target: {
+    closest(selector) {
+      return selector.startsWith("div.Knopje:not") ? findFirst(elements.LeftButtons, "#members") : null;
+    },
+  }});
+  assert.equal(audioMountCalls[0].stopped, true);
 });
 
 test("pagination uses the grid capacity for large and smaller screens", () => {
@@ -518,7 +538,7 @@ test("the Stitch icon belongs to the user button and preserves its command", () 
   assert.equal(String(fetchCalls[1].options.body), "topic=session%2Fmain%2Finput&msg=stitch");
 });
 
-test("Music and Home Assistant open the requested frames and switch cleanly", () => {
+test("Music is hidden and Home Assistant opens its frame and switches cleanly", () => {
   const {body, elements} = loadKassaApp();
   function clickMain(id) {
     body.eventListeners.click({
@@ -530,22 +550,16 @@ test("Music and Home Assistant open the requested frames and switch cleanly", ()
     });
   }
 
-  assert.equal(findFirst(elements.LeftButtons, "#irc").children[0].textContent, "Music");
+  assert.equal(findFirst(elements.LeftButtons, "#irc"), null);
   assert.equal(findFirst(elements.LeftButtons, "#spacecon").children[0].textContent, "Home Assistant");
-  clickMain("irc");
-  assert.equal(elements.IRCwindow.children[1].src, "https://www.youtube.com/");
-  assert.equal(elements.IRCwindow.children[1].title, "YouTube");
-  assert.equal(elements.IRCwindow.children[0].children[2].href, "https://www.youtube.com/");
-  assert.equal(elements.IRCwindow.style.display, "");
-  assert.equal(elements.spacewindow.style.display, "none");
   clickMain("spacecon");
   assert.equal(elements.spacewindow.children[1].src, "http://hass.space.hack42.nl:8123/home/overview");
   assert.equal(elements.spacewindow.children[1].title, "Home Assistant");
   assert.equal(findAll(elements.spacewindow, ".embed-note").length, 0);
   assert.equal(elements.IRCwindow.style.display, "none");
-  clickMain("irc");
+  clickMain("members");
   assert.equal(elements.spacewindow.style.display, "none");
-  assert.equal(elements.IRCwindow.childElementCount, 2);
+  assert.equal(elements.IRCwindow.childElementCount, 0);
 });
 
 test("kassa app handles closed streams by scheduling one reconnect", () => {

@@ -73,8 +73,8 @@ For the self-contained UI development setup at **http://localhost:4123**:
 docker compose -f compose.dev.yaml up -d --build
 ```
 
-This runs PHP, MQTT, and the unchanged Python backend in project-specific
-containers. The UI assets are mounted from `www`, so edits appear on refresh.
+This runs PHP, MQTT, the unchanged Python backend, and a demo audio controller
+in project-specific containers. The UI assets are mounted from `www`, so edits appear on refresh.
 Sample members, balances, products, and stock are seeded once in the ignored
 `dev/data` directory. This setup does not use production data or hardware;
 the door command targets the development broker and no printer is connected.
@@ -91,20 +91,28 @@ both update the filter; Tab still completes a unique match.
 Products and commands retain pages of up to 56 buttons (8×7) at 1920×1080,
 or 25 buttons on smaller screens. The command bar's Enter button submits the
 same command as pressing Enter on the keyboard.
-Clicking the Hack42 logo also sends Abort and clears the command input.
+The larger Members/Other users buttons and page tabs support touch selection.
+Clicking anywhere in the Hack42 logo, title, and subtitle area sends Abort and
+clears the command input.
 The Sounds menu and command search omit Deur off/on, Groove Salad, Jazz Radio
-Blues, Kill Music, Louder and Quieter.
+Blues, Kill Music, Louder, Quieter and Kassa off/on. Sounds provides two large
+volume sliders for HackBank POS effects and Space audio. Each reads the current
+output volume, applies changes, and refreshes every two seconds while open.
+The development audio controller uses in-memory demo levels and never connects
+to a sound device.
 
 Account themes use the existing `account-<username>` CSS classes. `stitch`
 has a local Stitch icon, a `#6088B0` background and bold white text; `BugBlue`
-has a slowly animated blue glitter background and white text. Balance badges
-keep their debt colours, and the glitter respects reduced-motion settings.
+has a slowly animated blue glitter background and white text. Jos has a gold
+key icon and dark theme; nino has a Ukrainian flag background; the existing Anus
+account has an animated plasma effect. These three names match without regard
+to case. Balance badges keep their debt colours, and animations respect
+reduced-motion settings.
 See `www/images/users/README.md` for the icon source.
 
-The Music and Home Assistant shortcuts load their requested pages in the
-left-hand iframe and include links to open them in a separate tab. Home
-Assistant is configured to allow embedding. YouTube's homepage still blocks
-embedding, so its toolbar includes a separate-tab hint.
+The Home Assistant shortcut opens its page in the left-hand iframe, with a link
+to open it in a separate tab. Music is hidden until a LAN music interface is
+available.
 The [supplied Hack42 logo](https://johnkr.com/wp-content/uploads/sites/2/2015/12/Hack42.png)
 is already included as `www/images/Hack42.png` and is now displayed in the header.
 
@@ -119,3 +127,28 @@ start an mqtt server on port 1883, an apache+php server serving the files in
 'www' on port 4242, and hook
 them up to each other. All that's left is to run `kassa.py` and point your
 browser at http://localhost:4242
+
+### Production audio controls
+
+`audio_control.py` uses the system's existing `pactl` command to read and adjust
+only `hackbank_pos` (POS effects) and `snapcast` (Space audio). It does not change
+the existing audio routing. `www/audio.php` connects to the controller through
+`/run/hackbank-audio/control.sock`; the controller does not open a network port.
+Volumes range from 0 to 100 percent; zero also mutes, and a nonzero setting
+unmutes that output. Missing devices or an unavailable controller disable the
+affected sliders. Financial commands continue through the existing backend.
+
+The supplied systemd unit targets the bar installation at `/home/barapp/kassa`,
+runs as kiosk user `bar`, and gives Apache's `www` group access to the socket.
+After deploying the UI branch, register and start it as root:
+
+```sh
+systemctl enable --now /home/barapp/kassa/deploy/hackbank-audio-control.service
+systemctl status hackbank-audio-control.service
+```
+
+The unit depends on the existing kiosk PulseAudio/PipeWire socket and named
+outputs. The page title remains `Hack42 - HackBank`, the identifier used by the
+existing POS audio router. No POS backend restart is needed for these UI changes.
+For a different installation, adapt the unit's application path, kiosk user,
+web-server group, and runtime audio socket before enabling it.

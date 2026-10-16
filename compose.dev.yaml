@@ -1,6 +1,15 @@
 name: hackbank-ui
 
 services:
+  audio:
+    image: python:3.12-slim
+    volumes:
+      - ./audio_control.py:/app/audio_control.py:ro
+      - audio-runtime:/run/hackbank-audio
+    command: ["python", "/app/audio_control.py", "--demo"]
+    # Match www-data in the PHP development container.
+    user: "0:33"
+
   mqtt:
     image: eclipse-mosquitto:2
     volumes:
@@ -37,6 +46,7 @@ services:
     image: php:8.3-apache
     volumes:
       - ./www:/var/www/html:ro
+      - audio-runtime:/run/hackbank-audio:ro
     ports:
       - "127.0.0.1:4123:80"
     environment:
@@ -44,3 +54,8 @@ services:
     depends_on:
       mqtt:
         condition: service_healthy
+      audio:
+        condition: service_started
+
+volumes:
+  audio-runtime:

@@ -157,7 +157,7 @@ test("retired sound controls are absent from command menus and search candidates
   };
   const visible = helpers.commandsToButtons(commands);
   assert.deepEqual(plain(visible.map((button) => button.text)), [
-    "christmas", "kassaoff", "kassaon", "ns", "sounds", "vergaderen",
+    "christmas", "ns", "sounds", "vergaderen",
   ]);
   const matches = [];
   helpers.addMatchingButtons(matches, visible, "loud");
@@ -166,4 +166,18 @@ test("retired sound controls are absent from command menus and search candidates
   assert.equal(helpers.productGroupToButtons({
     blues: {description: "Blues beer", price: 2.5, group: "drinks"},
   }, {}, "drinks")[0].text, "blues");
+});
+
+test("account themes match names without changing account commands or balances", () => {
+  const helpers = loadButtonHelpers();
+  const accounts = {Jos: {amount: -20}, nino: {amount: 1}, Anus: {amount: 2}, Anux: {amount: 3}};
+  const buttons = plain(helpers.accountsToButtons(accounts, Object.keys(accounts), [], "m"));
+  const byName = Object.fromEntries(buttons.map((button) => [button.text, button]));
+  assert.match(byName.Jos.class, /account-theme-lockpicker/);
+  assert.match(byName.nino.class, /account-theme-ukraine/);
+  assert.match(byName.Anus.class, /account-theme-plasma/);
+  assert.doesNotMatch(byName.Anux.class, /account-theme/);
+  assert.equal(byName.Jos.right, "-20.00");
+  assert.equal(byName.Jos.rightclass, "Jos rood");
+  assert.deepEqual(Object.keys(byName).sort(), ["Anus", "Anux", "Jos", "nino"]);
 });

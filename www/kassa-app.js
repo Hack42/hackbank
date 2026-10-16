@@ -18,6 +18,7 @@ document.addEventListener("DOMContentLoaded", function() {
   var pagedButtons=null;
   var filterRestore=null;
   var filtering=false;
+  var audioControl=null;
   var buttons=window.HackBankButtons;
   var dom=window.HackBankDom;
   var allElements=dom.allElements;
@@ -123,6 +124,7 @@ document.addEventListener("DOMContentLoaded", function() {
     if(label) label.innerHTML=label.innerHTML + html;
   }
   function removeActiveTopButtons() {
+    stopAudio();
     allElements('.topknop').forEach(function(button) {
       button.classList.remove('activetop');
     });
@@ -133,11 +135,16 @@ document.addEventListener("DOMContentLoaded", function() {
     fillVisibleText(".Paginatext:visible");
   }
   function activateTopButton(id) {
+    stopAudio();
     allElements('.topknop').forEach(function(button) {
       button.classList.remove('activetop');
     });
     var button=document.getElementById(id);
     if(button) button.classList.add('activetop');
+  }
+  function stopAudio() {
+    if(audioControl) audioControl.stop();
+    audioControl=null;
   }
   function showAccountButtons(activeButtonId, accountType, tabMode) {
     activateTopButton(activeButtonId);
@@ -376,6 +383,9 @@ document.addEventListener("DOMContentLoaded", function() {
     if(stuff.text === 'stitch' && stuff.class && stuff.class.indexOf('account ') === 0) {
       knopje.prepend(createElement('img',{class: 'account-icon', src: 'images/users/stitch.png', width: '32', height: '32', alt: '', 'aria-hidden': 'true'}));
     }
+    if(stuff.class && stuff.class.indexOf('account-theme-lockpicker') !== -1) {
+      knopje.prepend(createElement('span',{class: 'account-icon key-icon', 'aria-hidden': 'true', html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5"/><path d="m11.5 11.5 9 9M16 16l3-3M19 19l3-3"/></svg>'}));
+    }
     if(stuff.right) {
       var fullwidth='';
       if(!stuff.left && stuff.fill) fullwidth=' fullwidthButton ';
@@ -390,6 +400,7 @@ document.addEventListener("DOMContentLoaded", function() {
     makepages('normal',accountButtons,true);
   }
   function makepages(extraclass,buttons,accountList) {
+    stopAudio();
     if(!filtering) filterRestore=null;
     var capacity=buttonsPerPage(accountList);
     pagedButtons={className: extraclass, buttons: buttons, capacity: capacity, accountList: !!accountList};
@@ -447,12 +458,28 @@ document.addEventListener("DOMContentLoaded", function() {
       });
     }
   }
+  function makeSoundScreen(soundButtons) {
+    activateTopButton('sounds');
+    pagedButtons=null;
+    filterRestore=null;
+    clearElement('#MainButtons');
+    clearElement('#TopButtons');
+    showElement('#Secondscreen');
+    var screen=createElement('div',{class: 'sound-screen'});
+    screen.appendChild(createElement('h1',{class: 'section-title', text: 'Sounds'}));
+    appendTo('#MainButtons',screen);
+    audioControl=window.HackBankAudio.mount(screen);
+    var actions=createElement('div',{class: 'sound-actions', 'aria-label': 'Sound commands'});
+    soundButtons.forEach(function(button) { actions.appendChild(commandButton('normal',button)); });
+    screen.appendChild(actions);
+    showquestion();
+    fillVisibleText('.Buttontext:visible');
+  }
   function dobuttons(msg) {
     var buttons=JSON.parse(msg);
     if(msg === '{}' && locked === 0) {
       showAccountButtons('members','m',1);
     } else if (buttons['special'] === 'custom') {
-      activateTopButton('commands');
       showElement('#Secondscreen');
       var customButtons=window.HackBankButtons.visibleCommandButtons(buttons['custom']);
       if(buttons['sort'] === "text") {
@@ -460,7 +487,13 @@ document.addEventListener("DOMContentLoaded", function() {
       } else {
         customButtons.sort(window.HackBankButtons.compareDisplay);
       }
-      makepages('normal',customButtons);
+      var soundMenu=buttons['custom'].some(function(button) { return button.text === 'ns'; })
+        && buttons['custom'].some(function(button) { return button.text === 'vergaderen'; });
+      if(soundMenu) makeSoundScreen(customButtons);
+      else {
+        activateTopButton('commands');
+        makepages('normal',customButtons);
+      }
       focus();
       tabenable=0;
     } else if (buttons['special'] === 'accounts') {
@@ -744,6 +777,12 @@ document.addEventListener("DOMContentLoaded", function() {
          makepages('normal',window.HackBankButtons.commandsToButtons(commands).sort(window.HackBankButtons.compareDisplay));
          focus();
          break;
+      case 'sounds':
+         locked=0;
+         postmsg('input','sounds');
+         setSearchValue('');
+         focus();
+         break;
       case 'back':
          activateTopButton(this.id);
          locked=0;
@@ -814,19 +853,20 @@ document.addEventListener("DOMContentLoaded", function() {
 
   function buildLayout() {
     var header=createElement('header',{class: 'app-header row'});
-    var logoAbort=createElement('button',{id: 'LogoAbort', class: 'brand-abort', type: 'button', title: 'Abort current sale', 'aria-label': 'Hack42 — Abort current sale'});
-    logoAbort.appendChild(createElement('img',{class: 'brand-logo', src: 'images/Hack42.png', alt: 'Hack42 · Hackerspace Arnhem', width: '84', height: '56'}));
-    logoAbort.addEventListener('click',function() {
-      setSearchValue('abort');
-      submitCommand();
-    });
-    header.appendChild(appendChildren(createElement('div',{class: 'brand col-auto'}), [
-      logoAbort,
-      appendChildren(createElement('div'), [
+    var logoAbort=createElement('button',{id: 'LogoAbort', class: 'brand brand-abort col-auto', type: 'button', title: 'Reset current sale', 'aria-label': 'Hack42 HackBank — Reset current sale'});
+    appendChildren(logoAbort,[
+      createElement('img',{class: 'brand-logo', src: 'images/Hack42.png', alt: 'Hack42 · Hackerspace Arnhem', width: '84', height: '56'}),
+      appendChildren(createElement('span'), [
         createElement('span',{class: 'brand-name', text: 'hackbank'}),
         createElement('span',{class: 'brand-caption', text: 'HACK42 · BAR & DRINKS'}),
       ]),
-    ]));
+    ]);
+    logoAbort.addEventListener('click',function() {
+      stopAudio();
+      setSearchValue('abort');
+      submitCommand();
+    });
+    header.appendChild(logoAbort);
     header.appendChild(createElement('nav',{id: 'LeftButtons', class: 'LeftButtons col', 'aria-label': 'Register sections'}));
     appendTo('#body', header);
 
@@ -903,7 +943,6 @@ document.addEventListener("DOMContentLoaded", function() {
       ["Knopje Button topknop special",'products',"Products"],
       ["Knopje Button topknop special",'commands',"Commands"],
       ["Knopje Button topknop sounds",'sounds',"Sounds"],
-      ["Knopje Button topknop irc",'irc',"Music"],
       ["Knopje Button topknop spacecon",'spacecon',"Home Assistant"],
     ];
     buttons.forEach(function(button) {
