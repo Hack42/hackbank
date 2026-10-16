@@ -1,0 +1,3 @@
+# Printer and cash drawer USB serial adapter (Prolific PL2303).
+# This adapter has no unique serial number; use only one matching adapter.
+SUBSYSTEM=="tty", KERNEL=="ttyUSB*", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", SYMLINK+="ttyKASSA", GROUP="dialout", MODE="0660"

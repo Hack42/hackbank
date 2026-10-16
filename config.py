@@ -29,7 +29,7 @@ DEFAULT_CONFIG = {
     },
     "pos": {
         "serial": {
-            "port": "/dev/ttyUSB0",
+            "port": "/dev/ttyKASSA",
             "baudrate": 19200,
         },
     },
