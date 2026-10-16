@@ -102,10 +102,27 @@ test("rapid volume edits keep the latest intent and ignore stale reads", async (
   await audio.reply(5, state(10, 66));
   assert.deepEqual(audio.requests.filter((request) => request.options.method === "POST")
     .map((request) => JSON.parse(request.options.body)), [
-    {channel: "pos", volume: 64}, {channel: "pos", volume: 10}, {channel: "space", volume: 66},
+    {channel: "pos", volume: 64, preview: true}, {channel: "pos", volume: 10, preview: true}, {channel: "space", volume: 66, preview: true},
   ]);
   assert.equal(audio.controls.pos.input.value, "10");
   assert.equal(audio.controls.space.input.value, "66");
+});
+
+test("dragging changes volume silently and releasing requests one preview at the final level", async () => {
+  const audio = audioFixture();
+  await audio.reply(0, state(35, 70));
+  audio.change("pos", 40, false);
+  audio.timeouts.forEach((callback) => callback());
+  assert.deepEqual(JSON.parse(audio.requests[1].options.body), {channel: "pos", volume: 40, preview: false});
+  audio.change("pos", 50, false);
+  audio.change("pos", 60, false);
+  audio.controls.pos.input.listeners.change();
+  await audio.reply(1, state(40, 70));
+  assert.deepEqual(JSON.parse(audio.requests[2].options.body), {channel: "pos", volume: 60, preview: true});
+  await audio.reply(2, {...state(60, 70), preview_played: true});
+  await audio.reply(3, state(60, 70));
+  assert.equal(audio.requests.filter((request) => request.options.method === "POST"
+    && JSON.parse(request.options.body).preview).length, 1);
 });
 
 test("audio failures disable controls and a later poll recovers the real state", async () => {
@@ -121,6 +138,16 @@ test("audio failures disable controls and a later poll recovers the real state",
   await audio.reply(2, {unexpected: true});
   assert.equal(audio.controls.pos.input.disabled, true);
   assert.equal(audio.status.textContent, "Audio controls are unavailable.");
+});
+
+test("a failed preview keeps the confirmed volume and reports the playback problem", async () => {
+  const audio = audioFixture();
+  await audio.reply(0, state(35, 70));
+  audio.change("space", 60);
+  await audio.reply(1, {...state(35, 60), preview_played: false, preview_error: true});
+  assert.equal(audio.controls.space.input.value, "60");
+  assert.equal(audio.controls.space.input.disabled, false);
+  assert.equal(audio.status.textContent, "Volume saved; preview sound is unavailable.");
 });
 
 test("leaving Sounds cancels queued volume edits and ignores late replies", async () => {

@@ -98,8 +98,11 @@ The Sounds menu and command search omit Deur off/on, Groove Salad, Jazz Radio
 Blues, Kill Music, Louder, Quieter and Kassa off/on. Sounds provides two large
 volume sliders for HackBank POS effects and Space audio. Each reads the current
 output volume, applies changes, and refreshes every two seconds while open.
+Opening Sounds is silent. Releasing a slider plays a short preview beep on
+that output after saving its volume; dragging and automatic refreshes are
+silent. At zero volume the output remains muted and no preview plays.
 The development audio controller uses in-memory demo levels and never connects
-to a sound device.
+to a sound device; it also simulates preview requests.
 
 Account themes use the existing `account-<username>` CSS classes. `stitch`
 has a local Stitch icon, a `#6088B0` background and bold white text; `BugBlue`
@@ -131,7 +134,10 @@ browser at http://localhost:4242
 ### Production audio controls
 
 `audio_control.py` uses the system's existing `pactl` command to read and adjust
-only `hackbank_pos` (POS effects) and `snapcast` (Space audio). It does not change
+only `hackbank_pos` (POS effects) and `snapcast` (Space audio). Previews use
+the existing `paplay` command and the local `KDE_Beep_ClassicBeep.wav` file,
+explicitly selecting the adjusted output at full stream gain so its sink
+volume determines the preview level. It does not change
 the existing audio routing. `www/audio.php` connects to the controller through
 `/run/hackbank-audio/control.sock`; the controller does not open a network port.
 Volumes range from 0 to 100 percent; zero also mutes, and a nonzero setting
@@ -149,6 +155,8 @@ systemctl status hackbank-audio-control.service
 
 The unit depends on the existing kiosk PulseAudio/PipeWire socket and named
 outputs. The page title remains `Hack42 - HackBank`, the identifier used by the
-existing POS audio router. No POS backend restart is needed for these UI changes.
+existing POS audio router. Restart `hackbank-audio-control.service` after
+updating its Python controller. Changes to `plugins/sounds.py`, including the
+silent Sounds navigation, also require restarting the existing POS backend.
 For a different installation, adapt the unit's application path, kiosk user,
 web-server group, and runtime audio socket before enabling it.

@@ -83,16 +83,17 @@
       if(stopped || writeChannel) return;
       var id=Object.keys(pending).find(function(key) { return pending[key] !== null; });
       if(!id) return;
-      var value=pending[id];
+      var change=pending[id];
       pending[id]=null;
       writeChannel=id;
       message('Saving volume…');
       window.fetch('audio.php',{
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({channel: id, volume: value}),
+        body: JSON.stringify({channel: id, volume: change.volume, preview: change.preview}),
       }).then(json).then(function(state) {
         apply(state,id);
+        if(!stopped && state.preview_error) message('Volume saved; preview sound is unavailable.');
       }).catch(function() {
         pending[id]=null;
         unavailable();
@@ -108,7 +109,7 @@
       var control=controls[id];
       if(control.input.disabled || stopped) return;
       var value=Number(control.input.value);
-      pending[id]=value;
+      pending[id]={volume: value, preview: immediate};
       revision++;
       showLevel(control,value,false);
       window.clearTimeout(sendTimer);

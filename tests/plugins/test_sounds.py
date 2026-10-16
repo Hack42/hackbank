@@ -75,10 +75,12 @@ class TestSounds(TestCase):
             self.sounds_instance.pre_input("non_abort_command")
             mock_send.assert_called_with(False, "sound", "KDE_Beep_ClassicBeep.wav")
 
-    def test_pre_input_abort_is_silent(self):
-        with patch.object(self.sounds_instance.master, "send_message") as mock_send:
-            self.sounds_instance.pre_input("abort")
-            mock_send.assert_not_called()
+    def test_pre_input_abort_and_sounds_navigation_are_silent(self):
+        for command in ("abort", "sounds"):
+            with self.subTest(command=command):
+                with patch.object(self.sounds_instance.master, "send_message") as mock_send:
+                    self.sounds_instance.pre_input(command)
+                    mock_send.assert_not_called()
 
     def test_hook_undo_is_noop(self):
         self.assertIsNone(self.sounds_instance.hook_undo((1, {}, [], "user")))

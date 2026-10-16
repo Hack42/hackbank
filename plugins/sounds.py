@@ -89,7 +89,7 @@ class sounds:
         return None
 
     def pre_input(self, text):
-        if text != "abort":
+        if text not in ("abort", "sounds"):
             self.master.send_message(False, "sound", "KDE_Beep_ClassicBeep.wav")
 
     def hook_wrong(self, _text):

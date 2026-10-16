@@ -32,10 +32,12 @@ if ($method === 'POST') {
     }
     $body = file_get_contents('php://input', false, null, 0, 257);
     $request = json_decode($body ?: '', true);
-    if (strlen($body ?: '') > 256 || !is_array($request) || count($request) !== 2
+    if (strlen($body ?: '') > 256 || !is_array($request)
+        || array_diff(array_keys($request), ['channel', 'volume', 'preview'])
         || !in_array($request['channel'] ?? null, ['pos', 'space'], true)
         || !isset($request['volume']) || !is_int($request['volume'])
-        || $request['volume'] < 0 || $request['volume'] > 100) {
+        || $request['volume'] < 0 || $request['volume'] > 100
+        || (array_key_exists('preview', $request) && !is_bool($request['preview']))) {
         audio_error(400, 'Invalid volume request');
     }
     $body = json_encode($request);

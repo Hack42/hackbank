@@ -1,6 +1,7 @@
 import http.client
 import json
 import socket
+import subprocess
 from tempfile import TemporaryDirectory
 import threading
 import unittest
@@ -29,7 +30,12 @@ class TestPulseAudio(unittest.TestCase):
                 sink["mute"] = args[2] == "1"
             return ""
 
-        self.audio = PulseAudio(run=run)
+        self.previews = []
+
+        def play(sink):
+            self.previews.append((sink, self.audio.read()))
+
+        self.audio = PulseAudio(run=run, play=play)
 
     def test_reads_existing_outputs_and_external_changes(self):
         self.assertEqual(self.audio.read(), {"channels": {
@@ -60,6 +66,33 @@ class TestPulseAudio(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     self.audio.set(channel, volume)
         self.assertEqual(self.calls, [])
+
+    def test_preview_plays_only_on_requested_output_after_setting_its_volume(self):
+        for channel, sink in [("pos", "hackbank_pos"), ("space", "snapcast")]:
+            with self.subTest(channel=channel):
+                state = self.audio.set(channel, 45, preview=True)
+                played_sink, played_state = self.previews[-1]
+                self.assertEqual(played_sink, sink)
+                self.assertEqual(played_state["channels"][channel]["volume"], 45)
+                self.assertFalse(played_state["channels"][channel]["muted"])
+                self.assertTrue(state["preview_played"])
+
+    def test_normal_updates_reads_and_zero_volume_do_not_play_a_preview(self):
+        self.audio.read()
+        self.audio.set("pos", 40)
+        self.assertFalse(self.audio.set("pos", 0, preview=True)["preview_played"])
+        self.assertEqual(self.previews, [])
+        with self.assertRaises(ValueError):
+            self.audio.set("pos", 50, preview="yes")
+
+    def test_preview_failure_preserves_a_successful_volume_change(self):
+        def fail(_sink):
+            raise subprocess.CalledProcessError(1, "paplay")
+        self.audio.play = fail
+        state = self.audio.set("pos", 45, preview=True)
+        self.assertEqual(state["channels"]["pos"]["volume"], 45)
+        self.assertTrue(state["preview_error"])
+        self.assertFalse(state["preview_played"])
 
 
 class UnixConnection(http.client.HTTPConnection):
@@ -105,11 +138,21 @@ class TestAudioAPI(unittest.TestCase):
 
     def test_rejects_invalid_input_without_changing_state(self):
         initial = self.audio.read()
-        for body in ['{"channel":"pos","volume":999}', '{"channel":"bad","volume":50}', '[]', 'not-json', 'x' * 257]:
+        for body in ['{"channel":"pos","volume":999}', '{"channel":"bad","volume":50}', '{"channel":"pos","volume":50,"preview":"yes"}', '{"channel":"pos","volume":50,"preview":true,"extra":1}', '[]', 'not-json', 'x' * 257]:
             self.assertEqual(self.request("POST", body)[0], 400)
         self.assertEqual(self.request("POST", "channel=pos&volume=20", "application/x-www-form-urlencoded")[0], 415)
         self.assertEqual(self.request("GET", path="/arbitrary-command")[0], 404)
         self.assertEqual(self.audio.read(), initial)
+
+    def test_preview_requests_are_optional_and_channel_specific(self):
+        status, state = self.request("POST", json.dumps({"channel": "space", "volume": 64, "preview": True}))
+        self.assertEqual(status, 200)
+        self.assertTrue(state["preview_played"])
+        self.assertEqual(self.audio.previews, ["space"])
+        self.request("GET")
+        self.request("POST", json.dumps({"channel": "pos", "volume": 40, "preview": False}))
+        self.request("POST", json.dumps({"channel": "space", "volume": 0, "preview": True}))
+        self.assertEqual(self.audio.previews, ["space"])
 
 
 if __name__ == "__main__":
