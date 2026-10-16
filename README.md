@@ -28,6 +28,35 @@ remain supported. The adapter has no unique serial number, so this rule assumes
 only one `067b:2303` adapter is connected. With several identical adapters, narrow
 the rule to the appropriate USB port before installing it.
 
+### Store the receipt logo in the Epson
+
+Receipts use NV logo 1 already stored in the printer (`FS p 1 3`, the existing
+`LOGO` constant). Upload a replacement once with:
+
+```sh
+# Stop the kassa backend before uploading.
+.venv/bin/python load_printer_logo.py images/hack42.png --write --test-print
+```
+
+The script reads `pos.serial` from `config.yaml` (default `/dev/ttyKASSA`,
+19200 baud). Use `--config`, `--port`, or `--baudrate` to override it. Without
+`--write` it only prepares the image; `--output logo.bin` exports the `FS q`
+command for offline inspection. `--test-print` prints the stored logo after
+uploading. Restart the backend afterwards.
+
+The default stored width is 192 dots; `LOGO` prints at twice the stored width
+and height, so the printed width is at most 384 dots. `--width` changes the
+stored width. Images retain their aspect ratio; transparent pixels and padding
+become white. Stored logos persist after power-off; receipt generation does not
+upload the image again.
+
+Epson's [FS q command](https://download4.epson.biz/sec_pubs/pos/reference_en/escpos/fs_lq.html)
+replaces **all** existing NV logos/graphics and resets the printer. Run the
+script only when changing the logo, with the backend stopped, and keep the
+printer powered on until it finishes. A successful serial write cannot confirm
+that the printer accepted the logo; verify the test print. The printer must
+support the same legacy NV commands already used for the receipt header.
+
 ### data
 
 Data is stored in 'data'. In production it is also committed to git, but for
