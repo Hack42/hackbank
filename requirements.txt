@@ -16,7 +16,7 @@ packbits==0.6
     # via brother-ql
 paho-mqtt==1.6.1
     # via -r requirements.in
-pillow==12.2.0
+pillow==12.3.0
     # via
     #   -r requirements.in
     #   brother-ql

@@ -33,7 +33,7 @@ DEFAULT_CONFIG = {
             "width": 384,
         },
         "serial": {
-            "port": "/dev/ttyUSB0",
+            "port": "/dev/ttyKASSA",
             "baudrate": 19200,
         },
     },
