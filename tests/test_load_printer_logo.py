@@ -33,6 +33,26 @@ def test_logo_scales_proportionally(tmp_path):
     )
 
 
+def test_only_near_white_pixels_remain_white(tmp_path):
+    path = tmp_path / "colors.png"
+    image = Image.new("RGB", (8, 1))
+    image.putdata(
+        [
+            (255, 255, 255),
+            (245, 245, 245),
+            (244, 244, 244),
+            (180, 180, 180),
+            (255, 255, 0),
+            (255, 255, 200),
+            (244, 255, 255),
+            (0, 0, 0),
+        ]
+    )
+    image.save(path)
+
+    assert loader.encode_logo(path)[7:] == b"\x00\x00" + b"\x80" * 6
+
+
 @pytest.mark.parametrize("width", [0, 513])
 def test_invalid_width_does_not_load_or_upload(width):
     with pytest.raises(ValueError):
