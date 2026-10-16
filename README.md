@@ -80,13 +80,22 @@ Sample members, balances, products, and stock are seeded once in the ignored
 the door command targets the development broker and no printer is connected.
 All CSS, icons, and JavaScript are served locally, with no CDN or web fonts.
 
-Member and user accounts appear as one continuous list of compact rows,
-with native single-finger touch scrolling and mouse-wheel scrolling in the
-left panel. Cash and amount controls remain above the list, and the receipt
-and command bar stay visible. Account-only search results use the same list.
+Member and user accounts use compact rows with page tabs when needed. At
+1920×1080 a page holds 66 accounts (six columns and eleven rows); smaller
+windows calculate their capacity from the available space. Cash and amount
+controls remain above the grid, and the receipt and command bar stay visible.
+Filtering keeps the same button sizes, expands results on backspace, and
+restores the previous selection and page when cleared. Typing and pasting
+both update the filter; Tab still completes a unique match.
 Products and commands retain pages of up to 56 buttons (8×7) at 1920×1080,
 or 25 buttons on smaller screens. The command bar's Enter button submits the
 same command as pressing Enter on the keyboard.
+
+Account themes use the existing `account-<username>` CSS classes. `stitch`
+has a local Stitch icon, a `#6088B0` background and bold white text; `BugBlue`
+has a slowly animated blue glitter background and white text. Balance badges
+keep their debt colours, and the glitter respects reduced-motion settings.
+See `www/images/users/README.md` for the icon source.
 
 The Music and Home Assistant shortcuts load their requested pages in the
 left-hand iframe and include links to open them in a separate tab. Home

@@ -27,6 +27,7 @@ function runChromium(command, url) {
       "--no-first-run",
       "--no-default-browser-check",
       "--headless",
+      "--window-size=1920,1080",
       "--disable-gpu",
       "--disable-dev-shm-usage",
       "--no-sandbox",
@@ -61,6 +62,7 @@ function writeKassaFixture(bodyScript) {
 <html>
   <head>
     <meta charset="utf-8">
+    <link rel="stylesheet" href="file://${path.resolve(__dirname, "../../www/stom.css")}">
     <script>
       window.__fetchCalls = [];
       window.fetch = function(url, options) {
@@ -70,6 +72,7 @@ function writeKassaFixture(bodyScript) {
       window.EventSource = function(url) {
         this.url = url;
         this.close = function() {};
+        window.__eventSource = this;
         window.__eventSourceUrl = url;
       };
     </script>
@@ -174,6 +177,77 @@ test("kassa frontend posts keyboard and button input in a browser", (t) => {
     "topic=session%2Fmain%2Finput&msg=bon",
     "topic=session%2Fmain%2Finput&msg=clubmate",
   ]);
+});
+
+test("filtering keeps account cell sizes and backspace restores the previous view", (t) => {
+  const command = chromiumCommand();
+  if(!command) {
+    t.skip("Chromium is not available");
+    return;
+  }
+  const fixturePath = writeKassaFixture(`
+    window.addEventListener("DOMContentLoaded", function() {
+      setTimeout(function() {
+        function send(topic, payload) {
+          window.__eventSource.onmessage({data: JSON.stringify([
+            'hack42bar/output/session/main/' + topic, JSON.stringify(payload)
+          ])});
+        }
+        var members = ['BugBlue', 'Jan', 'Johan', 'Jos', 'Josef', 'stitch'];
+        members.concat(['John']).forEach(function(name) { send('accounts/' + name, {amount: 12.5}); });
+        send('members', members);
+        send('nonmembers', ['John']);
+        send('buttons', {});
+        var before = document.querySelector('#AccountList #Jos').getBoundingClientRect();
+        var input = document.getElementById('Zoek');
+        var counts = [];
+        function filter(value) {
+          input.value = value;
+          input.dispatchEvent(new Event('input', {bubbles: true}));
+        }
+        filter('Jos');
+        setTimeout(function() {
+          counts.push(document.querySelectorAll('#AccountList .account').length);
+          var after = document.querySelector('#AccountList #Jos').getBoundingClientRect();
+          filter('Jo');
+          setTimeout(function() {
+            counts.push(document.querySelectorAll('#AccountList .account').length);
+            filter('J');
+            setTimeout(function() {
+              counts.push(document.querySelectorAll('#AccountList .account').length);
+              filter('');
+              setTimeout(function() {
+                counts.push(document.querySelectorAll('#AccountList .account').length);
+                var output = document.createElement('pre');
+                output.id = 'smoke-result';
+                output.textContent = JSON.stringify({
+                  beforeWidth: before.width, afterWidth: after.width,
+                  beforeHeight: before.height, afterHeight: after.height,
+                  counts: counts, fetchCount: window.__fetchCalls.length,
+                  hasCash: !!document.querySelector('#TopButtons #cash')
+                });
+                document.body.appendChild(output);
+              }, 250);
+            }, 250);
+          }, 250);
+        }, 250);
+      }, 0);
+    });
+  `);
+  const result = runChromium(command, `file://${fixturePath}`);
+  fs.unlinkSync(fixturePath);
+  if(skipIfChromiumSandboxed(t, result)) return;
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stderr);
+  const match = result.stdout.match(/<pre id="smoke-result">([^<]+)<\/pre>/);
+  assert(match, result.stdout);
+  const data = JSON.parse(match[1].replaceAll("&quot;", '"').replaceAll("&amp;", "&"));
+  assert(data.beforeWidth > 0);
+  assert(Math.abs(data.beforeWidth - data.afterWidth) < 0.5, JSON.stringify(data));
+  assert(Math.abs(data.beforeHeight - data.afterHeight) < 0.5, JSON.stringify(data));
+  assert.deepEqual(data.counts, [2, 4, 5, 6]);
+  assert.equal(data.fetchCount, 1);
+  assert.equal(data.hasCash, true);
 });
 
 test("the checked-in jQuery vendor file is gone", () => {

@@ -40,6 +40,9 @@ function makeElement(tag, register) {
       this.eventListeners[type] = handler;
     },
     classList: {
+      contains(className) {
+        return element.className.split(/\s+/).includes(className);
+      },
       add(className) {
         const classes = new Set(element.className.split(/\s+/).filter(Boolean));
         classes.add(className);
@@ -137,7 +140,7 @@ function loadScript(sandbox, scriptName) {
   vm.runInNewContext(script, sandbox, {filename: scriptName});
 }
 
-function loadKassaApp({hash = "", pageCapacity = 25} = {}) {
+function loadKassaApp({hash = "", pageCapacity = 25, accountCapacity = 66} = {}) {
   const elements = {};
   const documentListeners = {};
   const eventSources = [];
@@ -193,7 +196,7 @@ function loadKassaApp({hash = "", pageCapacity = 25} = {}) {
 
   const window = {
     getComputedStyle() {
-      return {getPropertyValue: () => String(pageCapacity)};
+      return {getPropertyValue: (name) => String(name === "--accounts-per-page" ? accountCapacity : pageCapacity)};
     },
     HackBankTextfill: {
       fillElement(element, options) {
@@ -311,29 +314,31 @@ test("pagination uses the grid capacity for large and smaller screens", () => {
   });
 });
 
-test("members and other users stay in one list at either page capacity", () => {
-  [25, 56].forEach((capacity) => {
-    const {body, elements, eventSources, timers, fetchCalls} = loadKassaApp({pageCapacity: capacity});
-    const names = Array.from({length: 140}, (_, i) => `user${String(i).padStart(3, "0")}`);
+test("account pages use their own capacity and retain cash and amount controls", () => {
+  [21, 66].forEach((capacity) => {
+    const {body, elements, eventSources, timers, fetchCalls} = loadKassaApp({accountCapacity: capacity});
+    const names = Array.from({length: 191}, (_, i) => `user${String(i).padStart(3, "0")}`);
     const send = (topic, msg) => eventSources[0].onmessage({
       data: JSON.stringify([`hack42bar/output/session/main/${topic}`, JSON.stringify(msg)]),
     });
     names.forEach((name) => send(`accounts/${name}`, {amount: 12.50}));
-    send("members", names.slice(0, 70));
-    send("nonmembers", names.slice(70));
+    send("members", names.slice(0, 66));
+    send("nonmembers", names.slice(66));
     send("buttons", {special: "accountsamount"});
 
-    assert.equal(findAll(elements.AccountList, ".account").length, 70);
-    assert.equal(findAll(elements.TopButtons, ".page").length, 0);
-    assert.equal(findAll(elements.MainButtons, ".Pagina").length, 0);
+    assert.equal(findAll(elements.AccountList, ".account").length, 66);
+    assert.equal(findAll(elements.Page1, ".account").length, capacity);
+    assert.equal(findAll(elements.TopButtons, ".page").length, capacity === 66 ? 0 : 4);
     assert(findFirst(elements.TopButtons, "#cash"));
     assert(findFirst(elements.TopButtons, "#shownumbers"));
 
     elements.Zoek.value = "user";
-    elements.Zoek.eventListeners.keydown.call(elements.Zoek, {which: 85});
+    elements.Zoek.eventListeners.input();
     timers[timers.length - 1].callback();
-    assert.equal(findAll(elements.AccountList, ".account").length, 140);
-    assert.equal(findAll(elements.TopButtons, ".page").length, 0);
+    assert.equal(findAll(elements.AccountList, ".account").length, 191);
+    assert.equal(findAll(elements.TopButtons, ".page").length, Math.ceil(191/capacity));
+    assert(findFirst(elements.TopButtons, "#cash"));
+    assert(findFirst(elements.TopButtons, "#shownumbers"));
     assert.equal(fetchCalls.length, 1);
 
     body.eventListeners.click({target: {
@@ -341,9 +346,149 @@ test("members and other users stay in one list at either page capacity", () => {
         return selector.startsWith("div.Knopje:not") ? findFirst(elements.LeftButtons, "#otherusers") : null;
       },
     }});
-    assert.deepEqual(findAll(elements.AccountList, ".Buttontext").map((el) => el.textContent), names.slice(70));
-    assert.equal(findAll(elements.TopButtons, ".page").length, 0);
+    assert.deepEqual(findAll(elements.AccountList, ".Buttontext").map((el) => el.textContent), names.slice(66));
+    assert.equal(findAll(elements.TopButtons, ".page").length, Math.ceil(125/capacity));
   });
+});
+
+test("backspacing a user filter expands results and clearing restores the selection", () => {
+  const {elements, eventSources, timers, fetchCalls} = loadKassaApp();
+  const send = (topic, msg) => eventSources[0].onmessage({
+    data: JSON.stringify([`hack42bar/output/session/main/${topic}`, JSON.stringify(msg)]),
+  });
+  const members = ["Jan", "Johan", "Jos", "Josef", "stitch", "BugBlue"];
+  [...members, "John", "Visitor"].forEach((name) => send(`accounts/${name}`, {amount: 12.50}));
+  send("members", members);
+  send("nonmembers", ["John", "Visitor"]);
+  send("buttons", {special: "accountsamount"});
+  function filter(value) {
+    elements.Zoek.value = value;
+    elements.Zoek.eventListeners.input();
+    timers[timers.length - 1].callback();
+    return findAll(elements.MainButtons, ".Buttontext").map((el) => el.textContent);
+  }
+
+  assert.deepEqual(filter("Jos"), ["Jos", "Josef"]);
+  assert.deepEqual(filter("Jo"), ["Johan", "Jos", "Josef", "John"]);
+  assert.deepEqual(filter("J"), ["Jan", "Johan", "Jos", "Josef", "John"]);
+  assert.deepEqual(filter(""), ["BugBlue", "Jan", "Johan", "Jos", "Josef", "stitch"]);
+  assert(findFirst(elements.TopButtons, "#cash"));
+  assert(findFirst(elements.TopButtons, "#shownumbers"));
+  assert.equal(fetchCalls.length, 1);
+});
+
+test("clearing a filter restores the original user tab after no matches", () => {
+  const {body, elements, eventSources, timers, fetchCalls} = loadKassaApp();
+  const send = (topic, msg) => eventSources[0].onmessage({
+    data: JSON.stringify([`hack42bar/output/session/main/${topic}`, JSON.stringify(msg)]),
+  });
+  const names = Array.from({length: 125}, (_, i) => `visitor${String(i).padStart(3, "0")}`);
+  names.forEach((name) => send(`accounts/${name}`, {amount: 0}));
+  send("nonmembers", names);
+  send("buttons", {});
+  body.eventListeners.click({target: {
+    closest(selector) {
+      return selector.startsWith("div.Knopje:not") ? findFirst(elements.LeftButtons, "#otherusers") : null;
+    },
+  }});
+  body.eventListeners.click({target: {
+    closest(selector) {
+      return selector === "div.page" ? findFirst(elements.TopButtons, "#2") : null;
+    },
+  }});
+  assert.equal(elements.Page2.style.display, "");
+
+  elements.Zoek.value = "no-matching-user";
+  elements.Zoek.eventListeners.input();
+  timers[timers.length - 1].callback();
+  assert.equal(findAll(elements.MainButtons, ".Buttontext").length, 0);
+  elements.Zoek.value = "";
+  elements.Zoek.eventListeners.input();
+  timers[timers.length - 1].callback();
+  assert.equal(findAll(elements.Page1, ".account").length, 66);
+  assert.equal(findAll(elements.Page2, ".account").length, 59);
+  assert.equal(elements.Page1.style.display, "none");
+  assert.equal(elements.Page2.style.display, "");
+  assert.equal(findFirst(elements.TopButtons, "#2").classList.contains("currentpage"), true);
+  assert.equal(fetchCalls.length, 1);
+});
+
+test("mixed search results retain the layout of the selected section", () => {
+  const {body, elements, eventSources, timers} = loadKassaApp();
+  const send = (topic, msg) => eventSources[0].onmessage({
+    data: JSON.stringify([`hack42bar/output/session/main/${topic}`, JSON.stringify(msg)]),
+  });
+  send("accounts/Jos", {amount: 10});
+  send("members", ["Jos"]);
+  send("products/jos-soda", {description: "Jos Soda", group: "drinks", price: 1.5, aliases: []});
+  send("buttons", {});
+  function filter(value) {
+    elements.Zoek.value = value;
+    elements.Zoek.eventListeners.input();
+    timers[timers.length - 1].callback();
+  }
+  filter("Jos");
+  assert.equal(findAll(elements.MainButtons, ".Buttontext").length, 2);
+  assert.equal(elements.Page1.classList.contains("account-list"), true);
+  filter("");
+  body.eventListeners.click({target: {
+    closest(selector) {
+      return selector.startsWith("div.Knopje:not") ? findFirst(elements.LeftButtons, "#products") : null;
+    },
+  }});
+  filter("Jos");
+  assert.equal(findAll(elements.MainButtons, ".Buttontext").length, 2);
+  assert.equal(elements.Page1.classList.contains("account-list"), false);
+  filter("");
+  assert.deepEqual(findAll(elements.MainButtons, ".Buttontext").map((el) => el.textContent), ["drinks"]);
+});
+
+test("clearing a product filter restores the selected product group", () => {
+  const {body, elements, eventSources, timers, fetchCalls} = loadKassaApp();
+  const send = (topic, msg) => eventSources[0].onmessage({
+    data: JSON.stringify([`hack42bar/output/session/main/${topic}`, JSON.stringify(msg)]),
+  });
+  ["cola", "coffee", "water", "whisky"].forEach((name) => send(`products/${name}`, {
+    description: name, group: "drinks", price: 1.5, aliases: [],
+  }));
+  send("buttons", {special: "products"});
+  body.eventListeners.click({target: {
+    closest(selector) {
+      return selector === "div.productgroups" ? findFirst(elements.MainButtons, "#drinks") : null;
+    },
+  }});
+  function filter(value) {
+    elements.Zoek.value = value;
+    elements.Zoek.eventListeners.input();
+    timers[timers.length - 1].callback();
+    return findAll(elements.MainButtons, ".Buttontext").map((el) => el.textContent);
+  }
+  assert.deepEqual(filter("co"), ["cola", "coffee"]);
+  assert.deepEqual(filter("col"), ["cola"]);
+  assert.deepEqual(filter("c"), ["cola", "coffee"]);
+  assert.deepEqual(filter(""), ["coffee", "cola", "water", "whisky"]);
+  assert.equal(fetchCalls.length, 1);
+});
+
+test("the Stitch icon belongs to the user button and preserves its command", () => {
+  const {body, elements, eventSources, fetchCalls} = loadKassaApp();
+  const send = (topic, msg) => eventSources[0].onmessage({
+    data: JSON.stringify([`hack42bar/output/session/main/${topic}`, JSON.stringify(msg)]),
+  });
+  send("accounts/stitch", {amount: 10});
+  send("members", ["stitch"]);
+  send("buttons", {special: "accounts"});
+  const account = findFirst(elements.AccountList, "#stitch");
+  assert.equal(account.children[0].tag, "img");
+  assert.equal(account.children[0].src, "images/users/stitch.png");
+  assert.equal(account.children[0].alt, "");
+  body.eventListeners.click({target: {
+    closest(selector) {
+      return selector === "div.normal" ? account : null;
+    },
+  }});
+  assert.equal(fetchCalls.length, 2);
+  assert.equal(String(fetchCalls[1].options.body), "topic=session%2Fmain%2Finput&msg=stitch");
 });
 
 test("Music and Home Assistant open the requested frames and switch cleanly", () => {

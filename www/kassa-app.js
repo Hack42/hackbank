@@ -16,6 +16,8 @@ document.addEventListener("DOMContentLoaded", function() {
   var question="";
   var locked=0;
   var pagedButtons=null;
+  var filterRestore=null;
+  var filtering=false;
   var buttons=window.HackBankButtons;
   var dom=window.HackBankDom;
   var allElements=dom.allElements;
@@ -308,10 +310,23 @@ document.addEventListener("DOMContentLoaded", function() {
     });
     showquestion();
   }
-  function buttonsPerPage() {
+  function buttonsPerPage(accountList) {
     var mainButtons=first('#MainButtons');
     if(!mainButtons || !window.getComputedStyle) return 25;
-    return parseInt(window.getComputedStyle(mainButtons).getPropertyValue('--buttons-per-page'), 10) || 25;
+    var style=window.getComputedStyle(mainButtons);
+    if(accountList) {
+      var width=mainButtons.clientWidth-(parseFloat(style.paddingLeft) || 0)-(parseFloat(style.paddingRight) || 0);
+      var height=mainButtons.clientHeight-(parseFloat(style.paddingTop) || 0)-(parseFloat(style.paddingBottom) || 0);
+      if(width > 0 && height > 0) {
+        var columns=Math.max(1,Math.floor((width+8)/(240+8)));
+        var rows=Math.max(1,Math.floor((height+8)/(56+8)));
+        mainButtons.style.setProperty('--account-columns',columns);
+        mainButtons.style.setProperty('--account-rows',rows);
+        return columns*rows;
+      }
+      return parseInt(style.getPropertyValue('--accounts-per-page'), 10) || 66;
+    }
+    return parseInt(style.getPropertyValue('--buttons-per-page'), 10) || 25;
   }
   function selectButtonPage(id) {
     allElements('#TopButtons .page').forEach(function(button) {
@@ -320,28 +335,46 @@ document.addEventListener("DOMContentLoaded", function() {
     });
     hideElements('.Pagina');
     showElement('#Page'+id);
+    first('#MainButtons').scrollTop=0;
     fillVisibleText('.Buttontext:visible');
   }
-  function reflowButtonPages() {
-    if(!pagedButtons || !first('#MainButtons .Pagina')) return;
-    var capacity=buttonsPerPage();
-    if(capacity === pagedButtons.capacity) return;
-    var activePage=first('#TopButtons .currentpage');
-    var firstIndex=(activePage ? Number(activePage.id)-1 : 0)*pagedButtons.capacity;
-    var extraButtons=allElements('#TopButtons .Knopje').filter(function(button) {
-      return !button.classList.contains('page');
-    });
-    var previous=pagedButtons;
-    makepages(previous.className,previous.buttons);
-    selectButtonPage(Math.floor(firstIndex/capacity)+1);
-    extraButtons.reverse().forEach(function(button) {
+  function selectionSnapshot() {
+    if(!pagedButtons || !allElements('#MainButtons .Pagina').length) return null;
+    var activePage=allElements('#TopButtons .currentpage')[0];
+    return {
+      view: pagedButtons,
+      firstIndex: (activePage ? Number(activePage.id)-1 : 0)*pagedButtons.capacity,
+      extras: allElements('#TopButtons .Knopje').filter(function(button) {
+        return !button.classList.contains('page');
+      }),
+    };
+  }
+  function restoreExtraButtons(snapshot) {
+    snapshot.extras.slice().reverse().forEach(function(button) {
       first('#TopButtons').prepend(button);
     });
+  }
+  function restoreSelection(snapshot) {
+    if(!snapshot) return;
+    makepages(snapshot.view.className,snapshot.view.buttons,snapshot.view.accountList);
+    selectButtonPage(Math.floor(snapshot.firstIndex/pagedButtons.capacity)+1);
+    restoreExtraButtons(snapshot);
+  }
+  function reflowButtonPages() {
+    if(!pagedButtons || !allElements('#MainButtons .Pagina').length) return;
+    var capacity=buttonsPerPage(pagedButtons.accountList);
+    if(capacity === pagedButtons.capacity) return;
+    var previousFilter=filterRestore;
+    restoreSelection(selectionSnapshot());
+    filterRestore=previousFilter;
   }
   function commandButton(extraclass,stuff) {
     var knopje=appendChildren(createElement('div',{class: "Knopje Knop "+stuff.text+" "+extraclass + " " + stuff.class,id: stuff.text, role: 'button', tabindex: '0', title: stuff.display }), [
       createElement('span',{class: "Buttontext ",text: stuff.display}),
     ]);
+    if(stuff.text === 'stitch' && stuff.class && stuff.class.indexOf('account ') === 0) {
+      knopje.prepend(createElement('img',{class: 'account-icon', src: 'images/users/stitch.png', width: '32', height: '32', alt: '', 'aria-hidden': 'true'}));
+    }
     if(stuff.right) {
       var fullwidth='';
       if(!stuff.left && stuff.fill) fullwidth=' fullwidthButton ';
@@ -353,43 +386,42 @@ document.addEventListener("DOMContentLoaded", function() {
     return knopje;
   }
   function makeAccountList(accountButtons) {
-    pagedButtons=null;
-    clearElement('#MainButtons');
-    clearElement('#TopButtons');
-    var list=createElement('div',{id: 'AccountList', class: 'account-list', role: 'group', 'aria-label': 'Accounts'});
-    accountButtons.forEach(function(button) {
-      list.appendChild(commandButton('normal',button));
-    });
-    appendTo('#MainButtons',list);
-    first('#MainButtons').scrollTop=0;
-    fillVisibleText('.Buttontext:visible');
-    showquestion();
+    makepages('normal',accountButtons,true);
   }
-  function makepages(extraclass,buttons) {
-    var capacity=buttonsPerPage();
-    pagedButtons={className: extraclass, buttons: buttons, capacity: capacity};
+  function makepages(extraclass,buttons,accountList) {
+    if(!filtering) filterRestore=null;
+    var capacity=buttonsPerPage(accountList);
+    pagedButtons={className: extraclass, buttons: buttons, capacity: capacity, accountList: !!accountList};
     var pagecount=1;
     clearElement('#MainButtons');
     clearElement('#TopButtons');
-    appendTo('#MainButtons', createElement('div',{id: 'Page'+pagecount, class: 'Pagina'}));
+    first('#MainButtons').scrollTop=0;
+    var container='#MainButtons';
+    var pageClass='Pagina';
+    if(accountList) {
+      appendTo(container,createElement('div',{id: 'AccountList', role: 'group', 'aria-label': 'Accounts'}));
+      container='#AccountList';
+      pageClass+=' account-list';
+    }
+    appendTo(container, createElement('div',{id: 'Page'+pagecount, class: pageClass}));
     appendTo('#TopButtons', topButton("page currentpage",'1',"Page 1"));
     var counter=0;
     var donewpage=0;
-    var first=1;
+    var firstOnPage=1;
     var lastchar="";
     buttons.forEach(function(stuff) {
       if(donewpage === 1) {
         appendToPageLabel(pagecount, ' - '+lastchar);
         pagecount++;
-        appendTo('#MainButtons', createElement('div',{id: 'Page'+pagecount, class: 'Pagina', style: {display: 'none'}}));
+        appendTo(container, createElement('div',{id: 'Page'+pagecount, class: pageClass, style: {display: 'none'}}));
         appendTo('#TopButtons', topButton("page",String(pagecount),"Page "+pagecount));
         counter=0;
         donewpage=0;
-        first=1;
+        firstOnPage=1;
       }
-      if(first === 1) {
+      if(firstOnPage === 1) {
         appendToPageLabel(pagecount, '<br>'+stuff.display.charAt(0).toUpperCase());
-        first=0;
+        firstOnPage=0;
       }
       lastchar=stuff.display.charAt(0).toUpperCase();
       appendTo('#Page'+pagecount, commandButton(extraclass,stuff));
@@ -567,9 +599,12 @@ document.addEventListener("DOMContentLoaded", function() {
     if(!tabenable) return;
     var dingen=searchValue().split(" ");
     var zoek=dingen[dingen.length-1].toLowerCase();
-    if(zoek.length<2) {
-        return;
+    if(!zoek.length) {
+      restoreSelection(filterRestore);
+      return;
     }
+    if(fill && zoek.length<2) return;
+    if(!filterRestore) filterRestore=selectionSnapshot();
     var buttons=[];
     window.HackBankButtons.addMatchingButtons(buttons, window.HackBankButtons.accountsToButtons(accounts,members,nonmembers,'m'), zoek);
     window.HackBankButtons.addMatchingButtons(buttons, window.HackBankButtons.accountsToButtons(accounts,members,nonmembers,'o'), zoek);
@@ -590,12 +625,15 @@ document.addEventListener("DOMContentLoaded", function() {
          }
       });
     }
-    if(tabenable === 2 || (buttons.length > 0 && buttons.every(function(button) {
-      return button.class && button.class.indexOf('account ') === 0;
-    }))) {
-      makeAccountList(buttons);
-    } else {
-      makepages('normal',buttons);
+    filtering=true;
+    try {
+      var accountList=filterRestore ? filterRestore.view.accountList : (tabenable === 2 || (buttons.length > 0 && buttons.every(function(button) {
+        return button.class && button.class.indexOf('account ') === 0;
+      })));
+      makepages('normal',buttons,accountList);
+      if(filterRestore) restoreExtraButtons(filterRestore);
+    } finally {
+      filtering=false;
     }
     if(buttons.length === 1 && fill) {
         dingen[dingen.length-1]=buttons[0].text+" ";
@@ -890,11 +928,12 @@ document.addEventListener("DOMContentLoaded", function() {
         data.preventDefault();
       } else if(data.which === 13) {
         submitCommand();
-      } else {
-        delay(function(){
-          dotabfill(0);
-        }, 200 );
       }
+    });
+    searchInput().addEventListener('input',function() {
+      delay(function() {
+        dotabfill(0);
+      },200);
     });
   }
 
