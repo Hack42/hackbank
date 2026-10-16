@@ -9,6 +9,7 @@ def test_load_config_uses_defaults_when_missing(tmp_path):
     assert config["mqtt"]["host"] == "localhost"
     assert config["stickers"]["printer"]["port"] == 9100
     assert config["logging"]["level"] == "INFO"
+    assert config["pos"]["serial"]["port"] == "/dev/ttyKASSA"
 
 
 def test_load_config_merges_yaml_with_defaults(tmp_path):

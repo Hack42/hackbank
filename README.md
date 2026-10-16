@@ -9,6 +9,25 @@ You need python, paho-mqtt-client and apache+php.
 
 To install the python dependencies, run 'pip install -r requirements.txt'.
 
+### Printer and cash drawer
+
+The POS serial port defaults to `/dev/ttyKASSA`. Install the udev rule on the
+machine connected to the Prolific PL2303 USB serial adapter:
+
+```sh
+sudo install -m 0644 udev/99-kassa.rules /etc/udev/rules.d/99-kassa.rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger --action=add --subsystem-match=tty
+sudo udevadm settle
+ls -l /dev/ttyKASSA
+```
+
+Give the backend user membership of `dialout` and restart the backend. Set
+`pos.serial.port: /dev/ttyKASSA` in an existing `config.yaml`; local overrides
+remain supported. The adapter has no unique serial number, so this rule assumes
+only one `067b:2303` adapter is connected. With several identical adapters, narrow
+the rule to the appropriate USB port before installing it.
+
 ### data
 
 Data is stored in 'data'. In production it is also committed to git, but for
