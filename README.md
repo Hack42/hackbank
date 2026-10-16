@@ -47,7 +47,9 @@ uploading. Restart the backend afterwards.
 The default stored width is 192 dots; `LOGO` prints at twice the stored width
 and height, so the printed width is at most 384 dots. `--width` changes the
 stored width. Images retain their aspect ratio; transparent pixels and padding
-become white. Stored logos persist after power-off; receipt generation does not
+become white. Only near-white pixels (all RGB channels at least 245) remain
+white; every other color becomes solid black, without dithering.
+Stored logos persist after power-off; receipt generation does not
 upload the image again.
 
 Epson's [FS q command](https://download4.epson.biz/sec_pubs/pos/reference_en/escpos/fs_lq.html)

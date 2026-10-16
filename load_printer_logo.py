@@ -5,7 +5,7 @@ from pathlib import Path
 import struct
 import time
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageChops, ImageOps
 import serial
 
 from config import load_config
@@ -20,8 +20,10 @@ def encode_logo(path, width=192):
         image = source.convert("RGBA")
     image.thumbnail((width, 512), Image.Resampling.LANCZOS)
     white = Image.new("RGBA", image.size, "white")
-    gray = Image.alpha_composite(white, image).convert("L")
-    ink = ImageOps.invert(gray.point(lambda value: 255 if value >= 128 else 0))
+    red, green, blue = Image.alpha_composite(white, image).convert("RGB").split()
+    # Keep only near-white pixels white, including bright saturated colors as ink.
+    darkest = ImageChops.darker(ImageChops.darker(red, green), blue)
+    ink = ImageOps.invert(darkest.point(lambda value: 255 if value >= 245 else 0))
     x_bytes, y_bytes = (image.width + 7) // 8, (image.height + 7) // 8
     padded = Image.new("1", (x_bytes * 8, y_bytes * 8), 0)
     padded.paste(ink.convert("1"), (0, 0))
