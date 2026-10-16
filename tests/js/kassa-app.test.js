@@ -140,7 +140,7 @@ function loadScript(sandbox, scriptName) {
   vm.runInNewContext(script, sandbox, {filename: scriptName});
 }
 
-function loadKassaApp({hash = "", pageCapacity = 25, accountCapacity = 66} = {}) {
+function loadKassaApp({hash = "", pageCapacity = 25, accountCapacity = 42} = {}) {
   const elements = {};
   const documentListeners = {};
   const eventSources = [];
@@ -299,6 +299,32 @@ test("the command Enter button submits once, clears the input and restores focus
   assert.equal(input.focused, true);
 });
 
+test("the Hack42 logo aborts once even with an unfinished command in the input", () => {
+  const {elements, fetchCalls} = loadKassaApp({hash: "#bar"});
+  elements.Zoek.value = "2* cola";
+  elements.LogoAbort.eventListeners.click();
+
+  assert.equal(elements.LogoAbort.tag, "button");
+  assert.equal(elements.LogoAbort.type, "button");
+  assert.equal(fetchCalls.length, 2);
+  assert.equal(String(fetchCalls[1].options.body), "topic=session%2Fbar%2Finput&msg=abort");
+  assert.equal(elements.Zoek.value, "");
+  assert.equal(elements.Zoek.focused, true);
+});
+
+test("custom sound menus omit the retired controls and keep the remaining choices", () => {
+  const {elements, eventSources, fetchCalls} = loadKassaApp();
+  const names = ["abort", "ns", "deuron", "deuroff", "kassaon", "kassaoff", "killsounds", "groovesalad", "christmas", "blues", "quieter", "louder", "vergaderen"];
+  eventSources[0].onmessage({data: JSON.stringify([
+    "hack42bar/output/session/main/buttons",
+    JSON.stringify({special: "custom", custom: names.map((name) => ({text: name, display: name}))}),
+  ])});
+  assert.deepEqual(findAll(elements.MainButtons, ".Buttontext").map((el) => el.textContent), [
+    "abort", "christmas", "kassaoff", "kassaon", "ns", "vergaderen",
+  ]);
+  assert.equal(fetchCalls.length, 1);
+});
+
 test("pagination uses the grid capacity for large and smaller screens", () => {
   [25, 56].forEach((capacity) => {
     const {elements, eventSources} = loadKassaApp({pageCapacity: capacity});
@@ -315,7 +341,7 @@ test("pagination uses the grid capacity for large and smaller screens", () => {
 });
 
 test("account pages use their own capacity and retain cash and amount controls", () => {
-  [21, 66].forEach((capacity) => {
+  [18, 42].forEach((capacity) => {
     const {body, elements, eventSources, timers, fetchCalls} = loadKassaApp({accountCapacity: capacity});
     const names = Array.from({length: 191}, (_, i) => `user${String(i).padStart(3, "0")}`);
     const send = (topic, msg) => eventSources[0].onmessage({
@@ -328,7 +354,7 @@ test("account pages use their own capacity and retain cash and amount controls",
 
     assert.equal(findAll(elements.AccountList, ".account").length, 66);
     assert.equal(findAll(elements.Page1, ".account").length, capacity);
-    assert.equal(findAll(elements.TopButtons, ".page").length, capacity === 66 ? 0 : 4);
+    assert.equal(findAll(elements.TopButtons, ".page").length, Math.ceil(66/capacity));
     assert(findFirst(elements.TopButtons, "#cash"));
     assert(findFirst(elements.TopButtons, "#shownumbers"));
 
@@ -405,8 +431,9 @@ test("clearing a filter restores the original user tab after no matches", () => 
   elements.Zoek.value = "";
   elements.Zoek.eventListeners.input();
   timers[timers.length - 1].callback();
-  assert.equal(findAll(elements.Page1, ".account").length, 66);
-  assert.equal(findAll(elements.Page2, ".account").length, 59);
+  assert.equal(findAll(elements.Page1, ".account").length, 42);
+  assert.equal(findAll(elements.Page2, ".account").length, 42);
+  assert.equal(findAll(elements.Page3, ".account").length, 41);
   assert.equal(elements.Page1.style.display, "none");
   assert.equal(elements.Page2.style.display, "");
   assert.equal(findFirst(elements.TopButtons, "#2").classList.contains("currentpage"), true);

@@ -146,3 +146,24 @@ test("product button helpers include prices, stock and aliases for app pages", (
     "123",
   ]);
 });
+
+test("retired sound controls are absent from command menus and search candidates", () => {
+  const helpers = loadButtonHelpers();
+  const commands = {
+    deuroff: "Deur off", deuron: "Deur on", groovesalad: "Groove Salad",
+    blues: "Jazz Radio Blues", killsounds: "Kill Music", louder: "Louder", quieter: "Quieter",
+    sounds: "All sound commands", ns: "Ding Dong", kassaon: "Kassa on", kassaoff: "Kassa off",
+    christmas: "christmas", vergaderen: "Vergaderen!",
+  };
+  const visible = helpers.commandsToButtons(commands);
+  assert.deepEqual(plain(visible.map((button) => button.text)), [
+    "christmas", "kassaoff", "kassaon", "ns", "sounds", "vergaderen",
+  ]);
+  const matches = [];
+  helpers.addMatchingButtons(matches, visible, "loud");
+  assert.deepEqual(matches, []);
+  assert.equal(commands.louder, "Louder");
+  assert.equal(helpers.productGroupToButtons({
+    blues: {description: "Blues beer", price: 2.5, group: "drinks"},
+  }, {}, "drinks")[0].text, "blues");
+});

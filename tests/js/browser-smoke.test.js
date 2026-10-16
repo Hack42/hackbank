@@ -243,6 +243,7 @@ test("filtering keeps account cell sizes and backspace restores the previous vie
   assert(match, result.stdout);
   const data = JSON.parse(match[1].replaceAll("&quot;", '"').replaceAll("&amp;", "&"));
   assert(data.beforeWidth > 0);
+  assert.equal(data.beforeHeight, 84);
   assert(Math.abs(data.beforeWidth - data.afterWidth) < 0.5, JSON.stringify(data));
   assert(Math.abs(data.beforeHeight - data.afterHeight) < 0.5, JSON.stringify(data));
   assert.deepEqual(data.counts, [2, 4, 5, 6]);

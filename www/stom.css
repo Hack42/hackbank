@@ -14,8 +14,9 @@
   --button-rows: 5;
   --buttons-per-page: 25;
   --account-columns: 6;
-  --account-rows: 11;
-  --accounts-per-page: 66;
+  --account-rows: 7;
+  --account-row-height: 84px;
+  --accounts-per-page: 42;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   font-synthesis: none;
 }
@@ -56,6 +57,9 @@ iframe { display: block; border: 0; }
   border-bottom: 1px solid #ffffff12;
 }
 .brand { display: flex; align-items: center; gap: 10px; }
+.brand-abort { display: block; flex: 0 0 auto; padding: 0; border: 0; border-radius: 6px; background: transparent; cursor: pointer; }
+.brand-abort:hover { box-shadow: 0 0 0 3px #ffbf6980; }
+.brand-abort:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .brand-logo { display: block; flex: 0 0 auto; width: 84px; height: 56px; padding: 4px; border-radius: 6px; background: #fff; object-fit: contain; }
 .brand-name { display: block; color: #f8fafc; font-size: 24px; font-weight: 750; letter-spacing: -1px; }
 .brand-caption { display: block; margin-top: 1px; color: #a1adbc; font-size: 9px; font-weight: 600; letter-spacing: 1.3px; }
@@ -188,8 +192,8 @@ iframe { display: block; border: 0; }
 .extra.fullwidthButton { left: 8px; width: auto; text-align: right; }
 /* Keep empty cells when filtering; account pages fit the available screen. */
 #AccountList { height: 100%; }
-.account-list { grid-template-columns: repeat(var(--account-columns), minmax(0, 1fr)); grid-template-rows: repeat(var(--account-rows), minmax(0, 1fr)); gap: 8px; }
-.account-list .Knop { justify-content: space-between; gap: 10px; min-height: 56px; padding: 8px 12px; border-top: 1px solid var(--line); font-size: 17px; text-align: left; overflow: hidden; }
+.account-list { grid-template-columns: repeat(var(--account-columns), minmax(0, 1fr)); grid-template-rows: repeat(var(--account-rows), var(--account-row-height)); align-content: start; gap: 8px; }
+.account-list .Knop { justify-content: space-between; gap: 10px; min-height: var(--account-row-height); padding: 8px 12px; border-top: 1px solid var(--line); font-size: 17px; text-align: left; overflow: hidden; }
 .account-list .Knop .Buttontext { flex: 1 1 auto; width: auto; min-width: 0; }
 .account-list .Knop .extra { position: static; flex: 0 0 auto; max-width: 45%; width: auto; margin-left: auto; padding: 4px 8px; font-size: 14px; }
 .account-icon { display: block; flex: 0 0 32px; width: 32px; height: 32px; object-fit: contain; pointer-events: none; }

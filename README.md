@@ -80,9 +80,10 @@ Sample members, balances, products, and stock are seeded once in the ignored
 the door command targets the development broker and no printer is connected.
 All CSS, icons, and JavaScript are served locally, with no CDN or web fonts.
 
-Member and user accounts use compact rows with page tabs when needed. At
-1920×1080 a page holds 66 accounts (six columns and eleven rows); smaller
-windows calculate their capacity from the available space. Cash and amount
+Member and user accounts use 84px-tall buttons, 50% taller than the original
+compact rows, with page tabs when needed. At 1920×1080 a page holds 42 accounts
+(six columns and seven rows); smaller windows calculate their capacity from
+the available space. Cash and amount
 controls remain above the grid, and the receipt and command bar stay visible.
 Filtering keeps the same button sizes, expands results on backspace, and
 restores the previous selection and page when cleared. Typing and pasting
@@ -90,6 +91,9 @@ both update the filter; Tab still completes a unique match.
 Products and commands retain pages of up to 56 buttons (8×7) at 1920×1080,
 or 25 buttons on smaller screens. The command bar's Enter button submits the
 same command as pressing Enter on the keyboard.
+Clicking the Hack42 logo also sends Abort and clears the command input.
+The Sounds menu and command search omit Deur off/on, Groove Salad, Jazz Radio
+Blues, Kill Music, Louder and Quieter.
 
 Account themes use the existing `account-<username>` CSS classes. `stitch`
 has a local Stitch icon, a `#6088B0` background and bold white text; `BugBlue`

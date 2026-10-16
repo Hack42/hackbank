@@ -317,14 +317,15 @@ document.addEventListener("DOMContentLoaded", function() {
     if(accountList) {
       var width=mainButtons.clientWidth-(parseFloat(style.paddingLeft) || 0)-(parseFloat(style.paddingRight) || 0);
       var height=mainButtons.clientHeight-(parseFloat(style.paddingTop) || 0)-(parseFloat(style.paddingBottom) || 0);
+      var rowHeight=parseFloat(style.getPropertyValue('--account-row-height')) || 84;
       if(width > 0 && height > 0) {
         var columns=Math.max(1,Math.floor((width+8)/(240+8)));
-        var rows=Math.max(1,Math.floor((height+8)/(56+8)));
+        var rows=Math.max(1,Math.floor((height+8)/(rowHeight+8)));
         mainButtons.style.setProperty('--account-columns',columns);
         mainButtons.style.setProperty('--account-rows',rows);
         return columns*rows;
       }
-      return parseInt(style.getPropertyValue('--accounts-per-page'), 10) || 66;
+      return parseInt(style.getPropertyValue('--accounts-per-page'), 10) || 42;
     }
     return parseInt(style.getPropertyValue('--buttons-per-page'), 10) || 25;
   }
@@ -453,12 +454,13 @@ document.addEventListener("DOMContentLoaded", function() {
     } else if (buttons['special'] === 'custom') {
       activateTopButton('commands');
       showElement('#Secondscreen');
+      var customButtons=window.HackBankButtons.visibleCommandButtons(buttons['custom']);
       if(buttons['sort'] === "text") {
-        buttons['custom'].sort(window.HackBankButtons.compareTextReverse);
+        customButtons.sort(window.HackBankButtons.compareTextReverse);
       } else {
-        buttons['custom'].sort(window.HackBankButtons.compareDisplay);
+        customButtons.sort(window.HackBankButtons.compareDisplay);
       }
-      makepages('normal',buttons['custom']);
+      makepages('normal',customButtons);
       focus();
       tabenable=0;
     } else if (buttons['special'] === 'accounts') {
@@ -812,8 +814,14 @@ document.addEventListener("DOMContentLoaded", function() {
 
   function buildLayout() {
     var header=createElement('header',{class: 'app-header row'});
+    var logoAbort=createElement('button',{id: 'LogoAbort', class: 'brand-abort', type: 'button', title: 'Abort current sale', 'aria-label': 'Hack42 — Abort current sale'});
+    logoAbort.appendChild(createElement('img',{class: 'brand-logo', src: 'images/Hack42.png', alt: 'Hack42 · Hackerspace Arnhem', width: '84', height: '56'}));
+    logoAbort.addEventListener('click',function() {
+      setSearchValue('abort');
+      submitCommand();
+    });
     header.appendChild(appendChildren(createElement('div',{class: 'brand col-auto'}), [
-      createElement('img',{class: 'brand-logo', src: 'images/Hack42.png', alt: 'Hack42 · Hackerspace Arnhem', width: '84', height: '56'}),
+      logoAbort,
       appendChildren(createElement('div'), [
         createElement('span',{class: 'brand-name', text: 'hackbank'}),
         createElement('span',{class: 'brand-caption', text: 'HACK42 · BAR & DRINKS'}),

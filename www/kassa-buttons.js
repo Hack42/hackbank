@@ -51,12 +51,19 @@
     return buttons;
   }
 
+  function visibleCommandButtons(buttons) {
+    var hiddenSoundCommands=['deuroff', 'deuron', 'groovesalad', 'blues', 'killsounds', 'louder', 'quieter'];
+    return buttons.filter(function(button) {
+      return hiddenSoundCommands.indexOf(button.text) === -1;
+    });
+  }
+
   function commandsToButtons(commands) {
     var buttons = [];
     Object.keys(commands).sort().forEach(function(command) {
       buttons.push({text: command, display: commands[command], class: command});
     });
-    return buttons;
+    return visibleCommandButtons(buttons);
   }
 
   function accountsToButtons(accounts, members, nonmembers, type) {
@@ -153,5 +160,6 @@
     productGroupToButtons: productGroupToButtons,
     productsToButtons: productsToButtons,
     rebuildProductIndexes: rebuildProductIndexes,
+    visibleCommandButtons: visibleCommandButtons,
   };
 })(window);
