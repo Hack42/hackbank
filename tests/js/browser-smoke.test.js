@@ -139,6 +139,8 @@ test("kassa frontend posts keyboard and button input in a browser", (t) => {
           Object.defineProperty(keydown, "which", {value: 13});
           input.dispatchEvent(keydown);
           document.getElementById("bon").click();
+          input.value = "clubmate";
+          document.getElementById("CommandEnter").click();
 
           var output = document.createElement("pre");
           output.id = "smoke-result";
@@ -165,10 +167,12 @@ test("kassa frontend posts keyboard and button input in a browser", (t) => {
 
   assert.match(data.eventSourceUrl, /^stream\.php\?session=main&t=/);
   assert.equal(data.hasButtons, true);
+  assert.equal(data.activeElement, "Zoek");
   assert.deepEqual(data.fetchCalls.map((call) => call.body), [
     "topic=session%2Fmain%2Finput&msg=",
     "topic=session%2Fmain%2Finput&msg=abort",
     "topic=session%2Fmain%2Finput&msg=bon",
+    "topic=session%2Fmain%2Finput&msg=clubmate",
   ]);
 });
 

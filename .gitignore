@@ -6,3 +6,6 @@ __pycache__/
 node_modules/
 tests/__pycache__/
 tests/plugins/__pycache__/
+dev/data/
+dev/artifacts/
+!dev/config.yaml

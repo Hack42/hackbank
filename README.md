@@ -67,6 +67,39 @@ To get started, copy the files from `fakedata`.
 
 ### docker-compose
 
+For the self-contained UI development setup at **http://localhost:4123**:
+
+```sh
+docker compose -f compose.dev.yaml up -d --build
+```
+
+This runs PHP, MQTT, and the unchanged Python backend in project-specific
+containers. The UI assets are mounted from `www`, so edits appear on refresh.
+Sample members, balances, products, and stock are seeded once in the ignored
+`dev/data` directory. This setup does not use production data or hardware;
+the door command targets the development broker and no printer is connected.
+All CSS, icons, and JavaScript are served locally, with no CDN or web fonts.
+
+Member and user accounts appear as one continuous list of compact rows,
+with native single-finger touch scrolling and mouse-wheel scrolling in the
+left panel. Cash and amount controls remain above the list, and the receipt
+and command bar stay visible. Account-only search results use the same list.
+Products and commands retain pages of up to 56 buttons (8×7) at 1920×1080,
+or 25 buttons on smaller screens. The command bar's Enter button submits the
+same command as pressing Enter on the keyboard.
+
+The Music and Home Assistant shortcuts load their requested pages in the
+left-hand iframe and include links to open them in a separate tab. Home
+Assistant is configured to allow embedding. YouTube's homepage still blocks
+embedding, so its toolbar includes a separate-tab hint.
+The [supplied Hack42 logo](https://johnkr.com/wp-content/uploads/sites/2/2015/12/Hack42.png)
+is already included as `www/images/Hack42.png` and is now displayed in the header.
+
+To stop this setup, run `docker compose -f compose.dev.yaml down`. To reset
+the sample data, stop the containers, remove `dev/data`, and start them again.
+
+The original development setup remains available:
+
 If you don't want to install apache and an mqtt server yourself you can use
 docker-compose for local development. Simply running `docker-compose up` will
 start an mqtt server on port 1883, an apache+php server serving the files in

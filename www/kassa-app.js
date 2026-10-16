@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", function() {
   var tabenable=0;
   var question="";
   var locked=0;
+  var pagedButtons=null;
   var buttons=window.HackBankButtons;
   var dom=window.HackBankDom;
   var allElements=dom.allElements;
@@ -139,7 +140,7 @@ document.addEventListener("DOMContentLoaded", function() {
   function showAccountButtons(activeButtonId, accountType, tabMode) {
     activateTopButton(activeButtonId);
     showElement('#Secondscreen');
-    makepages('normal',buttons.accountsToButtons(accounts,members,nonmembers,accountType));
+    makeAccountList(buttons.accountsToButtons(accounts,members,nonmembers,accountType));
     prependCashButton();
     focus();
     tabenable=tabMode;
@@ -162,13 +163,17 @@ document.addEventListener("DOMContentLoaded", function() {
     });
     scrollToBottom('#Receipt');
     if(counter === 0) {
-      appendToElement(receipt, createElement('div',{class: 'welcome', text: "Welcome to Hack42 Bank HTML5 Interface"}));
+      appendToElement(receipt, createElement('div',{class: 'welcome', text: "Your next round starts here. Scan a product or choose a button."}));
     }
     clearElement('#Receipt2');
     cloneElementsTo('.Itemline', '#Receipt2');
     scrollToBottom('#Receipt2');
     if (receipt2 && receipt2.childElementCount === 0){
-      appendToElement(receipt2, createElement('img',{src: 'images/Hack42.png', width: '100%', style: {top: '12vh', position: 'absolute'}}));
+      appendToElement(receipt2, appendChildren(createElement('div',{class: 'receipt-empty'}), [
+        createElement('span',{class: 'empty-symbol', text: '+', 'aria-hidden': 'true'}),
+        createElement('strong',{text: 'Nothing on the tab yet'}),
+        createElement('span',{text: 'Scan a product to get started.'}),
+      ]));
     }
   }
   function build_totals(msg) {
@@ -285,7 +290,7 @@ document.addEventListener("DOMContentLoaded", function() {
       appendToElement(mylines, document.createTextNode(val));
       appendBreak(mylines);
     });
-    setElementStyle('#mylines', {position: 'relative', top: '-12vh', left: '0px', zIndex: '100', background: 'lightgray', height: '76vh', overflowWrap: 'break-word', overflowY: 'scroll', width: '96vw'});
+    setElementStyle('#mylines', {overflowWrap: 'break-word', overflowY: 'auto'});
     scrollToBottom('#mylines');
     showquestion();
   }
@@ -303,12 +308,71 @@ document.addEventListener("DOMContentLoaded", function() {
     });
     showquestion();
   }
+  function buttonsPerPage() {
+    var mainButtons=first('#MainButtons');
+    if(!mainButtons || !window.getComputedStyle) return 25;
+    return parseInt(window.getComputedStyle(mainButtons).getPropertyValue('--buttons-per-page'), 10) || 25;
+  }
+  function selectButtonPage(id) {
+    allElements('#TopButtons .page').forEach(function(button) {
+      button.classList.remove('currentpage');
+      if(button.id === String(id)) button.classList.add('currentpage');
+    });
+    hideElements('.Pagina');
+    showElement('#Page'+id);
+    fillVisibleText('.Buttontext:visible');
+  }
+  function reflowButtonPages() {
+    if(!pagedButtons || !first('#MainButtons .Pagina')) return;
+    var capacity=buttonsPerPage();
+    if(capacity === pagedButtons.capacity) return;
+    var activePage=first('#TopButtons .currentpage');
+    var firstIndex=(activePage ? Number(activePage.id)-1 : 0)*pagedButtons.capacity;
+    var extraButtons=allElements('#TopButtons .Knopje').filter(function(button) {
+      return !button.classList.contains('page');
+    });
+    var previous=pagedButtons;
+    makepages(previous.className,previous.buttons);
+    selectButtonPage(Math.floor(firstIndex/capacity)+1);
+    extraButtons.reverse().forEach(function(button) {
+      first('#TopButtons').prepend(button);
+    });
+  }
+  function commandButton(extraclass,stuff) {
+    var knopje=appendChildren(createElement('div',{class: "Knopje Knop "+stuff.text+" "+extraclass + " " + stuff.class,id: stuff.text, role: 'button', tabindex: '0', title: stuff.display }), [
+      createElement('span',{class: "Buttontext ",text: stuff.display}),
+    ]);
+    if(stuff.right) {
+      var fullwidth='';
+      if(!stuff.left && stuff.fill) fullwidth=' fullwidthButton ';
+      appendToElement(knopje, createElement('span',{class: "right extra "+fullwidth+stuff.rightclass,text: stuff.right}));
+    }
+    if(stuff.left) {
+      appendToElement(knopje, createElement('span',{class: "left extra "+stuff.leftclass,text: stuff.left}));
+    }
+    return knopje;
+  }
+  function makeAccountList(accountButtons) {
+    pagedButtons=null;
+    clearElement('#MainButtons');
+    clearElement('#TopButtons');
+    var list=createElement('div',{id: 'AccountList', class: 'account-list', role: 'group', 'aria-label': 'Accounts'});
+    accountButtons.forEach(function(button) {
+      list.appendChild(commandButton('normal',button));
+    });
+    appendTo('#MainButtons',list);
+    first('#MainButtons').scrollTop=0;
+    fillVisibleText('.Buttontext:visible');
+    showquestion();
+  }
   function makepages(extraclass,buttons) {
+    var capacity=buttonsPerPage();
+    pagedButtons={className: extraclass, buttons: buttons, capacity: capacity};
     var pagecount=1;
     clearElement('#MainButtons');
     clearElement('#TopButtons');
     appendTo('#MainButtons', createElement('div',{id: 'Page'+pagecount, class: 'Pagina'}));
-    appendTo('#TopButtons', topButton("page",'1',"Page 1"));
+    appendTo('#TopButtons', topButton("page currentpage",'1',"Page 1"));
     var counter=0;
     var donewpage=0;
     var first=1;
@@ -327,25 +391,10 @@ document.addEventListener("DOMContentLoaded", function() {
         appendToPageLabel(pagecount, '<br>'+stuff.display.charAt(0).toUpperCase());
         first=0;
       }
-      var knopje=appendChildren(createElement('div',{class: "Knopje Knop "+stuff.text+" "+extraclass + " " + stuff.class,id: stuff.text }), [
-        createElement('span',{class: "Buttontext ",text: stuff.display}),
-      ]);
-      if(stuff.right) {
-        var fullwidth='';
-        if(!stuff.left && stuff.fill) {
-          fullwidth=' fullwidthButton ';
-        }
-        appendToElement(knopje, createElement('span',{class: "right extra "+fullwidth+stuff.rightclass,text: stuff.right}));
-      }
-      if(stuff.left) {
-        appendToElement(knopje, createElement('span',{class: "left extra "+stuff.leftclass,text: stuff.left}));
-      }
       lastchar=stuff.display.charAt(0).toUpperCase();
-      appendTo('#Page'+pagecount, knopje);
+      appendTo('#Page'+pagecount, commandButton(extraclass,stuff));
       counter++;
-      var w=5;
-      var h=5;
-      if(counter>=w*h) {
+      if(counter>=capacity) {
         donewpage=1;
       }
     });
@@ -385,7 +434,7 @@ document.addEventListener("DOMContentLoaded", function() {
     } else if (buttons['special'] === 'accountsamount') {
       activateTopButton('members');
       showElement('#Secondscreen');
-      makepages('normal',window.HackBankButtons.accountsToButtons(accounts,members,nonmembers,'m'));
+      makeAccountList(window.HackBankButtons.accountsToButtons(accounts,members,nonmembers,'m'));
       document.getElementById('TopButtons').prepend(topButton("shownumbers",'shownumbers',"Enter amount"));
       prependCashButton();
       focus();
@@ -464,7 +513,7 @@ document.addEventListener("DOMContentLoaded", function() {
             break;
          case 'infobox':
             run_infobox(pathParts[6],msg);
-            setMainButtonsBackground("#d7ffd7");
+            setMainButtonsBackground("#e8f3ec");
             break;
          case 'accounts':
             setupaccounts(pathParts[5],msg);
@@ -541,7 +590,13 @@ document.addEventListener("DOMContentLoaded", function() {
          }
       });
     }
-    makepages('normal',buttons);
+    if(tabenable === 2 || (buttons.length > 0 && buttons.every(function(button) {
+      return button.class && button.class.indexOf('account ') === 0;
+    }))) {
+      makeAccountList(buttons);
+    } else {
+      makepages('normal',buttons);
+    }
     if(buttons.length === 1 && fill) {
         dingen[dingen.length-1]=buttons[0].text+" ";
         setSearchValue(dingen.join(" "));
@@ -556,6 +611,11 @@ document.addEventListener("DOMContentLoaded", function() {
   function verwerkinput() {
     postmsg('input',searchValue());
     setSearchValue("");
+  }
+  function submitCommand() {
+    locked=0;
+    verwerkinput();
+    focus();
   }
   var delay = (function(){
     var timer = 0;
@@ -599,15 +659,27 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   function handlePageClick() {
-    hideElements('.Pagina');
-    showElement('#Page'+this.id);
-    fillVisibleText(".Buttontext:visible");
+    selectButtonPage(this.id);
     focus();
   }
 
   function handleProductGroupClick() {
      makepages('normal',window.HackBankButtons.productGroupToButtons(prods, stock, this.id).sort(window.HackBankButtons.compareDisplay));
      focus();
+  }
+
+  function showEmbeddedScreen(selector,title,url,hint) {
+    hideElement('#IRCwindow');
+    hideElement('#spacewindow');
+    showElement(selector);
+    var screen=first(selector);
+    if(screen.childElementCount !== 0) return;
+    var toolbar=createElement('div',{class: 'embed-toolbar'});
+    toolbar.appendChild(createElement('strong',{text: title}));
+    if(hint) toolbar.appendChild(createElement('span',{class: 'embed-note', text: hint}));
+    toolbar.appendChild(createElement('a',{href: url, target: '_blank', rel: 'noopener noreferrer', text: 'Open '+title+' ↗'}));
+    screen.appendChild(toolbar);
+    screen.appendChild(createElement('iframe',{src: url, title: title, allow: 'autoplay; encrypted-media; picture-in-picture; fullscreen', allowfullscreen: ''}));
   }
 
   function handleMainButtonClick() {
@@ -641,18 +713,12 @@ document.addEventListener("DOMContentLoaded", function() {
       case 'irc':
          activateTopButton(this.id);
          locked=0;
-         showElement('#IRCwindow');
-         if(document.getElementById('IRCwindow').childElementCount === 0) {
-           appendTo('#IRCwindow', createElement('iframe',{src: 'http://kleintje:4200/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
-         }
+         showEmbeddedScreen('#IRCwindow','YouTube','https://www.youtube.com/','If the page cannot be displayed here, open it in a new tab.');
          break;
       case 'spacecon':
          activateTopButton(this.id);
          locked=0;
-         showElement('#spacewindow');
-         if(document.getElementById('spacewindow').childElementCount === 0) {
-           appendTo('#spacewindow', createElement('iframe',{src: '/spaceconsole/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
-         }
+         showEmbeddedScreen('#spacewindow','Home Assistant','http://hass.space.hack42.nl:8123/home/overview');
          break;
       case 'knopjes':
          activateTopButton(this.id);
@@ -707,27 +773,83 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   function buildLayout() {
-    appendTo('#body', createElement('div',{id: 'Firstscreen'}));
-    appendTo('#body', createElement('div',{id: 'Secondscreen'}));
-    appendTo('#body', createElement('div',{id: 'IRCwindow'}));
-    appendTo('#body', createElement('div',{id: 'spacewindow'}));
+    var header=createElement('header',{class: 'app-header row'});
+    header.appendChild(appendChildren(createElement('div',{class: 'brand col-auto'}), [
+      createElement('img',{class: 'brand-logo', src: 'images/Hack42.png', alt: 'Hack42 · Hackerspace Arnhem', width: '84', height: '56'}),
+      appendChildren(createElement('div'), [
+        createElement('span',{class: 'brand-name', text: 'hackbank'}),
+        createElement('span',{class: 'brand-caption', text: 'HACK42 · BAR & DRINKS'}),
+      ]),
+    ]));
+    header.appendChild(createElement('nav',{id: 'LeftButtons', class: 'LeftButtons col', 'aria-label': 'Register sections'}));
+    appendTo('#body', header);
 
-    appendTo('#Firstscreen', createElement('div',{id: 'Receipt', class: 'Receipt'}));
-    appendTo('#Firstscreen', createElement('div',{id: 'Totals', class: 'Totals'}));
-    appendTo('#Firstscreen', createElement('div',{id: 'Buttons', class: 'Buttons'}));
-    appendTo('#Firstscreen', createElement('div',{id: 'Log'}));
+    var workspace=createElement('main',{class: 'workspace row'});
+    var leftColumn=createElement('section',{class: 'workspace-main col', 'aria-label': 'Register'});
+    var screens=createElement('div',{class: 'screens'});
+    var overview=createElement('div',{id: 'Firstscreen', class: 'overview-screen'});
+    overview.appendChild(createElement('h1',{class: 'section-title', text: 'Current sale'}));
+    overview.appendChild(createElement('div',{id: 'Receipt', class: 'Receipt'}));
+    overview.appendChild(createElement('div',{id: 'Buttons', class: 'Buttons'}));
+    screens.appendChild(overview);
 
-    var inputWrapper=createElement('div',{id: 'Invoer'});
-    inputWrapper.appendChild(createElement('input',{id: 'Zoek', placeholder: "Starting network communication", autocomplete: 'off'}));
-    appendTo('#Firstscreen', inputWrapper);
+    var selection=createElement('div',{id: 'Secondscreen', class: 'selection-screen'});
+    selection.appendChild(createElement('div',{id: 'TopButtons', class: 'RightButtons', 'aria-label': 'Current options'}));
+    selection.appendChild(createElement('div',{id: 'MainButtons', class: 'MainButtons'}));
+    screens.appendChild(selection);
+    screens.appendChild(createElement('div',{id: 'IRCwindow', class: 'embedded-screen'}));
+    screens.appendChild(createElement('div',{id: 'spacewindow', class: 'embedded-screen'}));
+    leftColumn.appendChild(screens);
+    leftColumn.appendChild(appendChildren(createElement('section',{class: 'activity', 'aria-label': 'Register activity'}), [
+      createElement('span',{class: 'activity-label', text: 'ACTIVITY'}),
+      createElement('div',{id: 'Log', role: 'log', 'aria-live': 'polite'}),
+    ]));
+    workspace.appendChild(leftColumn);
 
-    appendTo('#Secondscreen', createElement('div',{id: 'LeftButtons', class: 'LeftButtons'}));
-    appendTo('#Secondscreen', createElement('div',{id: 'MainButtons', class: 'MainButtons'}));
-    appendTo('#Secondscreen', createElement('div',{id: 'TopButtons', class: 'RightButtons'}));
-    appendTo('#Secondscreen', createElement('div',{id: 'Receipt2'}));
+    var receiptPanel=createElement('aside',{class: 'receipt-panel col-auto', 'aria-label': 'Sale receipt'});
+    receiptPanel.appendChild(appendChildren(createElement('div',{class: 'receipt-heading'}), [
+      createElement('span',{class: 'eyebrow', text: 'THE HACK42 BAR'}),
+      createElement('h2',{text: 'On the tab'}),
+      createElement('span',{class: 'receipt-currency', text: 'EUR'}),
+    ]));
+    receiptPanel.appendChild(appendChildren(createElement('div',{class: 'receipt-columns', 'aria-hidden': 'true'}), [
+      createElement('span',{text: 'ITEM'}),
+      createElement('span',{text: 'QTY'}),
+      createElement('span',{text: 'AMOUNT'}),
+    ]));
+    receiptPanel.appendChild(createElement('div',{id: 'Receipt2'}));
+    receiptPanel.appendChild(createElement('div',{id: 'Totals', class: 'Totals', 'aria-label': 'Account totals', 'aria-live': 'polite'}));
+    receiptPanel.appendChild(appendChildren(createElement('div',{class: 'receipt-footer'}), [
+      createElement('span',{class: 'receipt-barcode', 'aria-hidden': 'true'}),
+      createElement('span',{text: 'HACK42 · HACK. SIP. REPEAT.'}),
+    ]));
+    workspace.appendChild(receiptPanel);
+    appendTo('#body', workspace);
+
+    var inputWrapper=createElement('footer',{id: 'Invoer'});
+    inputWrapper.appendChild(appendChildren(createElement('div',{class: 'command-caption'}), [
+      createElement('label',{'for': 'Zoek', text: 'COMMAND LINE'}),
+      createElement('span',{class: 'command-help', text: 'Scan a barcode · Type a command · Tab to complete'}),
+    ]));
+    inputWrapper.appendChild(appendChildren(createElement('div',{class: 'command-input'}), [
+      createElement('span',{class: 'command-prompt', text: '›_', 'aria-hidden': 'true'}),
+      createElement('input',{id: 'Zoek', placeholder: "Starting network communication", autocomplete: 'off', spellcheck: 'false', autocapitalize: 'off', 'aria-label': 'Product, command or username'}),
+      createElement('button',{id: 'CommandEnter', type: 'button', class: 'enter-hint', text: 'ENTER ↵', 'aria-label': 'Submit command'}),
+    ]));
+    appendTo('#body', inputWrapper);
   }
 
   function buildLeftButtons() {
+    var icons={
+      abort: '<path d="m8 8 8 8M16 8l-8 8"/><circle cx="12" cy="12" r="9"/>',
+      members: '<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 5"/>',
+      otherusers: '<circle cx="12" cy="8" r="3"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>',
+      products: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+      commands: '<path d="m4 6 6 6-6 6M13 18h7"/>',
+      sounds: '<path d="m11 4-6 5H2v6h3l6 5zM16 8a6 6 0 0 1 0 8M19 5a10 10 0 0 1 0 14"/>',
+      irc: '<path d="M9 18V5l12-2v13M9 8l12-2"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="18" cy="16" rx="3" ry="2"/>',
+      spacecon: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/><path d="M9 21v-9h6v9"/>',
+    };
     var buttons=[
       ["Knopje Button topknop normal abort",'abort',"Abort"],
       ["Knopje Button topknop special",'members',"Members"],
@@ -735,11 +857,13 @@ document.addEventListener("DOMContentLoaded", function() {
       ["Knopje Button topknop special",'products',"Products"],
       ["Knopje Button topknop special",'commands',"Commands"],
       ["Knopje Button topknop sounds",'sounds',"Sounds"],
-      ["Knopje Button topknop irc",'irc',"IRC"],
-      ["Knopje Button topknop spacecon",'spacecon',"Lights"],
+      ["Knopje Button topknop irc",'irc',"Music"],
+      ["Knopje Button topknop spacecon",'spacecon',"Home Assistant"],
     ];
     buttons.forEach(function(button) {
-      appendTo('#LeftButtons', buttonElement(button[0],button[1],button[2]));
+      var element=buttonElement(button[0],button[1],button[2]);
+      element.appendChild(createElement('span',{class: 'nav-icon', 'aria-hidden': 'true', html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+icons[button[1]]+'</svg>'}));
+      appendTo('#LeftButtons', element);
     });
   }
 
@@ -759,14 +883,13 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   function bindSearchInput() {
+    document.getElementById('CommandEnter').addEventListener('click',submitCommand);
     searchInput().addEventListener("keydown", function(data) {
       if(data.which === 9) {
         dotabfill(1);
         data.preventDefault();
       } else if(data.which === 13) {
-        locked=0;
-        postmsg('input',this.value);
-        this.value="";
+        submitCommand();
       } else {
         delay(function(){
           dotabfill(0);
@@ -788,6 +911,24 @@ document.addEventListener("DOMContentLoaded", function() {
   fillVisibleText(".Knopjetext:visible");
   bindButtonEvents();
   bindSearchInput();
+  document.body.addEventListener('keydown', function(event) {
+    if(event.target.id === 'Zoek' || (event.key !== 'Enter' && event.key !== ' ')) return;
+    var button=event.target.closest && event.target.closest('.Knopje');
+    if(button) {
+      event.preventDefault();
+      button.click();
+    }
+  });
+  if(window.ResizeObserver) {
+    var textObserver=new window.ResizeObserver(function() {
+      reflowButtonPages();
+      fillVisibleText('.Buttontext:visible');
+      fillVisibleText('.Knopjetext:visible');
+      fillVisibleText('.Paginatext:visible');
+    });
+    textObserver.observe(document.getElementById('MainButtons'));
+    textObserver.observe(document.getElementById('LeftButtons'));
+  }
   focus();
   postmsg('input','');
 });

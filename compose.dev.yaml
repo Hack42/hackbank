@@ -1,0 +1,46 @@
+name: hackbank-ui
+
+services:
+  mqtt:
+    image: eclipse-mosquitto:2
+    volumes:
+      - ./dev/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    healthcheck:
+      test: ["CMD", "mosquitto_pub", "-h", "localhost", "-t", "dev/health", "-m", "ok"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  backend:
+    build:
+      context: .
+      dockerfile: dev/Dockerfile
+    working_dir: /app
+    volumes:
+      - ./kassa.py:/app/kassa.py:ro
+      - ./config.py:/app/config.py:ro
+      - ./input_validation.py:/app/input_validation.py:ro
+      - ./plugins:/app/plugins:ro
+      - ./images:/app/images:ro
+      - ./fakedata:/app/fakedata:ro
+      - ./dev:/app/dev:ro
+      - ./dev/data:/app/data
+    environment:
+      KASSA_CONFIG: /app/dev/config.yaml
+      PYTHONDONTWRITEBYTECODE: "1"
+    command: ["sh", "/app/dev/start.sh"]
+    depends_on:
+      mqtt:
+        condition: service_healthy
+
+  web:
+    image: php:8.3-apache
+    volumes:
+      - ./www:/var/www/html:ro
+    ports:
+      - "127.0.0.1:4123:80"
+    environment:
+      MQTT_HOST: mqtt
+    depends_on:
+      mqtt:
+        condition: service_healthy

@@ -137,7 +137,7 @@ function loadScript(sandbox, scriptName) {
   vm.runInNewContext(script, sandbox, {filename: scriptName});
 }
 
-function loadKassaApp({hash = ""} = {}) {
+function loadKassaApp({hash = "", pageCapacity = 25} = {}) {
   const elements = {};
   const documentListeners = {};
   const eventSources = [];
@@ -192,6 +192,9 @@ function loadKassaApp({hash = ""} = {}) {
   }
 
   const window = {
+    getComputedStyle() {
+      return {getPropertyValue: () => String(pageCapacity)};
+    },
     HackBankTextfill: {
       fillElement(element, options) {
         textfillCalls.push({element, options});
@@ -277,6 +280,100 @@ test("kassa app wires Enter in the search input to post input and clear it", () 
   assert.equal(fetchCalls.length, 2);
   assert.equal(String(fetchCalls[1].options.body), "topic=session%2Fmain%2Finput&msg=abort");
   assert.equal(input.value, "");
+});
+
+test("the command Enter button submits once, clears the input and restores focus", () => {
+  const {elements, fetchCalls} = loadKassaApp({hash: "#bar"});
+  const input = elements.Zoek;
+  input.value = "2* clubmate";
+  elements.CommandEnter.eventListeners.click();
+
+  assert.equal(elements.CommandEnter.tag, "button");
+  assert.equal(elements.CommandEnter.type, "button");
+  assert.equal(fetchCalls.length, 2);
+  assert.equal(String(fetchCalls[1].options.body), "topic=session%2Fbar%2Finput&msg=2*+clubmate");
+  assert.equal(input.value, "");
+  assert.equal(input.focused, true);
+});
+
+test("pagination uses the grid capacity for large and smaller screens", () => {
+  [25, 56].forEach((capacity) => {
+    const {elements, eventSources} = loadKassaApp({pageCapacity: capacity});
+    const names = Array.from({length: capacity + 1}, (_, i) => `member${String(i).padStart(3, "0")}`);
+    const send = (topic, msg) => eventSources[0].onmessage({
+      data: JSON.stringify([`hack42bar/output/session/main/${topic}`, JSON.stringify(msg)]),
+    });
+    send("buttons", {special: "custom", custom: names.map((name) => ({text: name, display: name}))});
+
+    assert.equal(findAll(elements.Page1, ".Buttontext").length, capacity);
+    assert.equal(findAll(elements.Page2, ".Buttontext").length, 1);
+    assert.deepEqual(findAll(elements.MainButtons, ".Buttontext").map((el) => el.textContent), names);
+  });
+});
+
+test("members and other users stay in one list at either page capacity", () => {
+  [25, 56].forEach((capacity) => {
+    const {body, elements, eventSources, timers, fetchCalls} = loadKassaApp({pageCapacity: capacity});
+    const names = Array.from({length: 140}, (_, i) => `user${String(i).padStart(3, "0")}`);
+    const send = (topic, msg) => eventSources[0].onmessage({
+      data: JSON.stringify([`hack42bar/output/session/main/${topic}`, JSON.stringify(msg)]),
+    });
+    names.forEach((name) => send(`accounts/${name}`, {amount: 12.50}));
+    send("members", names.slice(0, 70));
+    send("nonmembers", names.slice(70));
+    send("buttons", {special: "accountsamount"});
+
+    assert.equal(findAll(elements.AccountList, ".account").length, 70);
+    assert.equal(findAll(elements.TopButtons, ".page").length, 0);
+    assert.equal(findAll(elements.MainButtons, ".Pagina").length, 0);
+    assert(findFirst(elements.TopButtons, "#cash"));
+    assert(findFirst(elements.TopButtons, "#shownumbers"));
+
+    elements.Zoek.value = "user";
+    elements.Zoek.eventListeners.keydown.call(elements.Zoek, {which: 85});
+    timers[timers.length - 1].callback();
+    assert.equal(findAll(elements.AccountList, ".account").length, 140);
+    assert.equal(findAll(elements.TopButtons, ".page").length, 0);
+    assert.equal(fetchCalls.length, 1);
+
+    body.eventListeners.click({target: {
+      closest(selector) {
+        return selector.startsWith("div.Knopje:not") ? findFirst(elements.LeftButtons, "#otherusers") : null;
+      },
+    }});
+    assert.deepEqual(findAll(elements.AccountList, ".Buttontext").map((el) => el.textContent), names.slice(70));
+    assert.equal(findAll(elements.TopButtons, ".page").length, 0);
+  });
+});
+
+test("Music and Home Assistant open the requested frames and switch cleanly", () => {
+  const {body, elements} = loadKassaApp();
+  function clickMain(id) {
+    body.eventListeners.click({
+      target: {
+        closest(selector) {
+          return selector.startsWith("div.Knopje:not") ? findFirst(elements.LeftButtons, `#${id}`) : null;
+        },
+      },
+    });
+  }
+
+  assert.equal(findFirst(elements.LeftButtons, "#irc").children[0].textContent, "Music");
+  assert.equal(findFirst(elements.LeftButtons, "#spacecon").children[0].textContent, "Home Assistant");
+  clickMain("irc");
+  assert.equal(elements.IRCwindow.children[1].src, "https://www.youtube.com/");
+  assert.equal(elements.IRCwindow.children[1].title, "YouTube");
+  assert.equal(elements.IRCwindow.children[0].children[2].href, "https://www.youtube.com/");
+  assert.equal(elements.IRCwindow.style.display, "");
+  assert.equal(elements.spacewindow.style.display, "none");
+  clickMain("spacecon");
+  assert.equal(elements.spacewindow.children[1].src, "http://hass.space.hack42.nl:8123/home/overview");
+  assert.equal(elements.spacewindow.children[1].title, "Home Assistant");
+  assert.equal(findAll(elements.spacewindow, ".embed-note").length, 0);
+  assert.equal(elements.IRCwindow.style.display, "none");
+  clickMain("irc");
+  assert.equal(elements.spacewindow.style.display, "none");
+  assert.equal(elements.IRCwindow.childElementCount, 2);
 });
 
 test("kassa app handles closed streams by scheduling one reconnect", () => {
