@@ -28,6 +28,10 @@ DEFAULT_CONFIG = {
         },
     },
     "pos": {
+        "header": {
+            "image": "images/hack42.png",
+            "width": 384,
+        },
         "serial": {
             "port": "/dev/ttyUSB0",
             "baudrate": 19200,

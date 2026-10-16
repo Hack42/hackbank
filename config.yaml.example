@@ -22,6 +22,11 @@ stickers:
     # identifier: tcp://BRW008092D4A414.space.hack42.nl:9100
 
 pos:
+  header:
+    # Relative to the project directory, or an absolute path.
+    # Set image to "" to use the logo already stored in the printer.
+    image: images/hack42.png
+    width: 384
   serial:
     port: /dev/ttyUSB0
     baudrate: 19200

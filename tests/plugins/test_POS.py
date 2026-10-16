@@ -2,12 +2,71 @@ from unittest.mock import Mock, patch, call, mock_open
 import plugins.POS as POS_module
 import json
 import pickle
+import struct
+
+import pytest
+from PIL import Image
 
 
 class TestPOS:
     def setup_method(self, method):
         self.master_mock = Mock()
         self.POS = POS_module.POS("SID", self.master_mock)
+
+    def test_header_image_encodes_ink_transparency_and_row_padding(self, tmp_path):
+        image_path = tmp_path / "header.png"
+        image = Image.new("RGBA", (9, 1), (0, 0, 0, 0))
+        image.putpixel((0, 0), (0, 0, 0, 255))
+        image.putpixel((8, 0), (0, 0, 0, 255))
+        image.save(image_path)
+        with patch("plugins.POS.config_get", return_value={"image": str(image_path)}):
+            output = self.POS.header_image()
+
+        assert output == b"\x1dv0\x00" + struct.pack("<HH", 2, 1) + b"\x80\x80"
+
+    def test_header_image_scales_to_configured_width(self, tmp_path):
+        image_path = tmp_path / "header.png"
+        Image.new("RGB", (32, 16), "black").save(image_path)
+        with patch(
+            "plugins.POS.config_get",
+            return_value={"image": str(image_path), "width": 16},
+        ):
+            output = self.POS.header_image()
+
+        assert output[:8] == b"\x1dv0\x00" + struct.pack("<HH", 2, 8)
+        assert output[8:] == b"\xff" * 16
+
+    def test_header_image_defaults_to_bundled_logo_outside_project(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.chdir(tmp_path)
+        output = self.POS.header_image()
+
+        assert output.startswith(b"\x1dv0\x00")
+        row_bytes, height = struct.unpack("<HH", output[4:8])
+        assert row_bytes <= 48
+        assert len(output[8:]) == row_bytes * height
+
+    def test_header_image_empty_setting_keeps_printer_logo(self):
+        with patch("plugins.POS.config_get", return_value={"image": ""}):
+            assert self.POS.header_image() == POS_module.LOGO
+
+    @pytest.mark.parametrize("width", [0, 2049, "invalid", None])
+    def test_header_image_invalid_width_falls_back(self, width, caplog):
+        with patch(
+            "plugins.POS.config_get",
+            return_value={"image": "header.png", "width": width},
+        ):
+            assert self.POS.header_image() == POS_module.LOGO
+        assert "pos_header_image_failed" in caplog.text
+
+    def test_header_image_missing_file_falls_back(self, tmp_path, caplog):
+        with patch(
+            "plugins.POS.config_get",
+            return_value={"image": str(tmp_path / "missing.png")},
+        ):
+            assert self.POS.header_image() == POS_module.LOGO
+        assert "pos_header_image_failed" in caplog.text
 
     def test_open(self):
         with patch("plugins.POS.serial", new=Mock()):
