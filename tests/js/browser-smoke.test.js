@@ -20,19 +20,27 @@ function chromiumCommand() {
 }
 
 function runChromium(command, url) {
-  return spawnSync(command, [
-    "--headless",
-    "--disable-gpu",
-    "--disable-dev-shm-usage",
-    "--no-sandbox",
-    "--allow-file-access-from-files",
-    "--dump-dom",
-    "--virtual-time-budget=3000",
-    url,
-  ], {
-    encoding: "utf8",
-    timeout: 20000,
-  });
+  const profile = fs.mkdtempSync(path.join(os.tmpdir(), "kassa-chromium-"));
+  try {
+    return spawnSync(command, [
+      `--user-data-dir=${profile}`,
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--headless",
+      "--disable-gpu",
+      "--disable-dev-shm-usage",
+      "--no-sandbox",
+      "--allow-file-access-from-files",
+      "--dump-dom",
+      "--virtual-time-budget=3000",
+      url,
+    ], {
+      encoding: "utf8",
+      timeout: 40000,
+    });
+  } finally {
+    fs.rmSync(profile, {recursive: true, force: true});
+  }
 }
 
 function skipIfChromiumSandboxed(t, result) {
@@ -103,6 +111,7 @@ test("kassa index boots in a real browser", (t) => {
   fs.unlinkSync(fixturePath);
   if(skipIfChromiumSandboxed(t, result)) return;
 
+  assert.ifError(result.error);
   assert.equal(result.status, 0, result.stderr);
   const match = result.stdout.match(/<pre id="smoke-result">([^<]+)<\/pre>/);
   assert(match, result.stdout);
@@ -148,6 +157,7 @@ test("kassa frontend posts keyboard and button input in a browser", (t) => {
   fs.unlinkSync(fixturePath);
   if(skipIfChromiumSandboxed(t, result)) return;
 
+  assert.ifError(result.error);
   assert.equal(result.status, 0, result.stderr);
   const match = result.stdout.match(/<pre id="smoke-result">([^<]+)<\/pre>/);
   assert(match, result.stdout);
