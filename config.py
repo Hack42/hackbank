@@ -28,10 +28,6 @@ DEFAULT_CONFIG = {
         },
     },
     "pos": {
-        "header": {
-            "image": "images/hack42.png",
-            "width": 384,
-        },
         "serial": {
             "port": "/dev/ttyKASSA",
             "baudrate": 19200,

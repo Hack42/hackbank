@@ -4,12 +4,9 @@ import binascii
 import json
 import logging
 import pickle
-from pathlib import Path
-import struct
 import time
 
 import serial
-from PIL import Image, ImageOps
 
 from config import config_get
 
@@ -70,39 +67,8 @@ class POS:  # pylint: disable=too-many-public-methods
             "printstock": "Print stock overview",
         }
 
-    def header_image(self):
-        settings = config_get("pos", "header", default={})
-        filename = settings.get("image", "")
-        if not filename:
-            return LOGO
-        try:
-            width = int(settings.get("width", 384))
-            if not 8 <= width <= 2048:
-                raise ValueError("Header width must be between 8 and 2048 dots")
-            path = Path(filename)
-            if not path.is_absolute():
-                path = Path(__file__).resolve().parent.parent / path
-            with Image.open(path) as source:
-                rgba = source.convert("RGBA")
-            rgba.thumbnail((width, 2048), Image.Resampling.LANCZOS)
-            white = Image.new("RGBA", rgba.size, "white")
-            gray = Image.alpha_composite(white, rgba).convert("L")
-            # Epson raster bits use 1 for ink; Pillow uses 1 for white.
-            ink = ImageOps.invert(gray.point(lambda value: 255 if value >= 128 else 0))
-            row_bytes = (ink.width + 7) // 8
-            padded = Image.new("1", (row_bytes * 8, ink.height), 0)
-            padded.paste(ink.convert("1"), (0, 0))
-            return (
-                b"\x1dv0\x00"
-                + struct.pack("<HH", row_bytes, ink.height)
-                + padded.tobytes()
-            )
-        except (OSError, TypeError, ValueError) as exc:
-            logger.warning("pos_header_image_failed sid=%s error=%s", self.SID, exc)
-            return LOGO
-
     def printstock(self):
-        BON = PRINTER + LARGE + CENTER + self.header_image() + NORMAL + LEFT
+        BON = PRINTER + LARGE + CENTER + LOGO + NORMAL + LEFT
         for name in sorted(self.master.stock.stock.keys()):
             num = self.master.stock.stock[name]
             BON += b"%20s %5d\n" % (name.encode(), num)
@@ -152,7 +118,7 @@ class POS:  # pylint: disable=too-many-public-methods
         return balance_before_checkout + self.master.receipt.totals[user]
 
     def makebon(self, user):
-        BON = PRINTER + LARGE + CENTER + self.header_image()
+        BON = PRINTER + LARGE + CENTER + LOGO
         is_cash = user == "cash"
         projected_balance = None
         if not is_cash:
@@ -208,7 +174,7 @@ class POS:  # pylint: disable=too-many-public-methods
 
     def printdeclaratie(self, args):
         Name, Type, Reason, Bar, Cash, Bank = args
-        BON = PRINTER + LARGE + CENTER + self.header_image()
+        BON = PRINTER + LARGE + CENTER + LOGO
         BON += (
             NORMAL
             + b"Declaratie\n\n"
@@ -234,7 +200,7 @@ class POS:  # pylint: disable=too-many-public-methods
         self.slowwrite(BON)
 
     def makepartybon(self, settlement):
-        BON = PRINTER + LARGE + CENTER + self.header_image()
+        BON = PRINTER + LARGE + CENTER + LOGO
         BON += NORMAL + b"Party mode afrekening\n\n"
         BON += RIGHT + b"%s  -  Arnhem\n" % time.strftime("%Y-%m-%d %H:%M:%S").encode()
         BON += LEFT + b"\n"
