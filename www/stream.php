@@ -42,6 +42,7 @@ if(!$mqtt->connect()){
 	exit(1);
 }
 $topics['hack42bar/output/session/'.$session.'/#'] = array("qos"=>0, "function"=>"procmsg");
+$topics['hack42bar/output/settings/sounds'] = array("qos"=>0, "function"=>"procmsg");
 $mqtt->subscribe($topics,0);
 echo "retry: 1000\n";
 echo "data: ".json_encode(array("startup","1"))."\n\n";

@@ -25,7 +25,7 @@ if (!isset($_REQUEST["msg"]) || !is_string($_REQUEST["msg"]) || strlen($_REQUEST
   fail_request("Invalid msg");
 }
 $msg = $_REQUEST["msg"];
-if (!preg_match('/^session\/[A-Za-z0-9_-]{1,64}\/input$/', $topic)) {
+if (!preg_match('/^session\/[A-Za-z0-9_-]{1,64}\/(input|sound_settings)$/', $topic)) {
   fail_request("Invalid topic");
 }
 

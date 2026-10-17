@@ -263,6 +263,9 @@ def run_session(client, SID, action, data):
     if action == "input":
         session = get_session(SID, client)
         session.input(data.decode())
+    elif action == "sound_settings":
+        session = get_session(SID, client)
+        session.plugins["sounds"].configure(data)
     else:
         logger.warning("unhandled_session_action sid=%s action=%s", SID, action)
 

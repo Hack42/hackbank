@@ -5,7 +5,7 @@ services:
     image: python:3.12-slim
     volumes:
       - ./audio_control.py:/app/audio_control.py:ro
-      - ./www/sounds/KDE_Beep_ClassicBeep.wav:/app/www/sounds/KDE_Beep_ClassicBeep.wav:ro
+      - ./www/sounds/POS/command/KDE_Beep_ClassicBeep.wav:/app/www/sounds/POS/command/KDE_Beep_ClassicBeep.wav:ro
       - audio-runtime:/run/hackbank-audio
     command: ["python", "/app/audio_control.py", "--demo"]
     # Match www-data in the PHP development container.
@@ -31,6 +31,8 @@ services:
       - ./config.py:/app/config.py:ro
       - ./input_validation.py:/app/input_validation.py:ro
       - ./purchase_history.py:/app/purchase_history.py:ro
+      - ./pos_sound_settings.py:/app/pos_sound_settings.py:ro
+      - ./www/sounds:/app/www/sounds:ro
       - ./plugins:/app/plugins:ro
       - ./images:/app/images:ro
       - ./fakedata:/app/fakedata:ro

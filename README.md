@@ -146,7 +146,9 @@ The local seed adds stitch, BugBlue, Jos, nino and Anus, two archive examples,
 and sample purchase history without resetting existing development balances.
 Clicking anywhere in the Hack42 logo, title, and subtitle area sends Abort and
 clears the command input.
-The Sounds menu and command search omit Deur off/on, Groove Salad, Jazz Radio
+The Sounds page starts with the soundboard buttons, followed by the two volume
+sliders, then the POS sound settings. The Sounds menu and command search omit
+Deur off/on, Groove Salad, Jazz Radio
 Blues, Kill Music, Louder, Quieter and Kassa off/on. The Sounds page also omits
 Abort and Christmas; the header reset remains available. Ding Dong, Vergaderen,
 Vergaderen Extreme, Throw and Yeet remain on that page after playback, without
@@ -159,6 +161,26 @@ that output after saving its volume; dragging and automatic refreshes are
 silent. At zero volume the output remains muted and no preview plays.
 The development audio controller uses in-memory demo levels and never connects
 to a sound device; it also simulates preview requests.
+
+Soundboard samples live in `www/sounds/soundboard/`. POS effects live in
+`www/sounds/POS/<feature>/`, with a separate choice for each feature:
+
+| Feature | Default sound |
+| --- | --- |
+| Command | `KDE_Beep_ClassicBeep.wav` |
+| Deposit | `itsgone.wav` |
+| Insufficient funds | `sinterklaas.wav` |
+| Sale | `katsjing.wav` |
+| Error | `KDE_Beep_Beep.wav` |
+
+Each dropdown lists audio files from its own feature folder. Changing a choice
+immediately saves it in `data/revbank.sounds.json`, shares it with the other
+browser sessions, then previews the selected sample. The Preview button plays
+the current choice without changing it. Reset restores one feature's default;
+Reset all to defaults restores all five and previews the command default.
+Opening the page or receiving settings from another browser stays silent.
+Settings requests use a separate route so they cannot answer a pending POS
+question. The error alert retains its two repetitions for unrecognised input.
 
 Account themes use the existing `account-<username>` CSS classes. `stitch`
 has a local Stitch icon, a `#6088B0` background and bold white text; `BugBlue`
@@ -191,7 +213,8 @@ browser at http://localhost:4242
 
 `audio_control.py` uses the system's existing `pactl` command to read and adjust
 only `hackbank_pos` (POS effects) and `snapcast` (Space audio). Previews use
-the existing `paplay` command and the local `KDE_Beep_ClassicBeep.wav` file,
+the existing `paplay` command and the local
+`www/sounds/POS/command/KDE_Beep_ClassicBeep.wav` file,
 explicitly selecting the adjusted output at full stream gain so its sink
 volume determines the preview level. It does not change
 the existing audio routing. `www/audio.php` connects to the controller through
@@ -216,5 +239,8 @@ updating its Python controller. Changes to `plugins/sounds.py`, including the
 silent Sounds navigation, also require restarting the existing POS backend.
 The profile response fix in `kassa.py` and sale display events in
 `plugins/historie.py` require the same backend restart.
+The sound-folder update also requires a backend restart and an audio-controller
+restart; include `pos_sound_settings.py` and the entire `www/sounds` tree when
+deploying. Preserve the saved choices in the existing data directory.
 For a different installation, adapt the unit's application path, kiosk user,
 web-server group, and runtime audio socket before enabling it.

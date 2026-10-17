@@ -1,20 +1,26 @@
 # -*- coding: utf-8 -*-
 import json
+import logging
+import re
+from pos_sound_settings import POSSoundSettings
+
+logger = logging.getLogger(__name__)
 
 SOUND_SAMPLES = {
-    "ns": "ns.wav",
-    "vergaderen": "vergaderen.mp3",
-    "vergaderenextreme": "vergaderen_extreme.wav",
-    "vergaderen_extreme": "vergaderen_extreme.wav",
-    "throw": "throw.wav",
-    "yeet": "yeet.wav",
+    "ns": "soundboard/ns.wav",
+    "vergaderen": "soundboard/vergaderen.mp3",
+    "vergaderenextreme": "soundboard/vergaderen_extreme.wav",
+    "vergaderen_extreme": "soundboard/vergaderen_extreme.wav",
+    "throw": "soundboard/throw.wav",
+    "yeet": "soundboard/yeet.wav",
 }
 
 
 class sounds:
-    def __init__(self, SID, master):
+    def __init__(self, SID, master, settings=None):
         self.master = master
         self.SID = SID
+        self.settings = settings or POSSoundSettings()
 
     def help(self):
         return {"sounds": "All sound commands"}
@@ -22,14 +28,18 @@ class sounds:
     def hook_checkout(self, _text):
         for r in self.master.receipt.receipt:
             if r["product"] == "deposit":
-                self.master.send_message(False, "sound", "itsgone.wav")
+                self.master.send_message(
+                    False, "sound", self.settings.sample("deposit")
+                )
                 break
-        self.master.send_message(False, "sound", "katsjing.wav")
+        self.master.send_message(False, "sound", self.settings.sample("sale"))
 
     def hook_balance(self, args):
         _usr, _had, has, _transID = args
         if has < -13.37:
-            self.master.send_message(False, "sound", "sinterklaas.wav")
+            self.master.send_message(
+                False, "sound", self.settings.sample("insufficient_funds")
+            )
 
     def hook_undo(self, args):
         _transID, _totals, _receipt, _beni = args
@@ -98,11 +108,84 @@ class sounds:
     def pre_input(self, text):
         command = text.strip()
         if command not in ("abort", "sounds") and command not in SOUND_SAMPLES:
-            self.master.send_message(False, "sound", "KDE_Beep_ClassicBeep.wav")
+            self.master.send_message(False, "sound", self.settings.sample("command"))
 
     def hook_wrong(self, _text):
-        self.master.send_message(False, "sound", "KDE_Beep_Beep.wav")
-        self.master.send_message(False, "sound", "KDE_Beep_Beep.wav")
+        self.master.send_message(False, "sound", self.settings.sample("error"))
+        self.master.send_message(False, "sound", self.settings.sample("error"))
+
+    def publish_settings(self, state=None):
+        state = state or self.settings.state()
+        self.master.client.publish(
+            "hack42bar/output/settings/sounds", json.dumps(state), qos=1, retain=True
+        )
+
+    def configure(self, payload):
+        request_id = ""
+        try:
+            if len(payload) > 512:
+                raise ValueError("Invalid sound setting.")
+            request = json.loads(payload)
+            if not isinstance(request, dict):
+                raise ValueError("Invalid sound setting.")
+            request_id = request.get("request", "")
+            if not isinstance(request_id, str) or not re.fullmatch(
+                r"[A-Za-z0-9_-]{1,80}", request_id
+            ):
+                raise ValueError("Invalid sound request.")
+            preview = None
+            if set(request) == {"request"}:
+                state = self.settings.state()
+            elif set(request) == {"request", "feature", "sound"}:
+                state = self.settings.set(request["feature"], request["sound"])
+                preview = request["feature"]
+            elif set(request) == {"request", "preview"}:
+                state = self.settings.state()
+                preview = request["preview"]
+                if not isinstance(preview, str) or not any(
+                    item["id"] == preview for item in state["features"]
+                ):
+                    raise ValueError("Unknown POS sound feature.")
+            elif set(request) == {"request", "reset"}:
+                feature = request["reset"]
+                if not isinstance(feature, str):
+                    raise ValueError("Invalid sound feature.")
+                state = self.settings.reset(None if feature == "all" else feature)
+                preview = "command" if feature == "all" else feature
+            else:
+                raise ValueError("Invalid sound setting.")
+            self.publish_settings(state)
+            self.master.send_message(
+                False,
+                "sound_settings",
+                json.dumps(
+                    {
+                        "request": request_id,
+                        "ok": True,
+                        "settings": state,
+                    }
+                ),
+            )
+            if preview:
+                self.master.send_message(False, "sound", self.settings.sample(preview))
+        except (ValueError, TypeError, OSError) as error:
+            logger.warning("sound_settings_failed sid=%s error=%s", self.SID, error)
+            message = (
+                str(error)
+                if isinstance(error, ValueError)
+                else "Sound settings could not be saved. Please try again."
+            )
+            self.master.send_message(
+                False,
+                "sound_settings",
+                json.dumps(
+                    {
+                        "request": request_id,
+                        "ok": False,
+                        "error": message,
+                    }
+                ),
+            )
 
     def startup(self):
-        pass
+        self.publish_settings()

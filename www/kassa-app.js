@@ -19,6 +19,8 @@ document.addEventListener("DOMContentLoaded", function() {
   var filterRestore=null;
   var filtering=false;
   var audioControl=null;
+  var soundSettingsControl=null;
+  var soundSettings=null;
   var currentView='accounts';
   var commandCategory='All commands';
   var soundButtons=[];
@@ -169,6 +171,8 @@ document.addEventListener("DOMContentLoaded", function() {
   function stopAudio() {
     if(audioControl) audioControl.stop();
     audioControl=null;
+    if(soundSettingsControl) soundSettingsControl.stop();
+    soundSettingsControl=null;
   }
   function showAccountButtons(activeButtonId, accountType, tabMode) {
     activateTopButton(activeButtonId);
@@ -572,10 +576,11 @@ document.addEventListener("DOMContentLoaded", function() {
     var screen=createElement('div',{class: 'sound-screen'});
     screen.appendChild(createElement('h1',{class: 'section-title', text: 'Sounds'}));
     appendTo('#MainButtons',screen);
-    audioControl=window.HackBankAudio.mount(screen);
     var actions=createElement('div',{class: 'sound-actions', 'aria-label': 'Sound commands'});
     soundButtons.forEach(function(button) { actions.appendChild(commandButton('normal',button)); });
     screen.appendChild(actions);
+    audioControl=window.HackBankAudio.mount(screen);
+    if(window.HackBankSoundSettings) soundSettingsControl=window.HackBankSoundSettings.mount(screen,{session:session,initialState:soundSettings});
     showquestion();
     fillVisibleText('.Buttontext:visible');
   }
@@ -691,7 +696,7 @@ document.addEventListener("DOMContentLoaded", function() {
   }
   function playsound(sound) {
     var audioElement = document.createElement('audio');
-    audioElement.setAttribute('src', 'sounds/'+sound);
+    audioElement.setAttribute('src', 'sounds/'+sound.split('/').map(encodeURIComponent).join('/'));
     var playback=audioElement.play();
     if(playback && playback.catch) playback.catch(function(error) { console.log('Audio playback unavailable',error); });
   }
@@ -749,6 +754,9 @@ document.addEventListener("DOMContentLoaded", function() {
          case 'sound':
             playsound(msg);
             break;
+         case 'sound_settings':
+            if(soundSettingsControl) soundSettingsControl.receive(JSON.parse(msg));
+            break;
          case 'effects':
             if(preferences && JSON.parse(msg).type === 'sale') preferences.sale();
             break;
@@ -781,6 +789,12 @@ document.addEventListener("DOMContentLoaded", function() {
     //console.log(elms);
     if(elms.length < 3) return;
     switch(elms[2]) {
+      case 'settings':
+         if(elms[3] === 'sounds') {
+           soundSettings=JSON.parse(msg);
+           if(soundSettingsControl) soundSettingsControl.update(soundSettings);
+         }
+         break;
       case 'session':
          if(elms.length < 5) return;
          var sessionID=elms[3];

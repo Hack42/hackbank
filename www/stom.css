@@ -310,9 +310,21 @@ iframe { display: block; border: 0; }
 .enter-hint:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 /* Existing special screens fit inside the same left column. */
-.sound-screen { display: flex; flex-direction: column; gap: 20px; }
-.sound-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.sound-screen { display: flex; flex-direction: column; gap: 16px; }
+.sound-actions { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
 .sound-actions .Knop { min-height: 104px; }
+.pos-sound-settings-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+.pos-sound-settings h2 { margin: 0; font-size: 19px; }
+.pos-sound-settings .profile-hint { margin: 4px 0 0; }
+.pos-sound-grid { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 12px; }
+.pos-sound-card { display: flex; min-width: 0; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.pos-sound-label { color: var(--ink); font-size: 15px; font-weight: 700; }
+.pos-sound-actions { display: flex; gap: 8px; }
+.pos-sound-actions .sound-reset { flex: 1; }
+.pos-sound-select { width: 100%; min-width: 0; min-height: 56px; padding: 10px; border: 1px solid #a6bdcc; border-radius: 7px; background: #f4f7fa; color: #243d50; font: inherit; font-size: 14px; cursor: pointer; }
+.sound-reset { min-height: 44px; padding: 8px 12px; border: 1px solid #cdd9e1; border-radius: 7px; background: #edf2f6; color: #263f53; font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
+.sound-reset:disabled, .pos-sound-select:disabled { opacity: .5; cursor: default; }
+.pos-sound-status { min-height: 20px; margin: 8px 0 0; color: var(--muted); font-size: 13px; }
 .audio-volume-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .audio-volume-card { min-width: 0; padding: 22px; border: 1px solid #c8d7e0; border-radius: 12px; background: #fff; box-shadow: 0 3px 12px #1a344908; }
 .audio-volume-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
@@ -417,6 +429,8 @@ body.dark-mode { --ink: #e1eaf3; --muted: #a4b6c9; --line: #3a4b60; --panel: #19
 .dark-mode .profile-balance { color: #bce0ce; background: #244737; }
 .dark-mode .profile-balance.rood { color: #ffbdca; background: #542f42; }
 .dark-mode .profile-balance.orange { color: #f5d197; background: #4b3e2c; }
+.dark-mode .pos-sound-card { background: #233448; border-color: #40546a; }
+.dark-mode .pos-sound-select, .dark-mode .sound-reset { background: #26394d; color: #e1eaf3; border-color: #445d73; }
 .dark-mode .Knopje .extra { color: #bce0ce; background: #244737; }
 .dark-mode .Knopje .extra.rood { color: #ffbdca; background: #542f42; }
 .dark-mode .Knopje .extra.orange { color: #f5d197; background: #4b3e2c; }
@@ -426,12 +440,16 @@ body.dark-mode { --ink: #e1eaf3; --muted: #a4b6c9; --line: #3a4b60; --panel: #19
 .dark-mode .NowHas, .dark-mode .LoseOrGain, .dark-mode .GainOrLose, .dark-mode .Times, .dark-mode .ItemEuro::after, .dark-mode .TotalEuro::after { color: #b0c1d0; }
 .dark-mode .Itemline, .dark-mode .receipt-columns, .dark-mode .receipt-heading, .dark-mode #Totals { border-color: #46566a; }
 @media (max-width: 1300px) {
+  .pos-sound-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .sound-actions { grid-template-columns: repeat(4,minmax(0,1fr)); }
   .settings-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .purchase-list { grid-template-columns: 1fr; }
   .command-tab { flex-shrink: 0; }
   .command-group-buttons { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
 @media (max-width: 620px) {
+  .pos-sound-grid { grid-template-columns: 1fr; }
+  .pos-sound-settings-heading { flex-wrap: wrap; }
   .purchase-row { flex-wrap: wrap; }
   .reorder-purchase { width: 100%; }
   .settings-grid { grid-template-columns: 1fr; }

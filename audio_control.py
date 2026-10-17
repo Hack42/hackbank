@@ -10,17 +10,22 @@ import stat
 import subprocess
 import threading
 
-
 OUTPUTS = {"pos": "hackbank_pos", "space": "snapcast"}
-PREVIEW_SOUND = Path(__file__).resolve().parent / "www/sounds/KDE_Beep_ClassicBeep.wav"
+PREVIEW_SOUND = (
+    Path(__file__).resolve().parent / "www/sounds/POS/command/KDE_Beep_ClassicBeep.wav"
+)
 
 
 def validate_volume(channel, volume, preview=False):
     if channel not in OUTPUTS:
         raise ValueError("Unknown audio output")
-    if type(volume) is not int or not 0 <= volume <= 100:
+    if (
+        not isinstance(volume, int)
+        or isinstance(volume, bool)
+        or not 0 <= volume <= 100
+    ):
         raise ValueError("Volume must be an integer from 0 to 100")
-    if type(preview) is not bool:
+    if not isinstance(preview, bool):
         raise ValueError("Preview must be a boolean")
 
 
@@ -32,28 +37,47 @@ class PulseAudio:
     @staticmethod
     def _run(*args):
         return subprocess.run(
-            ["/usr/bin/pactl", *args], check=True, capture_output=True,
-            text=True, timeout=4,
+            ["/usr/bin/pactl", *args],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=4,
         ).stdout
 
     @staticmethod
     def _play(sink):
         subprocess.run(
-            ["/usr/bin/paplay", f"--device={sink}", "--volume=65536",
-             "--client-name=HackBank volume preview", "--stream-name=HackBank volume preview",
-             str(PREVIEW_SOUND)],
-            check=True, capture_output=True, timeout=4,
+            [
+                "/usr/bin/paplay",
+                f"--device={sink}",
+                "--volume=65536",
+                "--client-name=HackBank volume preview",
+                "--stream-name=HackBank volume preview",
+                str(PREVIEW_SOUND),
+            ],
+            check=True,
+            capture_output=True,
+            timeout=4,
         )
 
     def read(self):
-        sinks = {sink["name"]: sink for sink in json.loads(self.run("-f", "json", "list", "sinks"))}
+        sinks = {
+            sink["name"]: sink
+            for sink in json.loads(self.run("-f", "json", "list", "sinks"))
+        }
         channels = {}
         for channel, name in OUTPUTS.items():
             sink = sinks.get(name)
-            values = [entry["value"] for entry in sink.get("volume", {}).values()] if sink else []
+            values = (
+                [entry["value"] for entry in sink.get("volume", {}).values()]
+                if sink
+                else []
+            )
             channels[channel] = {
                 "available": bool(values),
-                "volume": round(sum(values) / len(values) * 100 / 65536) if values else None,
+                "volume": (
+                    round(sum(values) / len(values) * 100 / 65536) if values else None
+                ),
                 "muted": bool(sink and sink.get("mute")),
             }
         return {"channels": channels}
@@ -78,15 +102,18 @@ class PulseAudio:
 
 class DemoAudio:
     """Development-only state; never connects to an audio device."""
+
     def __init__(self):
         self.volumes = {"pos": 35, "space": 70}
         self.previews = []
 
     def read(self):
-        return {"channels": {
-            channel: {"available": True, "volume": volume, "muted": volume == 0}
-            for channel, volume in self.volumes.items()
-        }}
+        return {
+            "channels": {
+                channel: {"available": True, "volume": volume, "muted": volume == 0}
+                for channel, volume in self.volumes.items()
+            }
+        }
 
     def set(self, channel, volume, preview=False):
         validate_volume(channel, volume, preview)
@@ -130,10 +157,17 @@ class AudioRequest(BaseHTTPRequestHandler):
                     if not 0 < length <= 256:
                         raise ValueError("Invalid request length")
                     request = json.loads(self.rfile.read(length))
-                    if (not isinstance(request, dict) or not {"channel", "volume"} <= set(request)
-                            or set(request) - {"channel", "volume", "preview"}):
+                    if (
+                        not isinstance(request, dict)
+                        or not {"channel", "volume"} <= set(request)
+                        or set(request) - {"channel", "volume", "preview"}
+                    ):
                         raise ValueError("Invalid volume request")
-                    state = self.server.audio.set(request["channel"], request["volume"], request.get("preview", False))
+                    state = self.server.audio.set(
+                        request["channel"],
+                        request["volume"],
+                        request.get("preview", False),
+                    )
                 else:
                     state = self.server.audio.read()
             self._reply(200, state)
@@ -161,7 +195,9 @@ class AudioServer(socketserver.ThreadingUnixStreamServer):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--socket", default="/run/hackbank-audio/control.sock")
-    parser.add_argument("--demo", action="store_true", help="Use in-memory development volumes")
+    parser.add_argument(
+        "--demo", action="store_true", help="Use in-memory development volumes"
+    )
     args = parser.parse_args()
     path = Path(args.socket)
     if path.exists():

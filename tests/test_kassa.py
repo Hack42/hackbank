@@ -85,6 +85,21 @@ def test_on_message():
         mock_get_session.return_value.input.assert_called_with("some data")
 
 
+def test_sound_settings_route_does_not_consume_a_pending_pos_question():
+    session = kassa.Session("SID", Mock())
+    plugin = Mock()
+    session.plugins = {"sounds": plugin}
+    pending = {"plug": Mock(), "function": "answer"}
+    session.nextcall = pending
+    session.input = Mock()
+    payload = b'{"request":"sample-1","feature":"sale","sound":"cash_tycoon.wav"}'
+    with patch("kassa.get_session", return_value=session):
+        kassa.run_session(Mock(), "SID", "sound_settings", payload)
+    plugin.configure.assert_called_once_with(payload)
+    session.input.assert_not_called()
+    assert session.nextcall is pending
+
+
 def test_realcallhook():
     session = kassa.Session("SID", Mock())
     plugin_mock = Mock()

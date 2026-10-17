@@ -146,6 +146,7 @@ function loadKassaApp({hash = "", pageCapacity = 25, accountCapacity = 42} = {})
   const eventSources = [];
   const fetchCalls = [];
   const audioMountCalls = [];
+  const soundSettingsMountCalls = [];
   const textfillCalls = [];
   const timers = [];
   const register = (id, element) => {
@@ -200,7 +201,20 @@ function loadKassaApp({hash = "", pageCapacity = 25, accountCapacity = 42} = {})
       mount(container) {
         const mounted = {container, stopped: false};
         audioMountCalls.push(mounted);
+        const panel=makeElement("section",register);
+        panel.className="audio-controls";
+        container.appendChild(panel);
         return {stop() { mounted.stopped = true; }};
+      },
+    },
+    HackBankSoundSettings: {
+      mount(container,options) {
+        const mounted={container,options,stopped:false,updates:[],replies:[]};
+        soundSettingsMountCalls.push(mounted);
+        const panel=makeElement("section",register);
+        panel.className="pos-sound-settings";
+        container.appendChild(panel);
+        return {stop(){mounted.stopped=true;},update(state){mounted.updates.push(state);},receive(reply){mounted.replies.push(reply);}};
       },
     },
     getComputedStyle() {
@@ -244,6 +258,7 @@ function loadKassaApp({hash = "", pageCapacity = 25, accountCapacity = 42} = {})
 
   return {
     audioMountCalls,
+    soundSettingsMountCalls,
     body,
     documentListeners,
     elements,
@@ -324,7 +339,7 @@ test("the entire Hack42 brand aborts once even with an unfinished command in the
 });
 
 test("custom sound menus include volume controls and omit the retired choices", () => {
-  const {body, elements, eventSources, fetchCalls, audioMountCalls} = loadKassaApp();
+  const {body, elements, eventSources, fetchCalls, audioMountCalls,soundSettingsMountCalls} = loadKassaApp();
   const names = ["abort", "ns", "deuron", "deuroff", "kassaon", "kassaoff", "killsounds", "groovesalad", "christmas", "blues", "quieter", "louder", "vergaderen", "vergaderenextreme", "throw", "yeet"];
   eventSources[0].onmessage({data: JSON.stringify([
     "hack42bar/output/session/main/buttons",
@@ -335,6 +350,12 @@ test("custom sound menus include volume controls and omit the retired choices", 
   ]);
   assert.equal(audioMountCalls.length, 1);
   assert.equal(audioMountCalls[0].container, findFirst(elements.MainButtons, ".sound-screen"));
+  assert.deepEqual(findFirst(elements.MainButtons,".sound-screen").children.map((child)=>child.className),["section-title","sound-actions","audio-controls","pos-sound-settings"]);
+  assert.equal(soundSettingsMountCalls.length,1);
+  eventSources[0].onmessage({data:JSON.stringify(["hack42bar/output/settings/sounds",JSON.stringify({features:[]})])});
+  eventSources[0].onmessage({data:JSON.stringify(["hack42bar/output/session/main/sound_settings",JSON.stringify({request:"sample-1",ok:true})])});
+  assert.equal(soundSettingsMountCalls[0].updates.length,1);
+  assert.equal(soundSettingsMountCalls[0].replies.length,1);
   assert(findFirst(elements.LeftButtons, "#sounds").classList.contains("activetop"));
   assert.equal(fetchCalls.length, 1);
   names.filter((name) => ["ns", "vergaderen", "vergaderenextreme", "throw", "yeet"].includes(name)).forEach((name) => {
@@ -353,6 +374,7 @@ test("custom sound menus include volume controls and omit the retired choices", 
     },
   }});
   assert.equal(audioMountCalls[0].stopped, true);
+  assert.equal(soundSettingsMountCalls[0].stopped,true);
 });
 
 test("pagination uses the grid capacity for large and smaller screens", () => {
