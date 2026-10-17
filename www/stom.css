@@ -356,6 +356,7 @@ iframe { display: block; border: 0; }
 /* Grouped commands, persistent settings and compact account history. */
 .command-tab, .archive-tab, .profile-action { min-height: 56px; padding: 10px 16px; border: 1px solid #cdd9e1; border-radius: 8px; background: #edf2f6; color: #263f53; font: inherit; font-size: 14px; font-weight: 650; cursor: pointer; }
 .command-tab { flex: 1 1 auto; padding: 8px 11px; white-space: nowrap; }
+.category-icon { display: inline-block; margin-right: 7px; font-size: 17px; line-height: 1; letter-spacing: 0; vertical-align: middle; }
 .command-tab.selected, .archive-tab.selected { color: #1c3f59; border-color: #91adc2; background: #dce9f3; }
 .archive-tab:disabled { opacity: .5; cursor: default; }
 .abort-all { background: #fff0f1; border-color: #edc9ce; color: #a33342; white-space: nowrap; }
@@ -376,6 +377,7 @@ iframe { display: block; border: 0; }
 .archived-account { filter: grayscale(.85); opacity: .62; }
 .archived-account:hover { opacity: .95; }
 .profile-heading, .profile-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 18px; }
+.infoboxes:has(+ .user-profile) { min-height: 0; margin-bottom: 18px; }
 .profile-heading h1 { font-size: 28px; margin-right: auto; }
 .profile-balance { padding: 12px 18px; border-radius: 8px; color: #285e49; background: #e2f0e8; font-family: ui-monospace,monospace; font-weight: 700; }
 .profile-balance.rood { color: #a33342; background: #fce6e9; }
@@ -390,6 +392,7 @@ iframe { display: block; border: 0; }
 .dancing-banana { width: 40px; height: auto; opacity: 1; transition: opacity 2s linear; image-rendering: pixelated; }
 .dancing-banana.fading { opacity: 0; }
 .click-hitmarker { width: 70px; height: 70px; object-fit: contain; transform: translate(-50%,-50%); }
+.confetti-canvas { position: fixed; inset: 0; z-index: 90; width: 100%; height: 100%; pointer-events: none; }
 button:focus-visible { outline: 3px solid #db860d; outline-offset: 2px; }
 
 /* Personal themes and debt colours remain recognizable in the dark panes. */

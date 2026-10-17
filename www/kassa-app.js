@@ -52,12 +52,14 @@ document.addEventListener("DOMContentLoaded", function() {
 
   function postmsg(topic,msg) {
     if(topic === 'input' && preferences && preferences.handleCommand(msg)) {
+      preferences.command();
       if(currentView === 'commands') locked=1;
       if(filterReturnView === 'commands') { filterReturnView=null; makeCommandScreen(commandCategory); }
       else if(filterRestore) { restoreSelection(filterRestore); filterRestore=null; }
       return;
     }
     if(topic === 'input') filterReturnView=null;
+    if(topic === 'input' && msg.trim() && preferences) preferences.command();
     fetch("post.php", {
       method: "POST",
       headers: {
@@ -281,17 +283,18 @@ document.addEventListener("DOMContentLoaded", function() {
   function makepage_infobox() {
     clearElement('#MainButtons');
     clearElement('#TopButtons');
+    if(!accountProfile || accountProfile.checkout) {
+      appendTo('#MainButtons', createElement('div',{class: "infoboxes", id: "infoboxes"}));
+      cloneElementsTo('#Totals .Userline', '#infoboxes');
+    }
     if(accountProfile) {
       makeUserProfile(accountProfile);
-      return;
     }
-    appendTo('#MainButtons', createElement('div',{class: "infoboxes", id: "infoboxes"}));
-    cloneElementsTo('.Userline', '#infoboxes');
     appendTo('#TopButtons', buttonElement("Knopje Button normal ok",'ok',"OK"));
-    appendTo('#TopButtons', buttonElement("Knopje Button normal undo",'undo',"Undo"));
+    appendTo('#TopButtons', buttonElement("Knopje Button normal undo",'undo',"Undo last transaction"));
     appendTo('#TopButtons', buttonElement("Knopje Button normal restore",'restore',"Undo + Restore"));
-    appendTo('#TopButtons', buttonElement("Knopje Button normal bon",'bon',"Bon"));
-    appendTo('#TopButtons', buttonElement("Knopje Button normal kassala",'kassala',"Kassala"));
+    appendTo('#TopButtons', buttonElement("Knopje Button normal bon",'bon',"Print receipt"));
+    appendTo('#TopButtons', buttonElement("Knopje Button normal kassala",'kassala',"Open cash drawer"));
     fillVisibleText("#TopButtons .Knopjetext:visible");
   }
   function actionButton(label, command, className) {
@@ -586,8 +589,13 @@ document.addEventListener("DOMContentLoaded", function() {
     showElement('#Secondscreen');
     appendTo('#TopButtons',actionButton('Abort everything','abort','profile-action abort-all'));
     var sections=buttons.commandSections(commands);
+    var icons={'All commands':'📋',Products:'📦',Users:'👥',Sales:'🧾',Wholesale:'🏬',Market:'🏷️',Misc:'🛠️',Settings:'⚙️'};
+    function categoryIcon(element,name) {
+      element.prepend(createElement('span',{class:'category-icon','aria-hidden':'true',text:icons[name]}));
+      return element;
+    }
     ['All commands'].concat(sections.map(function(section) { return section.name; }),['Settings']).forEach(function(name) {
-      var tab=createElement('button',{type:'button',class:'command-tab'+((category || 'All commands') === name ? ' selected' : ''),text:name});
+      var tab=categoryIcon(createElement('button',{type:'button',class:'command-tab'+((category || 'All commands') === name ? ' selected' : ''),text:name,'aria-label':name}),name);
       tab.addEventListener('click',function() { makeCommandScreen(name); focus(); });
       appendTo('#TopButtons',tab);
     });
@@ -596,16 +604,16 @@ document.addEventListener("DOMContentLoaded", function() {
       if(category && category !== 'All commands' && category !== section.name) return;
       if(!section.buttons.length) return;
       var card=createElement('section',{class:'command-section section-'+section.name.toLowerCase()});
-      card.appendChild(createElement('h2',{text:section.name}));
+      card.appendChild(categoryIcon(createElement('h2',{text:section.name}),section.name));
       var commandsGrid=createElement('div',{class:'command-group-buttons'});
       section.buttons.forEach(function(button) { commandsGrid.appendChild(commandButton('normal',button)); });
       card.appendChild(commandsGrid); grid.appendChild(card);
     });
     if(preferences && (!category || category === 'All commands' || category === 'Settings')) {
       var settings=createElement('section',{class:'command-section section-settings'});
-      settings.appendChild(createElement('h2',{text:'Settings'}));
+      settings.appendChild(categoryIcon(createElement('h2',{text:'Settings'}),'Settings'));
       var settingsGrid=createElement('div',{class:'settings-grid'});
-      ['party','dark','banana','dank'].forEach(function(key) { settingsGrid.appendChild(preferences.toggle(key)); });
+      ['party','dark','banana','dank','confetti'].forEach(function(key) { settingsGrid.appendChild(preferences.toggle(key)); });
       settings.appendChild(settingsGrid); grid.appendChild(settings);
     }
     appendTo('#MainButtons',grid);
@@ -741,6 +749,9 @@ document.addEventListener("DOMContentLoaded", function() {
          case 'sound':
             playsound(msg);
             break;
+         case 'effects':
+            if(preferences && JSON.parse(msg).type === 'sale') preferences.sale();
+            break;
          case 'members':
             members=JSON.parse(msg);
             break;
@@ -842,7 +853,7 @@ document.addEventListener("DOMContentLoaded", function() {
   }
   function submitCommand() {
     var command=searchValue().trim();
-    if(currentView === 'sounds' && !['ns','vergaderen','vergaderenextreme','vergaderen_extreme','throw','yeet','sounds'].includes(command) && !/^(dark|banana|dank)mode(on|off)$/.test(command)) currentView='action';
+    if(currentView === 'sounds' && !['ns','vergaderen','vergaderenextreme','vergaderen_extreme','throw','yeet','sounds'].includes(command) && !/^(dark|banana|dank|confetti)mode(on|off)$/.test(command)) currentView='action';
     locked=0;
     verwerkinput();
     focus();

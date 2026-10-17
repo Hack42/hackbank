@@ -610,6 +610,29 @@ test("late idle updates preserve Commands and selecting an action restores norma
   assert(elements.MainButtons.children.some((element)=>element.id === 'AccountList'));
 });
 
+test("repeated user visits and checkout keep profile history alongside transaction controls", () => {
+  const {elements,eventSources}=loadKassaApp();
+  function send(topic,value) {
+    eventSources[0].onmessage({data:JSON.stringify([`hack42bar/output/session/main/${topic}`,JSON.stringify(value)])});
+  }
+  const profile={user:"Jos",amount:12,purchases:[{count:1,description:"Cola",date:"2026-10-17_12:00:00",total:2}],history_available:true,undo_transaction:null};
+  for(let visit=0;visit<3;visit++) {
+    send("receipt",[]);
+    send("buttons",{});
+    send("infobox/account",profile);
+    send("buttons",{special:"infobox"});
+    assert(findFirst(elements.MainButtons,".user-profile"));
+    assert.equal(findAll(elements.MainButtons,".purchase-row").length,1);
+    ["ok","undo","restore","bon","kassala"].forEach((command)=>assert(findFirst(elements.TopButtons,`#${command}`)));
+  }
+  send("totals",[{user:"Jos",amount:-2}]);
+  send("infobox/account",{...profile,amount:10,checkout:true});
+  send("buttons",{special:"infobox"});
+  assert(findFirst(elements.MainButtons,".infoboxes"));
+  assert(findFirst(elements.MainButtons,".user-profile"));
+  assert.equal(findAll(elements.MainButtons,".purchase-row").length,1);
+});
+
 test("kassa app removes accounts when retained account messages are cleared", () => {
   const {elements, eventSources} = loadKassaApp();
   const sendStreamMessage = (topic, msg) => {

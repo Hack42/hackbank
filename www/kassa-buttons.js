@@ -75,7 +75,7 @@
       ['Market', [['market','Products'], ['changemarket','Pricing'], ['addmarket','Aliases'], ['delmarket','Remove product']]],
       ['Misc', [['sounds','Sounds'], ['stickers','Stickers'], ['dooropen','Door open']]],
     ];
-    var hidden=['abort','addmember','partymodeon','partymodeoff','darkmodeon','darkmodeoff','bananamodeon','bananamodeoff','dankmodeon','dankmodeoff','undouserlatest'];
+    var hidden=['abort','addmember','partymodeon','partymodeoff','darkmodeon','darkmodeoff','bananamodeon','bananamodeoff','dankmodeon','dankmodeoff','confettimodeon','confettimodeoff','undouserlatest'];
     var used=new Set(hidden);
     var sections=definitions.map(function(definition) {
       return {name: definition[0], buttons: definition[1].filter(function(item) {

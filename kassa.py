@@ -171,7 +171,9 @@ class Session:
                 self.plugins["party"].input(text.strip())
             except Exception:
                 logger.exception("Party configuration failed sid=%s", self.SID)
-                self.send_message(True, "message", "Could not change party mode; please try again")
+                self.send_message(
+                    True, "message", "Could not change party mode; please try again"
+                )
             if not self.nextcall:
                 self.send_message(True, "buttons", json.dumps({}))
             return
@@ -227,6 +229,8 @@ class Session:
             or self.cache["hack42bar/output/session/" + self.SID + "/" + topic]
             != message
             or len(topic) < 8
+            # A profile is a response to a new visit, even when its data is unchanged.
+            or (not retain and topic == "infobox/account")
         ):
             logger.debug(
                 "send_message sid=%s retain=%s topic=%s message=%r",

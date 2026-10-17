@@ -1,20 +1,22 @@
 (function(window, document) {
-  var MODES={dark: 'Dark mode', banana: 'Banana mode', dank: 'Dank Hit mode', party: 'Party mode'};
+  var MODES={dark: 'Dark mode', banana: 'Banana mode', dank: 'Dank Hit mode', party: '🎉 Party mode', confetti: '🎊 Confetti'};
   var COMMANDS={darkmodeon: ['dark',true], darkmodeoff: ['dark',false],
     bananamodeon: ['banana',true], bananamodeoff: ['banana',false],
-    dankmodeon: ['dank',true], dankmodeoff: ['dank',false]};
+    dankmodeon: ['dank',true], dankmodeoff: ['dank',false],
+    confettimodeon: ['confetti',true], confettimodeoff: ['confetti',false]};
 
   function create(options) {
-    var bananaLifetime=5*60*1000;
+    var bananaLifetime=60*1000;
     var saved={};
     try { saved=JSON.parse(window.localStorage.getItem('hackbank-appearance') || '{}') || {}; } catch(_error) { /* Storage can be disabled. */ }
-    var states={party: null, dark: saved.dark === true, banana: saved.banana === true || Number(saved.bananaUntil) > Date.now(), dank: saved.dank === true};
+    var states={party: null, dark: saved.dark === true, banana: saved.banana === true || Number(saved.bananaUntil) > Date.now(), dank: saved.dank === true, confetti: saved.confetti === true};
     var switches={};
     var bananas=[];
+    var confetti=window.HackBankConfetti ? window.HackBankConfetti.create() : null;
 
     function persist() {
       try {
-        window.localStorage.setItem('hackbank-appearance',JSON.stringify({dark: states.dark, dank: states.dank, banana: states.banana,
+        window.localStorage.setItem('hackbank-appearance',JSON.stringify({dark: states.dark, dank: states.dank, banana: states.banana, confetti: states.confetti,
           bananas: bananas.map(function(banana) { return banana.position; })}));
       } catch(_error) { /* Preferences still work without storage. */ }
     }
@@ -63,6 +65,7 @@
       if(!change) return false;
       states[change[0]]=change[1];
       if(change[0] === 'banana' && !change[1]) removeBananas();
+      if(change[0] === 'confetti' && !change[1] && confetti) confetti.clear();
       persist(); update();
       return true;
     }
@@ -104,6 +107,8 @@
     return {
       handleCommand: handleCommand,
       toggle: toggle,
+      command: function() { if(states.confetti && confetti) confetti.burst(false); },
+      sale: function() { if(states.confetti && confetti) confetti.burst(true); },
       setParty: function(state) { states.party=state.enabled === true; update(); },
       commands: Object.keys(COMMANDS).reduce(function(result, command) {
         var change=COMMANDS[command]; result[command]=(change[1] ? 'Enable ' : 'Disable ')+MODES[change[0]]; return result;

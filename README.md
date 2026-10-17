@@ -93,33 +93,39 @@ or 25 buttons on smaller screens. The command bar's Enter button submits the
 same command as pressing Enter on the keyboard.
 The larger Members/Other users buttons and page tabs support touch selection.
 Commands are grouped into Products, Users, Sales, Wholesale, Market and Misc,
-with an Abort action and a Settings section. All commands stacks the groups
-vertically, with four buttons per row on the bar display; category tabs show
+with an Abort action and a Settings section. Category tabs and headings have
+emoji icons. All commands stacks the groups vertically, with four buttons per
+row on the bar display; category tabs show
 each group separately. Manage members contains member administration;
 all underlying commands remain available. Remove item edits the current
 unbilled sale; transaction undo is a separate action. Door open retains the
 existing configured door command.
 
-Settings offers Party, Dark, Banana and Dank Hit modes. Party mode reflects
-backend state and can be disabled even while another question is pending.
+Settings offers 🎉 Party mode, Dark, Banana, Dank Hit and Confetti modes.
+Party mode reflects backend state and can be disabled even while another question is pending.
 A missing printer no longer prevents exit: settlement totals and their history
 are saved in the party state before attempting to print. No sale or account
 balance is cleared by changing this setting.
 
 Appearance settings apply to this browser and survive reloads. The command bar
-also accepts `darkmodeon` / `darkmodeoff`, `bananamodeon` / `bananamodeoff`, and
-`dankmodeon` / `dankmodeoff`. While Banana mode is enabled, each click or tap adds
-another 40px-wide dancing banana at a random screen location. Bananas let clicks
+also accepts `darkmodeon` / `darkmodeoff`, `bananamodeon` / `bananamodeoff`,
+`dankmodeon` / `dankmodeoff`, and `confettimodeon` / `confettimodeoff`.
+While Banana mode is enabled, each click or tap adds another 40px-wide dancing
+banana at a random screen location. Bananas let clicks
 through, fade during their final two seconds, and disappear individually after
-five minutes; refreshing preserves their deadlines. Switching the mode off
+one minute; refreshing preserves their deadlines. Switching the mode off
 clears all bananas. Dank Hit mode plays the supplied hitmarker sample through
-the POS browser audio and displays
-a click-through marker for 100ms at each click or tap.
+the POS browser audio and displays a click-through marker for 100ms at each click or tap.
+Confetti mode drops a small shower from the top for every submitted command,
+and a larger shower after a completed sale. Particles fall off the bottom and
+let clicks through. The local canvas renderer stops when no particles remain;
+switching the setting off clears them immediately. Refunds, deposits, transfers
+and undo do not trigger the larger sale shower, and reconnecting does not replay it.
 
 Member and Other users lists end with an Archive tab after the page buttons.
-Archives list accounts alphabetically whose last purchase is older than a year.
-New accounts with no purchase record use
-their last account update as a conservative fallback. A read-only index of
+Archives list accounts whose last purchase is older than a year, in alphabetical order.
+New accounts with no purchase record use their last account update as a conservative fallback.
+A read-only index of
 the existing checkout log is shared between sessions, reuses unchanged results,
 and reads only appended data after the first scan. Initial reads are capped
 at 8MiB. If that window cannot establish a full year's coverage, archives stay
@@ -127,8 +133,11 @@ unavailable and accounts remain in the normal lists. Deposits, transfers,
 refunds and undo lines are excluded from purchase history.
 
 Clicking a user with an empty sale shows the balance and up to ten recent
-purchase line items. Add again uses the current product price and only adds
-to the sale, leaving the normal account selection and checkout flow intact.
+purchase line items, alongside OK, undo, restore, receipt and cash drawer controls.
+Every visit receives a fresh profile response, even when its data is unchanged.
+After checkout, the same view combines the transaction summary with the updated
+profile and purchase history. Add again uses the current product price and only
+adds to the sale, leaving the normal account selection and checkout flow intact.
 Reordering is offered only when a historical description identifies one
 current product. Older or ambiguous products remain visible as history.
 Undo latest transaction appears only for an eligible latest transaction;
@@ -205,5 +214,7 @@ outputs. The page title remains `Hack42 - HackBank`, the identifier used by the
 existing POS audio router. Restart `hackbank-audio-control.service` after
 updating its Python controller. Changes to `plugins/sounds.py`, including the
 silent Sounds navigation, also require restarting the existing POS backend.
+The profile response fix in `kassa.py` and sale display events in
+`plugins/historie.py` require the same backend restart.
 For a different installation, adapt the unit's application path, kiosk user,
 web-server group, and runtime audio socket before enabling it.

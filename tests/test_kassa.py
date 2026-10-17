@@ -31,7 +31,9 @@ def test_party_configuration_error_does_not_stop_the_command_host():
     session.pre_input = Mock()
     session.send_message = Mock()
     session.input("partymodeoff")
-    session.send_message.assert_any_call(True, "message", "Could not change party mode; please try again")
+    session.send_message.assert_any_call(
+        True, "message", "Could not change party mode; please try again"
+    )
 
 
 def test_session_startup():
@@ -489,6 +491,20 @@ def test_send_message_updates_prompt_buttons_and_skips_cached_long_topic():
     assert session.prompt == "hello"
     assert session.buttons == "{}"
     assert client_mock.publish.call_count == 3
+
+
+def test_unchanged_profile_response_is_published_on_each_visit():
+    client = Mock()
+    session = kassa.Session("SID", client)
+    for _visit in range(2):
+        session.send_message(False, "infobox/account", '{"user":"Jos","amount":12}')
+    assert client.publish.call_count == 2
+    client.publish.assert_called_with(
+        "hack42bar/output/session/SID/infobox/account",
+        '{"user":"Jos","amount":12}',
+        1,
+        False,
+    )
 
 
 def test_send_message_logs_debug(caplog):
