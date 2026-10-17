@@ -11,8 +11,29 @@ def test_undo_help():
         "undo": "Undo last transaction",
         "undolist": "Undo a transaction",
         "restore": "Restore a transaction",
+        "undouserlatest": "Undo user's latest transaction",
     }
     assert undo.help() == expected_help
+
+
+def test_user_card_undo_rechecks_owner_and_transaction_id():
+    master = Mock()
+    plugin = undo_module.undo("SID", master)
+    plugin.loadundo = Mock()
+    plugin.doundo = Mock(return_value=True)
+    plugin.undo = {1: {"totals": {"Jos": -2}, "receipt": [], "beni": "Jos"}}
+    assert plugin.latest_for("Jos") == 1
+    assert plugin.latest_for("nino") is None
+    assert plugin.undo_user_latest("1:Jos") is True
+    plugin.doundo.assert_called_once_with(1)
+    plugin.doundo.reset_mock()
+    plugin.undo[2] = {"totals": {"nino": -1}, "receipt": [], "beni": "nino"}
+    assert plugin.undo_user_latest("1:Jos") is True
+    plugin.doundo.assert_not_called()
+    plugin.undo[3] = {"totals": {"Jos": -1}, "receipt": [], "beni": "Jos"}
+    assert plugin.undo_user_latest("1:Jos") is True
+    plugin.doundo.assert_not_called()
+    master.send_message.assert_called_with(True, "message", "Latest transaction changed; reopen the user details")
 
 
 def test_undo_hook_post_checkout():

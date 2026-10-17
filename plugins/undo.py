@@ -21,6 +21,7 @@ class undo:
             "undo": "Undo last transaction",
             "undolist": "Undo a transaction",
             "restore": "Restore a transaction",
+            "undouserlatest": "Undo user's latest transaction",
         }
 
     def hook_post_checkout(self, text):
@@ -192,6 +193,10 @@ class undo:
             self.master.donext(self, "doundo")
 
     def input(self, text):
+        if text == "undouserlatest":
+            self.master.donext(self, "undo_user_latest")
+            self.master.send_message(True, "message", "Select a user transaction to undo")
+            return True
         if text == "undolist":
             self.listundo(0)
             return True
@@ -203,6 +208,22 @@ class undo:
             self.doundo(self.master.transID)
             return True
         return None
+
+    def latest_for(self, user):
+        self.loadundo()
+        if not self.undo:
+            return None
+        latest = max(self.undo)
+        entry = self._get_undo_entry(latest)
+        return latest if entry and user in entry[0] else None
+
+    def undo_user_latest(self, text):
+        transaction, separator, user = text.partition(":")
+        latest = self.latest_for(user) if separator else None
+        if latest is None or str(latest) != transaction:
+            self.master.send_message(True, "message", "Latest transaction changed; reopen the user details")
+            return True
+        return self.doundo(latest)
 
     def hook_abort(self, _void):
         self.startup()

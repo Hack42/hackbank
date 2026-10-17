@@ -331,7 +331,7 @@ test("custom sound menus include volume controls and omit the retired choices", 
     JSON.stringify({special: "custom", custom: names.map((name) => ({text: name, display: name}))}),
   ])});
   assert.deepEqual(findAll(elements.MainButtons, ".Buttontext").map((el) => el.textContent), [
-    "abort", "christmas", "ns", "vergaderen",
+    "ns", "vergaderen",
   ]);
   assert.equal(audioMountCalls.length, 1);
   assert.equal(audioMountCalls[0].container, findFirst(elements.MainButtons, ".sound-screen"));
@@ -571,6 +571,30 @@ test("kassa app handles closed streams by scheduling one reconnect", () => {
   assert.equal(eventSources[0].closeCalled, true);
   assert.equal(timers.length, 1);
   assert.equal(timers[0].delay, 1000);
+});
+
+test("late idle updates preserve Commands and selecting an action restores normal navigation", () => {
+  const {body,elements,eventSources}=loadKassaApp();
+  function send(topic,payload) {
+    eventSources[0].onmessage({data:JSON.stringify([`hack42bar/output/session/main/${topic}`,JSON.stringify(payload)])});
+  }
+  send('accounts/Jos',{amount:10});
+  send('members',['Jos']);
+  send('commands',{deposit:'Deposit Money'});
+  send('buttons',{});
+  body.eventListeners.click({target:{closest(selector) {
+    return selector.startsWith('div.Knopje:not') ? findFirst(elements.LeftButtons,'#commands') : null;
+  }}});
+  assert(findFirst(elements.MainButtons,'.command-sections'));
+  send('buttons',{});
+  assert(findFirst(elements.MainButtons,'.command-sections'));
+  send('buttons',{special:'numbers'});
+  assert(findFirst(elements.MainButtons,'.command-sections'));
+  body.eventListeners.click({target:{closest(selector) {
+    return selector === 'div.normal' ? findFirst(elements.MainButtons,'#deposit') : null;
+  }}});
+  send('buttons',{});
+  assert(elements.MainButtons.children.some((element)=>element.id === 'AccountList'));
 });
 
 test("kassa app removes accounts when retained account messages are cleared", () => {

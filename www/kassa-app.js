@@ -19,6 +19,21 @@ document.addEventListener("DOMContentLoaded", function() {
   var filterRestore=null;
   var filtering=false;
   var audioControl=null;
+  var currentView='accounts';
+  var commandCategory='All commands';
+  var soundButtons=[];
+  var activity=null;
+  var accountProfile=null;
+  var accountType='m';
+  var archivedAccounts=false;
+  var accountSections=null;
+  var filterReturnView=null;
+  var preferences=window.HackBankPreferences ? window.HackBankPreferences.create({
+    sendCommand: function(command) {
+      postmsg('input',command);
+    },
+    playSound: playsound,
+  }) : null;
   var buttons=window.HackBankButtons;
   var dom=window.HackBankDom;
   var allElements=dom.allElements;
@@ -36,6 +51,13 @@ document.addEventListener("DOMContentLoaded", function() {
   var topButton=dom.topButton;
 
   function postmsg(topic,msg) {
+    if(topic === 'input' && preferences && preferences.handleCommand(msg)) {
+      if(currentView === 'commands') locked=1;
+      if(filterReturnView === 'commands') { filterReturnView=null; makeCommandScreen(commandCategory); }
+      else if(filterRestore) { restoreSelection(filterRestore); filterRestore=null; }
+      return;
+    }
+    if(topic === 'input') filterReturnView=null;
     fetch("post.php", {
       method: "POST",
       headers: {
@@ -149,10 +171,31 @@ document.addEventListener("DOMContentLoaded", function() {
   function showAccountButtons(activeButtonId, accountType, tabMode) {
     activateTopButton(activeButtonId);
     showElement('#Secondscreen');
-    makeAccountList(buttons.accountsToButtons(accounts,members,nonmembers,accountType));
+    currentView='accounts';
+    makeAccountSections(accountType,false);
     prependCashButton();
     focus();
     tabenable=tabMode;
+  }
+  function makeAccountSections(type, archive) {
+    accountType=type;
+    archivedAccounts=archive;
+    var candidates=buttons.accountsToButtons(accounts,members,nonmembers,type);
+    if(type === 'o') candidates=candidates.concat(buttons.accountsToButtons(accounts,members,nonmembers,'x')).sort(function(a,b) { return a.display.toLowerCase().localeCompare(b.display.toLowerCase()); });
+    accountSections=buttons.splitAccounts(candidates,accounts,activity);
+    makeAccountList(archive ? accountSections.archive : accountSections.active);
+    addArchiveTabs();
+  }
+  function addArchiveTabs() {
+    if(!accountSections) return;
+    var top=document.getElementById('TopButtons');
+    var name=accountType === 'm' ? 'Members' : 'Other users';
+    [[false,name],[true,name+' Archive']].reverse().forEach(function(item) {
+      var tab=createElement('button',{type:'button',class:'archive-tab'+(archivedAccounts === item[0] ? ' selected' : ''),text:item[1]+' ('+accountSections[item[0] ? 'archive' : 'active'].length+')', 'aria-pressed':String(archivedAccounts === item[0])});
+      if(item[0] && (!activity || !activity.available)) { tab.disabled=true; tab.title='Archive unavailable until purchase history can be checked'; }
+      tab.addEventListener('click',function() { makeAccountSections(accountType,item[0]); prependCashButton(); focus(); });
+      top.prepend(tab);
+    });
   }
   function build_receipt(msg) {
     var parts=JSON.parse(msg);
@@ -206,6 +249,10 @@ document.addEventListener("DOMContentLoaded", function() {
   }
   function run_infobox(name,msg) {
     var json=JSON.parse(msg);
+    if(json.user) {
+      accountProfile=json;
+      return;
+    }
     var newsaldo=json.amount;
     var infobox=first('.infoboxes .Total_'+name);
     appendToElement(infobox, createElement('span',{class: 'NowHas',text: "Now Has"}));
@@ -220,6 +267,7 @@ document.addEventListener("DOMContentLoaded", function() {
   }
   function setupcommands(msg) {
     commands=JSON.parse(msg);
+    if(preferences) Object.assign(commands,preferences.commands);
   }
   function setupstock(name,msg) {
     stock[name]=msg;
@@ -232,6 +280,10 @@ document.addEventListener("DOMContentLoaded", function() {
   function makepage_infobox() {
     clearElement('#MainButtons');
     clearElement('#TopButtons');
+    if(accountProfile) {
+      makeUserProfile(accountProfile);
+      return;
+    }
     appendTo('#MainButtons', createElement('div',{class: "infoboxes", id: "infoboxes"}));
     cloneElementsTo('.Userline', '#infoboxes');
     appendTo('#TopButtons', buttonElement("Knopje Button normal ok",'ok',"OK"));
@@ -240,6 +292,51 @@ document.addEventListener("DOMContentLoaded", function() {
     appendTo('#TopButtons', buttonElement("Knopje Button normal bon",'bon',"Bon"));
     appendTo('#TopButtons', buttonElement("Knopje Button normal kassala",'kassala',"Kassala"));
     fillVisibleText("#TopButtons .Knopjetext:visible");
+  }
+  function actionButton(label, command, className) {
+    var button=createElement('button',{type:'button',class:className || 'profile-action',text:label});
+    button.addEventListener('click',function() {
+      locked=0;
+      currentView='action';
+      postmsg('input',command);
+      setSearchValue(''); focus();
+    });
+    return button;
+  }
+  function makeUserProfile(profile) {
+    currentView='profile';
+    var screen=createElement('section',{class:'user-profile'});
+    var heading=createElement('div',{class:'profile-heading'});
+    heading.appendChild(createElement('h1',{text:profile.user}));
+    var balanceClass=profile.amount < -13.37 ? ' rood' : (profile.amount < 0 ? ' orange' : '');
+    heading.appendChild(createElement('span',{class:'profile-balance'+balanceClass,text:'Balance €'+profile.amount.toFixed(2)}));
+    screen.appendChild(heading);
+    var actions=createElement('div',{class:'profile-actions'});
+    actions.appendChild(actionButton('Full user history','history '+profile.user));
+    if(profile.undo_transaction !== null && profile.undo_transaction !== undefined) {
+      actions.appendChild(actionButton('Undo latest transaction','undouserlatest '+profile.undo_transaction+':'+profile.user,'profile-action undo-user-transaction'));
+    }
+    screen.appendChild(actions);
+    screen.appendChild(createElement('h2',{text:'Last 10 purchases'}));
+    screen.appendChild(createElement('p',{class:'profile-hint',text:'Add again uses the current price and adds to the current sale.'}));
+    if(profile.history_available && profile.history_complete === false) screen.appendChild(createElement('p',{class:'profile-hint',text:'Recent history is limited; open full user history for older purchases.'}));
+    var rows=createElement('div',{class:'purchase-list'});
+    (profile.purchases || []).forEach(function(purchase) {
+      var row=createElement('div',{class:'purchase-row'});
+      var details=createElement('div');
+      details.appendChild(createElement('strong',{text:purchase.count+' × '+purchase.description}));
+      details.appendChild(createElement('span',{class:'purchase-date',text:purchase.date.replace('_',' ')+' · paid €'+purchase.total.toFixed(2)}));
+      row.appendChild(details);
+      if(purchase.product && prods[purchase.product] && purchase.count > 0 && purchase.count < 100) {
+        var command=purchase.count === 1 ? purchase.product : purchase.count+'* '+purchase.product;
+        row.appendChild(actionButton('Add again · €'+(prods[purchase.product].price*purchase.count).toFixed(2),command,'profile-action reorder-purchase'));
+      }
+      rows.appendChild(row);
+    });
+    if(!rows.childElementCount) rows.appendChild(createElement('p',{class:'profile-hint',text:profile.history_available ? 'No purchases found.' : 'Purchase history is unavailable.'}));
+    screen.appendChild(rows);
+    appendTo('#MainButtons',screen);
+    appendTo('#TopButtons',actionButton('Back to members','abort','profile-action'));
   }
   function dokeys(keys) {
     var keysElement=document.getElementById('keys');
@@ -367,6 +464,7 @@ document.addEventListener("DOMContentLoaded", function() {
     makepages(snapshot.view.className,snapshot.view.buttons,snapshot.view.accountList);
     selectButtonPage(Math.floor(snapshot.firstIndex/pagedButtons.capacity)+1);
     restoreExtraButtons(snapshot);
+    if(currentView === 'accounts') addArchiveTabs();
   }
   function reflowButtonPages() {
     if(!pagedButtons || !allElements('#MainButtons .Pagina').length) return;
@@ -380,6 +478,7 @@ document.addEventListener("DOMContentLoaded", function() {
     var knopje=appendChildren(createElement('div',{class: "Knopje Knop "+stuff.text+" "+extraclass + " " + stuff.class,id: stuff.text, role: 'button', tabindex: '0', title: stuff.display }), [
       createElement('span',{class: "Buttontext ",text: stuff.display}),
     ]);
+    if(stuff.hint) knopje.appendChild(createElement('small',{class:'command-hint',text:stuff.hint}));
     if(stuff.text === 'stitch' && stuff.class && stuff.class.indexOf('account ') === 0) {
       knopje.prepend(createElement('img',{class: 'account-icon', src: 'images/users/stitch.png', width: '32', height: '32', alt: '', 'aria-hidden': 'true'}));
     }
@@ -460,6 +559,7 @@ document.addEventListener("DOMContentLoaded", function() {
   }
   function makeSoundScreen(soundButtons) {
     activateTopButton('sounds');
+    currentView='sounds';
     pagedButtons=null;
     filterRestore=null;
     clearElement('#MainButtons');
@@ -475,9 +575,46 @@ document.addEventListener("DOMContentLoaded", function() {
     showquestion();
     fillVisibleText('.Buttontext:visible');
   }
+  function makeCommandScreen(category) {
+    commandCategory=category || 'All commands';
+    locked=1;
+    activateTopButton('commands');
+    currentView='commands';
+    pagedButtons=null; filterRestore=null;
+    clearElement('#MainButtons'); clearElement('#TopButtons');
+    showElement('#Secondscreen');
+    appendTo('#TopButtons',actionButton('Abort everything','abort','profile-action abort-all'));
+    var sections=buttons.commandSections(commands);
+    ['All commands'].concat(sections.map(function(section) { return section.name; }),['Settings']).forEach(function(name) {
+      var tab=createElement('button',{type:'button',class:'command-tab'+((category || 'All commands') === name ? ' selected' : ''),text:name});
+      tab.addEventListener('click',function() { makeCommandScreen(name); focus(); });
+      appendTo('#TopButtons',tab);
+    });
+    var grid=createElement('div',{class:'command-sections'+(category && category !== 'All commands' ? ' single-section' : '')});
+    sections.forEach(function(section) {
+      if(category && category !== 'All commands' && category !== section.name) return;
+      if(!section.buttons.length) return;
+      var card=createElement('section',{class:'command-section section-'+section.name.toLowerCase()});
+      card.appendChild(createElement('h2',{text:section.name}));
+      var commandsGrid=createElement('div',{class:'command-group-buttons'});
+      section.buttons.forEach(function(button) { commandsGrid.appendChild(commandButton('normal',button)); });
+      card.appendChild(commandsGrid); grid.appendChild(card);
+    });
+    if(preferences && (!category || category === 'All commands' || category === 'Settings')) {
+      var settings=createElement('section',{class:'command-section section-settings'});
+      settings.appendChild(createElement('h2',{text:'Settings'}));
+      var settingsGrid=createElement('div',{class:'settings-grid'});
+      ['party','dark','banana','dank'].forEach(function(key) { settingsGrid.appendChild(preferences.toggle(key)); });
+      settings.appendChild(settingsGrid); grid.appendChild(settings);
+    }
+    appendTo('#MainButtons',grid);
+    focus(); tabenable=1;
+  }
   function dobuttons(msg) {
+    if(currentView === 'commands' && locked === 1) return;
     var buttons=JSON.parse(msg);
     if(msg === '{}' && locked === 0) {
+      if(currentView === 'sounds') return;
       showAccountButtons('members','m',1);
     } else if (buttons['special'] === 'custom') {
       showElement('#Secondscreen');
@@ -489,8 +626,12 @@ document.addEventListener("DOMContentLoaded", function() {
       }
       var soundMenu=buttons['custom'].some(function(button) { return button.text === 'ns'; })
         && buttons['custom'].some(function(button) { return button.text === 'vergaderen'; });
-      if(soundMenu) makeSoundScreen(customButtons);
+      if(soundMenu) {
+        soundButtons=window.HackBankButtons.visibleSoundButtons(customButtons);
+        makeSoundScreen(soundButtons);
+      }
       else {
+        currentView='action';
         activateTopButton('commands');
         makepages('normal',customButtons);
       }
@@ -542,11 +683,8 @@ document.addEventListener("DOMContentLoaded", function() {
   function playsound(sound) {
     var audioElement = document.createElement('audio');
     audioElement.setAttribute('src', 'sounds/'+sound);
-    audioElement.setAttribute('autoplay', 'autoplay');
-    audioElement.load();
-    audioElement.addEventListener("load", function() {
-    audioElement.play();
-    },true);
+    var playback=audioElement.play();
+    if(playback && playback.catch) playback.catch(function(error) { console.log('Audio playback unavailable',error); });
   }
 
   function showquestion() {
@@ -568,6 +706,7 @@ document.addEventListener("DOMContentLoaded", function() {
             scrollToBottom('#Log');
             break;
          case 'receipt':
+            accountProfile=null;
             build_receipt(msg);
             break;
          case 'totals':
@@ -610,6 +749,19 @@ document.addEventListener("DOMContentLoaded", function() {
          case 'commands':
             setupcommands(msg);
             break;
+         case 'activity':
+            activity=JSON.parse(msg);
+            if(currentView === 'accounts' && !searchValue()) {
+              makeAccountSections(accountType,archivedAccounts); prependCashButton();
+            }
+            if(currentView === 'profile') {
+              // A fresh backend check still guards the actual undo command.
+              allElements('.undo-user-transaction').forEach(function(button) { button.remove(); });
+            }
+            break;
+         case 'settings':
+            if(preferences && pathParts[5] === 'party') preferences.setParty(JSON.parse(msg));
+            break;
      }
   }
   function runmsg(path,msg) {
@@ -635,10 +787,12 @@ document.addEventListener("DOMContentLoaded", function() {
     var dingen=searchValue().split(" ");
     var zoek=dingen[dingen.length-1].toLowerCase();
     if(!zoek.length) {
+      if(filterReturnView === 'commands') { filterReturnView=null; makeCommandScreen(commandCategory); return; }
       restoreSelection(filterRestore);
       return;
     }
     if(fill && zoek.length<2) return;
+    if(!filterReturnView && currentView === 'commands') filterReturnView='commands';
     if(!filterRestore) filterRestore=selectionSnapshot();
     var buttons=[];
     window.HackBankButtons.addMatchingButtons(buttons, window.HackBankButtons.accountsToButtons(accounts,members,nonmembers,'m'), zoek);
@@ -686,6 +840,8 @@ document.addEventListener("DOMContentLoaded", function() {
     setSearchValue("");
   }
   function submitCommand() {
+    var command=searchValue().trim();
+    if(currentView === 'sounds' && !['ns','vergaderen','vergaderenextreme','vergaderen_extreme','throw','sounds'].includes(command) && !/^(dark|banana|dank)mode(on|off)$/.test(command)) currentView='action';
     locked=0;
     verwerkinput();
     focus();
@@ -707,6 +863,8 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   function handleNormalClick() {
+    if(currentView === 'commands') locked=0;
+    if(currentView !== 'sounds' || !['ns','vergaderen','vergaderenextreme','throw'].includes(String(this.id))) currentView='action';
     var dingen=searchValue().split(" ");
     dingen[dingen.length-1]=this.id;
     postmsg('input',dingen.join(" "));
@@ -756,14 +914,16 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   function handleMainButtonClick() {
+    filterReturnView=null;
+    if(this.id !== 'sounds') currentView='action';
     switch(this.id) {
       case 'members':
          locked=0;
-         showAccountButtons(this.id,'m',tabenable);
+         showAccountButtons(this.id,'m',tabenable || 1);
          break;
       case 'otherusers':
          locked=0;
-         showAccountButtons(this.id,'o',tabenable);
+         showAccountButtons(this.id,'o',tabenable || 1);
          break;
       case 'products':
          activateTopButton(this.id);
@@ -772,10 +932,8 @@ document.addEventListener("DOMContentLoaded", function() {
          focus();
          break;
       case 'commands':
-         activateTopButton(this.id);
          locked=0;
-         makepages('normal',window.HackBankButtons.commandsToButtons(commands).sort(window.HackBankButtons.compareDisplay));
-         focus();
+         makeCommandScreen();
          break;
       case 'sounds':
          locked=0;
@@ -784,6 +942,7 @@ document.addEventListener("DOMContentLoaded", function() {
          focus();
          break;
       case 'back':
+         currentView='overview';
          activateTopButton(this.id);
          locked=0;
          hideElement('#Secondscreen');
@@ -795,6 +954,7 @@ document.addEventListener("DOMContentLoaded", function() {
          showEmbeddedScreen('#IRCwindow','YouTube','https://www.youtube.com/','If the page cannot be displayed here, open it in a new tab.');
          break;
       case 'spacecon':
+         currentView='embedded';
          activateTopButton(this.id);
          locked=0;
          showEmbeddedScreen('#spacewindow','Home Assistant','http://hass.space.hack42.nl:8123/home/overview');
@@ -862,6 +1022,7 @@ document.addEventListener("DOMContentLoaded", function() {
       ]),
     ]);
     logoAbort.addEventListener('click',function() {
+      currentView='action';
       stopAudio();
       setSearchValue('abort');
       submitCommand();

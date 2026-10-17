@@ -163,6 +163,19 @@ class Session:
             self.send_message(True, "buttons", json.dumps({}))
             return
 
+        # Configuration must remain reachable while a product/user prompt is
+        # waiting for an answer, without aborting the pending sale or prompt.
+        if text.strip() in ("partymodeon", "partymodeoff") and "party" in self.plugins:
+            self.pre_input(text)
+            try:
+                self.plugins["party"].input(text.strip())
+            except Exception:
+                logger.exception("Party configuration failed sid=%s", self.SID)
+                self.send_message(True, "message", "Could not change party mode; please try again")
+            if not self.nextcall:
+                self.send_message(True, "buttons", json.dumps({}))
+            return
+
         self.buttons = {}
         self.pre_input(text)
 

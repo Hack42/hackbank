@@ -66,6 +66,50 @@
     return visibleCommandButtons(buttons);
   }
 
+  function commandSections(commands) {
+    var definitions=[
+      ['Products', [['addproduct','Add new'], ['aliasproduct','Add alias'], ['setprice','Change price'], ['voorraad','Set stock']]],
+      ['Users', [['deposit','Deposit Money'], ['give','Give Money'], ['take','Take Money'], ['adduseralias','Add user key alias'], ['members','Manage members']]],
+      ['Sales', [['bon','Print Receipt'], ['kassala','Open cash drawer'], ['undolist','Undo a transaction'], ['undo','Undo last transaction'], ['history','User History']]],
+      ['Wholesale', [['declaratie','Declaration'], ['printstock','Print stock overview'], ['bons','Receipts to print'], ['remove','Remove item'], ['afroom','Remove cash money'], ['delmember','Remove user from members'], ['inkoop','Report buying'], ['verkoop','Report sales'], ['restore','Restore a transaction'], ['pfand','Return deposit']]],
+      ['Market', [['market','Products'], ['changemarket','Pricing'], ['addmarket','Aliases'], ['delmarket','Remove product']]],
+      ['Misc', [['sounds','Sounds'], ['stickers','Stickers'], ['dooropen','Door open']]],
+    ];
+    var hidden=['abort','addmember','partymodeon','partymodeoff','darkmodeon','darkmodeoff','bananamodeon','bananamodeoff','dankmodeon','dankmodeoff','undouserlatest'];
+    var used=new Set(hidden);
+    var sections=definitions.map(function(definition) {
+      return {name: definition[0], buttons: definition[1].filter(function(item) {
+        used.add(item[0]);
+        return Object.prototype.hasOwnProperty.call(commands,item[0]);
+      }).map(function(item) {
+        return {text: item[0], display: item[1], class: item[0], hint: item[0] === 'remove' ? 'Current, unbilled sale' : ''};
+      })};
+    });
+    var extra=commandsToButtons(commands).filter(function(button) { return !used.has(button.text); });
+    sections[sections.length-1].buttons=sections[sections.length-1].buttons.concat(extra);
+    return sections;
+  }
+
+  function visibleSoundButtons(buttons) {
+    return visibleCommandButtons(buttons).filter(function(button) {
+      return button.text !== 'abort' && button.text !== 'christmas';
+    });
+  }
+
+  function splitAccounts(candidates, accounts, activity) {
+    var active=[], archive=[];
+    candidates.forEach(function(button) {
+      var last=activity && activity.last_purchase && activity.last_purchase[button.text];
+      if(!last) last=accounts[button.text].lastupdate;
+      var old=activity && activity.available && /^\d{4}-\d{2}-\d{2}/.test(last || '') && last < activity.cutoff;
+      if(old) {
+        button.class+=' archived-account';
+        archive.push(button);
+      } else active.push(button);
+    });
+    return {active: active, archive: archive};
+  }
+
   function accountsToButtons(accounts, members, nonmembers, type) {
     var buttons = [];
     Object.keys(accounts).sort(sortText).forEach(function(user) {
@@ -155,6 +199,9 @@
     allProductsToButtons: allProductsToButtons,
     buttonMatches: buttonMatches,
     commandsToButtons: commandsToButtons,
+    commandSections: commandSections,
+    visibleSoundButtons: visibleSoundButtons,
+    splitAccounts: splitAccounts,
     compareDisplay: compareDisplay,
     compareTextReverse: compareTextReverse,
     cssSafeClassName: cssSafeClassName,

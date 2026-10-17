@@ -27,7 +27,6 @@ class sounds:
 
     def showsounds(self):
         custom = []
-        custom.append({"text": "abort", "display": "Abort"})
         custom.append({"text": "ns", "display": "Ding Dong"})
         custom.append({"text": "deuron", "display": "Deur on"})
         custom.append({"text": "deuroff", "display": "Deur off"})
@@ -35,11 +34,12 @@ class sounds:
         custom.append({"text": "kassaoff", "display": "Kassa off"})
         custom.append({"text": "killsounds", "display": "Kill Music"})
         custom.append({"text": "groovesalad", "display": "Groove Salad"})
-        custom.append({"text": "christmas", "display": "christmas"})
         custom.append({"text": "blues", "display": "Jazz Radio Blues"})
         custom.append({"text": "quieter", "display": "Quieter"})
         custom.append({"text": "louder", "display": "Louder"})
         custom.append({"text": "vergaderen", "display": "Vergaderen!"})
+        custom.append({"text": "vergaderenextreme", "display": "Vergaderen Extreme"})
+        custom.append({"text": "throw", "display": "Throw"})
         self.master.send_message(
             True, "buttons", json.dumps({"special": "custom", "custom": custom})
         )
@@ -56,6 +56,10 @@ class sounds:
             return True
         if text == "vergaderen":
             self.master.send_message(False, "sound", "vergaderen.mp3")
+            return True
+        if text in ("vergaderenextreme", "vergaderen_extreme", "throw"):
+            sample = "throw.wav" if text == "throw" else "vergaderen_extreme.wav"
+            self.master.send_message(False, "sound", sample)
             return True
         if text == "deuron":
             pass

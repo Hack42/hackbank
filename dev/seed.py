@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import shutil
+from datetime import datetime, timedelta
 
 data = Path("data")
 data.mkdir(exist_ok=True)
@@ -59,3 +60,29 @@ pizza 4.50 Pizza margherita
         "".join(f"{name} 42\n" for name in ["grolsch", "ipa", "clubmate", "cola", "coffee", "crisps"]),
         encoding="utf-8",
     )
+
+# Add UI fixtures to existing development data without resetting balances.
+theme_users = ["stitch", "BugBlue", "Jos", "nino", "Anus"]
+existing = {line.split()[0] for line in (data / "revbank.accounts").read_text().splitlines()
+            if line.strip() and not line.startswith("#")}
+now = datetime.now()
+with (data / "revbank.accounts").open("a", encoding="utf-8") as output:
+    for index, user in enumerate(theme_users + ["archive_member", "archive_guest"]):
+        if user not in existing:
+            date = "2024-01-01_12:00:00" if user.startswith("archive_") else now.strftime("%Y-%m-%d_%H:%M:%S")
+            output.write(f"{user:20} {[42.0, -4.2, 12.5, 8.75, -18.5][index % 5]:+8.2f} {date}\n")
+members = set((data / "revbank.members").read_text().split())
+with (data / "revbank.members").open("a", encoding="utf-8") as output:
+    for user in theme_users + ["archive_member"]:
+        if user not in members:
+            output.write(user + "\n")
+marker = data / ".ui-purchase-fixtures-v1"
+if not marker.exists():
+    with (data / "revbank.log").open("a", encoding="utf-8") as output:
+        for user in ["archive_member", "archive_guest"]:
+            output.write(f"2024-01-01_12:00:00 CHECKOUT 400000000 {user} 1 * 1.25 LOSE EUR 1.25 # Coca-Cola\n")
+        for index in range(12):
+            date = now - timedelta(days=12-index)
+            transaction = int(date.timestamp())-1300000000
+            output.write(f"{date:%Y-%m-%d_%H:%M:%S} CHECKOUT {transaction} Jos 1 * 2.00 LOSE EUR 2.00 # Club-Mate\n")
+    marker.write_text("Development UI sample purchases; not real transactions.\n")

@@ -1,5 +1,6 @@
 import json
 import os
+from purchase_history import purchase_index
 
 
 class historie:
@@ -51,6 +52,28 @@ class historie:
     def help(self):
         return {"history": "User History"}
 
+    def account_details(self, user):
+        products = self.master.products.products
+        purchases = purchase_index.recent(user)
+        for purchase in purchases:
+            matches = [name for name, product in products.items()
+                       if product["description"] == purchase["description"]]
+            if len(matches) == 1:
+                purchase["product"] = matches[0]
+                purchase["current_price"] = products[matches[0]]["price"]
+        undo = self.master.plugins.get("undo")
+        latest = undo.latest_for(user) if undo else None
+        return {"user": user, "purchases": purchases,
+                "history_available": purchase_index.available,
+                "history_complete": purchase_index.complete,
+                "undo_transaction": latest}
+
+    def publish_activity(self):
+        self.master.send_message(True, "activity", json.dumps(purchase_index.activity()))
+
+    def hook_endsession(self, _user):
+        self.publish_activity()
+
     def history(self, text):
         if text in self.master.accounts.accounts:
             lines = self.reversesearch(text)
@@ -80,4 +103,4 @@ class historie:
         return None
 
     def startup(self):
-        pass
+        self.publish_activity()

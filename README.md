@@ -92,10 +92,52 @@ Products and commands retain pages of up to 56 buttons (8×7) at 1920×1080,
 or 25 buttons on smaller screens. The command bar's Enter button submits the
 same command as pressing Enter on the keyboard.
 The larger Members/Other users buttons and page tabs support touch selection.
+Commands are grouped into Products, Users, Sales, Wholesale, Market and Misc,
+with an Abort action and a Settings section. Category tabs provide larger
+controls for each section. Manage members contains member administration;
+all underlying commands remain available. Remove item edits the current
+unbilled sale; transaction undo is a separate action. Door open retains the
+existing configured door command.
+
+Settings offers Party, Dark, Banana and Dank Hit modes. Party mode reflects
+backend state and can be disabled even while another question is pending.
+A missing printer no longer prevents exit: settlement totals and their history
+are saved in the party state before attempting to print. No sale or account
+balance is cleared by changing this setting.
+
+Appearance settings apply to this browser and survive reloads. The command bar
+also accepts `darkmodeon` / `darkmodeoff`, `bananamodeon` / `bananamodeoff`, and
+`dankmodeon` / `dankmodeoff`. The banana appears at a random screen location,
+lets clicks through, fades during its final two seconds, and disappears within
+one hour of activation; refreshing does not extend that deadline. Dank Hit mode
+plays the supplied hitmarker sample through the POS browser audio and displays
+a click-through marker for 300ms at each click or tap.
+
+Member and Other users lists have alphabetical Archive tabs for accounts whose
+last purchase is older than a year. New accounts with no purchase record use
+their last account update as a conservative fallback. A read-only index of
+the existing checkout log is shared between sessions, reuses unchanged results,
+and reads only appended data after the first scan. Initial reads are capped
+at 8MiB. If that window cannot establish a full year's coverage, archives stay
+unavailable and accounts remain in the normal lists. Deposits, transfers,
+refunds and undo lines are excluded from purchase history.
+
+Clicking a user with an empty sale shows the balance and up to ten recent
+purchase line items. Add again uses the current product price and only adds
+to the sale, leaving the normal account selection and checkout flow intact.
+Reordering is offered only when a historical description identifies one
+current product. Older or ambiguous products remain visible as history.
+Undo latest transaction appears only for an eligible latest transaction;
+the backend rechecks its ID and owner before using the existing undo flow.
+The local seed adds stitch, BugBlue, Jos, nino and Anus, two archive examples,
+and sample purchase history without resetting existing development balances.
 Clicking anywhere in the Hack42 logo, title, and subtitle area sends Abort and
 clears the command input.
 The Sounds menu and command search omit Deur off/on, Groove Salad, Jazz Radio
-Blues, Kill Music, Louder, Quieter and Kassa off/on. Sounds provides two large
+Blues, Kill Music, Louder, Quieter and Kassa off/on. The Sounds page also omits
+Abort and Christmas; the header reset remains available. Ding Dong, Vergaderen,
+Vergaderen Extreme and Throw remain on that page after playback. Typed sound
+commands keep their existing behavior. Sounds provides two large
 volume sliders for HackBank POS effects and Space audio. Each reads the current
 output volume, applies changes, and refreshes every two seconds while open.
 Opening Sounds is silent. Releasing a slider plays a short preview beep on

@@ -30,6 +30,7 @@ services:
       - ./kassa.py:/app/kassa.py:ro
       - ./config.py:/app/config.py:ro
       - ./input_validation.py:/app/input_validation.py:ro
+      - ./purchase_history.py:/app/purchase_history.py:ro
       - ./plugins:/app/plugins:ro
       - ./images:/app/images:ro
       - ./fakedata:/app/fakedata:ro

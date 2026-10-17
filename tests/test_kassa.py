@@ -6,6 +6,34 @@ import kassa
 from plugins.products import products
 
 
+def test_party_configuration_does_not_consume_a_pending_user_or_sale_prompt():
+    session = kassa.Session("SID", Mock())
+    party = Mock()
+    question = Mock()
+    session.plugins = {"party": party}
+    session.nextcall = {"plug": question, "function": "answer"}
+    session.receipt = Mock()
+    session.receipt.receipt = [{"product": "cola", "count": 2}]
+    session.pre_input = Mock()
+    session.input("partymodeoff")
+    party.input.assert_called_once_with("partymodeoff")
+    question.answer.assert_not_called()
+    session.receipt.assert_not_called()
+    assert session.receipt.receipt == [{"product": "cola", "count": 2}]
+    assert session.nextcall == {"plug": question, "function": "answer"}
+
+
+def test_party_configuration_error_does_not_stop_the_command_host():
+    session = kassa.Session("SID", Mock())
+    party = Mock()
+    party.input.side_effect = OSError("storage unavailable")
+    session.plugins = {"party": party}
+    session.pre_input = Mock()
+    session.send_message = Mock()
+    session.input("partymodeoff")
+    session.send_message.assert_any_call(True, "message", "Could not change party mode; please try again")
+
+
 def test_session_startup():
     client_mock = Mock()
     session = kassa.Session("SID", client_mock)
