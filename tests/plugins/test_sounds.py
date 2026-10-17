@@ -1,5 +1,6 @@
 from unittest import TestCase
 from unittest.mock import patch, Mock
+import json
 from plugins.sounds import sounds
 
 
@@ -37,12 +38,18 @@ class TestSounds(TestCase):
         with patch.object(self.sounds_instance.master, "send_message") as mock_send:
             self.sounds_instance.showsounds()
             mock_send.assert_called()
+            menu = json.loads(mock_send.call_args_list[0].args[2])
+            self.assertIn({"text": "yeet", "display": "Yeet"}, menu["custom"])
 
     def test_input_valid_commands(self):
         commands = [
             "sounds",
             "ns",
             "vergaderen",
+            "vergaderenextreme",
+            "vergaderen_extreme",
+            "throw",
+            "yeet",
             "killsounds",
             "groovesalad",
             "christmas",
@@ -70,6 +77,26 @@ class TestSounds(TestCase):
             self.assertIsNone(self.sounds_instance.input("invalid_command"))
             mock_send.assert_not_called()
 
+    def test_sound_commands_play_only_the_requested_sample(self):
+        for command, sample in (
+            ("ns", "ns.wav"),
+            ("vergaderen", "vergaderen.mp3"),
+            ("vergaderenextreme", "vergaderen_extreme.wav"),
+            ("vergaderen_extreme", "vergaderen_extreme.wav"),
+            ("throw", "throw.wav"),
+            ("yeet", "yeet.wav"),
+        ):
+            with self.subTest(command=command):
+                with patch.object(
+                    self.sounds_instance.master, "send_message"
+                ) as mock_send:
+                    self.sounds_instance.pre_input(command)
+                    self.assertTrue(self.sounds_instance.input(command))
+                    mock_send.assert_called_once_with(False, "sound", sample)
+                    mock_send.reset_mock()
+                    self.sounds_instance.pre_input(" " + command + " ")
+                    mock_send.assert_not_called()
+
     def test_pre_input_non_abort(self):
         with patch.object(self.sounds_instance.master, "send_message") as mock_send:
             self.sounds_instance.pre_input("non_abort_command")
@@ -78,7 +105,9 @@ class TestSounds(TestCase):
     def test_pre_input_abort_and_sounds_navigation_are_silent(self):
         for command in ("abort", "sounds"):
             with self.subTest(command=command):
-                with patch.object(self.sounds_instance.master, "send_message") as mock_send:
+                with patch.object(
+                    self.sounds_instance.master, "send_message"
+                ) as mock_send:
                     self.sounds_instance.pre_input(command)
                     mock_send.assert_not_called()
 

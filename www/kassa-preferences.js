@@ -5,17 +5,18 @@
     dankmodeon: ['dank',true], dankmodeoff: ['dank',false]};
 
   function create(options) {
+    var bananaLifetime=5*60*1000;
     var saved={};
     try { saved=JSON.parse(window.localStorage.getItem('hackbank-appearance') || '{}') || {}; } catch(_error) { /* Storage can be disabled. */ }
-    var until=Math.min(Number(saved.bananaUntil) || 0,Date.now()+3600000);
-    var states={party: null, dark: saved.dark === true, banana: until > Date.now(), dank: saved.dank === true};
+    var states={party: null, dark: saved.dark === true, banana: saved.banana === true || Number(saved.bananaUntil) > Date.now(), dank: saved.dank === true};
     var switches={};
-    var banana=null;
-    var fadeTimer=null;
-    var expireTimer=null;
+    var bananas=[];
 
     function persist() {
-      try { window.localStorage.setItem('hackbank-appearance',JSON.stringify({dark: states.dark, dank: states.dank, bananaUntil: until})); } catch(_error) { /* Preferences still work without storage. */ }
+      try {
+        window.localStorage.setItem('hackbank-appearance',JSON.stringify({dark: states.dark, dank: states.dank, banana: states.banana,
+          bananas: bananas.map(function(banana) { return banana.position; })}));
+      } catch(_error) { /* Preferences still work without storage. */ }
     }
     function update() {
       Object.keys(switches).forEach(function(key) {
@@ -26,37 +27,42 @@
       });
       document.body.classList[states.dark ? 'add' : 'remove']('dark-mode');
     }
-    function removeBanana() {
-      window.clearTimeout(fadeTimer);
-      window.clearTimeout(expireTimer);
-      if(banana) banana.remove();
-      banana=null;
+    function removeBananas() {
+      bananas.forEach(function(banana) {
+        window.clearTimeout(banana.fadeTimer);
+        window.clearTimeout(banana.expireTimer);
+        banana.element.remove();
+      });
+      bananas=[];
     }
-    function renderBanana() {
-      removeBanana();
+    function addBanana(position) {
       if(!states.banana) return;
-      banana=document.createElement('img');
-      banana.className='dancing-banana';
-      banana.src='images/effects/banana/banana-peanut-butter-jelly-time.gif';
-      banana.alt='';
-      banana.setAttribute('aria-hidden','true');
-      banana.style.left=(12+Math.random()*Math.max(0,window.innerWidth-124))+'px';
-      banana.style.top=(90+Math.random()*Math.max(0,window.innerHeight-290))+'px';
-      document.body.appendChild(banana);
-      var remaining=Math.max(0,until-Date.now());
-      fadeTimer=window.setTimeout(function() { if(banana) banana.classList.add('fading'); },Math.max(0,remaining-2000));
-      expireTimer=window.setTimeout(function() {
-        states.banana=false; until=0; removeBanana(); persist(); update();
+      position=position || {left: Math.random(), top: Math.random(), until: Date.now()+bananaLifetime};
+      var remaining=Math.min(bananaLifetime,Number(position.until)-Date.now());
+      if(!Number.isFinite(remaining) || remaining <= 0) return;
+      position={left: Math.min(1,Math.max(0,Number(position.left) || 0)), top: Math.min(1,Math.max(0,Number(position.top) || 0)), until: Date.now()+remaining};
+      var element=document.createElement('img');
+      element.className='dancing-banana';
+      element.src='images/effects/banana/banana-peanut-butter-jelly-time.gif';
+      element.alt='';
+      element.setAttribute('aria-hidden','true');
+      element.style.left=(12+position.left*Math.max(0,window.innerWidth-64))+'px';
+      element.style.top=(12+position.top*Math.max(0,window.innerHeight-68))+'px';
+      document.body.appendChild(element);
+      var banana={element: element, position: position};
+      bananas.push(banana);
+      banana.fadeTimer=window.setTimeout(function() { element.classList.add('fading'); },Math.max(0,remaining-2000));
+      banana.expireTimer=window.setTimeout(function() {
+        element.remove();
+        bananas=bananas.filter(function(item) { return item !== banana; });
+        persist();
       },remaining);
     }
     function handleCommand(command) {
       var change=COMMANDS[command.trim()];
       if(!change) return false;
       states[change[0]]=change[1];
-      if(change[0] === 'banana') {
-        until=change[1] ? Date.now()+3600000 : 0;
-        renderBanana();
-      }
+      if(change[0] === 'banana' && !change[1]) removeBananas();
       persist(); update();
       return true;
     }
@@ -80,6 +86,7 @@
       return button;
     }
     document.addEventListener('click',function(event) {
+      if(states.banana) { addBanana(); persist(); }
       if(!states.dank) return;
       var marker=document.createElement('img');
       marker.className='click-hitmarker';
@@ -90,9 +97,10 @@
       marker.style.top=(event.detail ? event.clientY : rect.top+rect.height/2)+'px';
       document.body.appendChild(marker);
       options.playSound('../images/effects/mlg/hitmarker.wav');
-      window.setTimeout(function() { marker.remove(); },300);
+      window.setTimeout(function() { marker.remove(); },100);
     });
-    update(); renderBanana();
+    if(Array.isArray(saved.bananas)) saved.bananas.forEach(function(position) { if(position) addBanana(position); });
+    update(); persist();
     return {
       handleCommand: handleCommand,
       toggle: toggle,

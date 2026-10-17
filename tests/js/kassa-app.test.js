@@ -325,18 +325,28 @@ test("the entire Hack42 brand aborts once even with an unfinished command in the
 
 test("custom sound menus include volume controls and omit the retired choices", () => {
   const {body, elements, eventSources, fetchCalls, audioMountCalls} = loadKassaApp();
-  const names = ["abort", "ns", "deuron", "deuroff", "kassaon", "kassaoff", "killsounds", "groovesalad", "christmas", "blues", "quieter", "louder", "vergaderen"];
+  const names = ["abort", "ns", "deuron", "deuroff", "kassaon", "kassaoff", "killsounds", "groovesalad", "christmas", "blues", "quieter", "louder", "vergaderen", "vergaderenextreme", "throw", "yeet"];
   eventSources[0].onmessage({data: JSON.stringify([
     "hack42bar/output/session/main/buttons",
     JSON.stringify({special: "custom", custom: names.map((name) => ({text: name, display: name}))}),
   ])});
   assert.deepEqual(findAll(elements.MainButtons, ".Buttontext").map((el) => el.textContent), [
-    "ns", "vergaderen",
+    "ns", "throw", "vergaderen", "vergaderenextreme", "yeet",
   ]);
   assert.equal(audioMountCalls.length, 1);
   assert.equal(audioMountCalls[0].container, findFirst(elements.MainButtons, ".sound-screen"));
   assert(findFirst(elements.LeftButtons, "#sounds").classList.contains("activetop"));
   assert.equal(fetchCalls.length, 1);
+  names.filter((name) => ["ns", "vergaderen", "vergaderenextreme", "throw", "yeet"].includes(name)).forEach((name) => {
+    body.eventListeners.click({target: {closest(selector) {
+      return selector === "div.normal" ? findFirst(elements.MainButtons, `#${name}`) : null;
+    }}});
+    assert.equal(String(fetchCalls.at(-1).options.body), `topic=session%2Fmain%2Finput&msg=${name}`);
+    eventSources[0].onmessage({data: JSON.stringify(["hack42bar/output/session/main/buttons", "{}"])});
+    assert(findFirst(elements.MainButtons, ".sound-screen"));
+    assert.equal(audioMountCalls.length, 1);
+    assert.equal(audioMountCalls[0].stopped, false);
+  });
   body.eventListeners.click({target: {
     closest(selector) {
       return selector.startsWith("div.Knopje:not") ? findFirst(elements.LeftButtons, "#members") : null;
@@ -370,6 +380,8 @@ test("account pages use their own capacity and retain cash and amount controls",
     names.forEach((name) => send(`accounts/${name}`, {amount: 12.50}));
     send("members", names.slice(0, 66));
     send("nonmembers", names.slice(66));
+    send("buttons", {special: "accounts"});
+    assert.equal(elements.TopButtons.children.at(-1).textContent, "Members Archive (0)");
     send("buttons", {special: "accountsamount"});
 
     assert.equal(findAll(elements.AccountList, ".account").length, 66);
@@ -394,6 +406,7 @@ test("account pages use their own capacity and retain cash and amount controls",
     }});
     assert.deepEqual(findAll(elements.AccountList, ".Buttontext").map((el) => el.textContent), names.slice(66));
     assert.equal(findAll(elements.TopButtons, ".page").length, Math.ceil(125/capacity));
+    assert.equal(elements.TopButtons.children.at(-1).textContent, "Other users Archive (0)");
   });
 });
 

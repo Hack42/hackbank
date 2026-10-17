@@ -190,11 +190,12 @@ document.addEventListener("DOMContentLoaded", function() {
     if(!accountSections) return;
     var top=document.getElementById('TopButtons');
     var name=accountType === 'm' ? 'Members' : 'Other users';
-    [[false,name],[true,name+' Archive']].reverse().forEach(function(item) {
+    [[false,name],[true,name+' Archive']].forEach(function(item) {
       var tab=createElement('button',{type:'button',class:'archive-tab'+(archivedAccounts === item[0] ? ' selected' : ''),text:item[1]+' ('+accountSections[item[0] ? 'archive' : 'active'].length+')', 'aria-pressed':String(archivedAccounts === item[0])});
       if(item[0] && (!activity || !activity.available)) { tab.disabled=true; tab.title='Archive unavailable until purchase history can be checked'; }
       tab.addEventListener('click',function() { makeAccountSections(accountType,item[0]); prependCashButton(); focus(); });
-      top.prepend(tab);
+      if(item[0]) top.appendChild(tab);
+      else top.prepend(tab);
     });
   }
   function build_receipt(msg) {
@@ -841,7 +842,7 @@ document.addEventListener("DOMContentLoaded", function() {
   }
   function submitCommand() {
     var command=searchValue().trim();
-    if(currentView === 'sounds' && !['ns','vergaderen','vergaderenextreme','vergaderen_extreme','throw','sounds'].includes(command) && !/^(dark|banana|dank)mode(on|off)$/.test(command)) currentView='action';
+    if(currentView === 'sounds' && !['ns','vergaderen','vergaderenextreme','vergaderen_extreme','throw','yeet','sounds'].includes(command) && !/^(dark|banana|dank)mode(on|off)$/.test(command)) currentView='action';
     locked=0;
     verwerkinput();
     focus();
@@ -864,7 +865,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
   function handleNormalClick() {
     if(currentView === 'commands') locked=0;
-    if(currentView !== 'sounds' || !['ns','vergaderen','vergaderenextreme','throw'].includes(String(this.id))) currentView='action';
+    if(currentView !== 'sounds' || !['ns','vergaderen','vergaderenextreme','throw','yeet'].includes(String(this.id))) currentView='action';
     var dingen=searchValue().split(" ");
     dingen[dingen.length-1]=this.id;
     postmsg('input',dingen.join(" "));

@@ -1,6 +1,15 @@
 # -*- coding: utf-8 -*-
 import json
 
+SOUND_SAMPLES = {
+    "ns": "ns.wav",
+    "vergaderen": "vergaderen.mp3",
+    "vergaderenextreme": "vergaderen_extreme.wav",
+    "vergaderen_extreme": "vergaderen_extreme.wav",
+    "throw": "throw.wav",
+    "yeet": "yeet.wav",
+}
+
 
 class sounds:
     def __init__(self, SID, master):
@@ -40,6 +49,7 @@ class sounds:
         custom.append({"text": "vergaderen", "display": "Vergaderen!"})
         custom.append({"text": "vergaderenextreme", "display": "Vergaderen Extreme"})
         custom.append({"text": "throw", "display": "Throw"})
+        custom.append({"text": "yeet", "display": "Yeet"})
         self.master.send_message(
             True, "buttons", json.dumps({"special": "custom", "custom": custom})
         )
@@ -51,15 +61,8 @@ class sounds:
         if text == "sounds":
             self.showsounds()
             return True
-        if text == "ns":
-            self.master.send_message(False, "sound", "ns.wav")
-            return True
-        if text == "vergaderen":
-            self.master.send_message(False, "sound", "vergaderen.mp3")
-            return True
-        if text in ("vergaderenextreme", "vergaderen_extreme", "throw"):
-            sample = "throw.wav" if text == "throw" else "vergaderen_extreme.wav"
-            self.master.send_message(False, "sound", sample)
+        if text in SOUND_SAMPLES:
+            self.master.send_message(False, "sound", SOUND_SAMPLES[text])
             return True
         if text == "deuron":
             pass
@@ -93,7 +96,8 @@ class sounds:
         return None
 
     def pre_input(self, text):
-        if text not in ("abort", "sounds"):
+        command = text.strip()
+        if command not in ("abort", "sounds") and command not in SOUND_SAMPLES:
             self.master.send_message(False, "sound", "KDE_Beep_ClassicBeep.wav")
 
     def hook_wrong(self, _text):

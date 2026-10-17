@@ -93,8 +93,9 @@ or 25 buttons on smaller screens. The command bar's Enter button submits the
 same command as pressing Enter on the keyboard.
 The larger Members/Other users buttons and page tabs support touch selection.
 Commands are grouped into Products, Users, Sales, Wholesale, Market and Misc,
-with an Abort action and a Settings section. Category tabs provide larger
-controls for each section. Manage members contains member administration;
+with an Abort action and a Settings section. All commands stacks the groups
+vertically, with four buttons per row on the bar display; category tabs show
+each group separately. Manage members contains member administration;
 all underlying commands remain available. Remove item edits the current
 unbilled sale; transaction undo is a separate action. Door open retains the
 existing configured door command.
@@ -107,14 +108,17 @@ balance is cleared by changing this setting.
 
 Appearance settings apply to this browser and survive reloads. The command bar
 also accepts `darkmodeon` / `darkmodeoff`, `bananamodeon` / `bananamodeoff`, and
-`dankmodeon` / `dankmodeoff`. The banana appears at a random screen location,
-lets clicks through, fades during its final two seconds, and disappears within
-one hour of activation; refreshing does not extend that deadline. Dank Hit mode
-plays the supplied hitmarker sample through the POS browser audio and displays
-a click-through marker for 300ms at each click or tap.
+`dankmodeon` / `dankmodeoff`. While Banana mode is enabled, each click or tap adds
+another 40px-wide dancing banana at a random screen location. Bananas let clicks
+through, fade during their final two seconds, and disappear individually after
+five minutes; refreshing preserves their deadlines. Switching the mode off
+clears all bananas. Dank Hit mode plays the supplied hitmarker sample through
+the POS browser audio and displays
+a click-through marker for 100ms at each click or tap.
 
-Member and Other users lists have alphabetical Archive tabs for accounts whose
-last purchase is older than a year. New accounts with no purchase record use
+Member and Other users lists end with an Archive tab after the page buttons.
+Archives list accounts alphabetically whose last purchase is older than a year.
+New accounts with no purchase record use
 their last account update as a conservative fallback. A read-only index of
 the existing checkout log is shared between sessions, reuses unchanged results,
 and reads only appended data after the first scan. Initial reads are capped
@@ -136,8 +140,9 @@ clears the command input.
 The Sounds menu and command search omit Deur off/on, Groove Salad, Jazz Radio
 Blues, Kill Music, Louder, Quieter and Kassa off/on. The Sounds page also omits
 Abort and Christmas; the header reset remains available. Ding Dong, Vergaderen,
-Vergaderen Extreme and Throw remain on that page after playback. Typed sound
-commands keep their existing behavior. Sounds provides two large
+Vergaderen Extreme, Throw and Yeet remain on that page after playback, without
+the usual command confirmation beep. These sounds also work as typed commands.
+Sounds provides two large
 volume sliders for HackBank POS effects and Space audio. Each reads the current
 output volume, applies changes, and refreshes every two seconds while open.
 Opening Sounds is silent. Releasing a slider plays a short preview beep on
