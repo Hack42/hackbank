@@ -83,6 +83,18 @@ def icon_image(value):
     return value
 
 
+def label_backdrop(value):
+    if value is None:
+        return None
+    fields(value, "color opacity padding radius")
+    return {
+        "color": color(value["color"]),
+        "opacity": number(value["opacity"], 0, 100),
+        "padding": number(value["padding"], 0, 12),
+        "radius": number(value["radius"], 0, 20),
+    }
+
+
 def validate_theme(value):
     fields(value, "version background text icon")
     if (
@@ -92,7 +104,11 @@ def validate_theme(value):
     ):
         raise ValueError("Unknown button design version.")
     background = fields(value["background"], "kind color gradient speed intensity")
-    text = fields(value["text"], "color gradient size font weight angle rotation")
+    # Existing version-1 designs predate configurable label backdrops.
+    text = value["text"]
+    if isinstance(text, dict):
+        text = {"backdrop": None, **text}
+    text = fields(text, "color gradient size font weight angle rotation backdrop")
     icon = fields(value["icon"], "kind image size rotation")
     image = icon_image(icon["image"])
     kind = choice(icon["kind"], ICONS)
@@ -119,6 +135,7 @@ def validate_theme(value):
             "weight": number(text["weight"], 400, 900),
             "angle": number(text["angle"], 0, 360),
             "rotation": number(text["rotation"], 0, 60),
+            "backdrop": label_backdrop(text["backdrop"]),
         },
         "icon": {
             "kind": kind,

@@ -117,6 +117,61 @@ def test_gradients_validate_stops_and_do_not_mutate_the_input(theme):
         validate_theme(theme)
 
 
+def test_older_saved_designs_load_without_rewriting_or_losing_their_settings(
+    tmp_path, theme
+):
+    store = ButtonThemes(tmp_path / "buttons.json")
+    store.path.write_text(json.dumps({"stitch": theme}))
+    before = store.path.read_bytes()
+    loaded = store.all()["stitch"]
+    assert loaded["text"]["backdrop"] is None
+    assert {
+        key: value for key, value in loaded["text"].items() if key != "backdrop"
+    } == theme["text"]
+    assert store.path.read_bytes() == before
+
+
+def test_backdrops_save_and_reload_with_gradient_and_rotating_text(tmp_path, theme):
+    store = ButtonThemes(tmp_path / "buttons.json")
+    theme["text"]["backdrop"] = {
+        "color": "#FFFFFF",
+        "opacity": 65,
+        "padding": 6,
+        "radius": 12,
+    }
+    theme["text"]["gradient"] = deepcopy(theme["background"]["gradient"])
+    store.save("stitch", theme)
+    saved = ButtonThemes(store.path).all()["stitch"]["text"]
+    assert saved["backdrop"] == {
+        "color": "#ffffff",
+        "opacity": 65,
+        "padding": 6,
+        "radius": 12,
+    }
+    assert saved["rotation"] == theme["text"]["rotation"]
+    assert saved["gradient"]["angle"] == theme["text"]["gradient"]["angle"]
+    theme["text"]["backdrop"] = None
+    store.save("stitch", theme)
+    assert store.all()["stitch"]["text"]["backdrop"] is None
+
+
+@pytest.mark.parametrize(
+    "property_name,value",
+    [
+        ("color", "url(https://example.test/image)"),
+        ("opacity", 101),
+        ("padding", -1),
+        ("radius", 21),
+    ],
+)
+def test_invalid_backdrop_settings_are_rejected(theme, property_name, value):
+    backdrop = {"color": "#ffffff", "opacity": 65, "padding": 6, "radius": 12}
+    backdrop[property_name] = value
+    theme["text"]["backdrop"] = backdrop
+    with pytest.raises(ValueError):
+        validate_theme(theme)
+
+
 @pytest.mark.parametrize("stop_count", [0, 1, 7])
 def test_gradient_stop_counts_are_bounded(theme, stop_count):
     theme["background"]["gradient"]["stops"] = [

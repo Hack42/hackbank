@@ -189,6 +189,9 @@ and a full 360° angle, glitter, and plasma. Effect speed and intensity are
 adjustable. Lettering has colour or a separate gradient, six system font
 stacks, size, weight, a fixed angle and optional continuous rotation. Icons
 can be built-in symbols or a personal image, with size and rotation controls.
+Lettering also has an optional label backdrop with its own colour, opacity,
+padding and corner rounding. It follows text rotation and supports gradient
+letters. Older saved designs continue to load with the backdrop off.
 The native colour picker and six-digit hex fields work together.
 Large scroll buttons also work on the bar's touch screen without swipe gestures.
 

@@ -9,7 +9,7 @@
   }
   function base() {
     return {version:1,background:{kind:'solid',color:'#e7edf3',gradient:gradient(['#7760db','#f080b5'],135),speed:24,intensity:65},
-      text:{color:'#263e52',gradient:null,size:17,font:'system',weight:700,angle:0,rotation:0},
+      text:{color:'#263e52',gradient:null,size:17,font:'system',weight:700,angle:0,rotation:0,backdrop:null},
       icon:{kind:'none',image:'',size:36,rotation:0}};
   }
   var PRESETS=[
@@ -27,7 +27,12 @@
     theme.background.color=definition.colors[0];
     theme.background.gradient=gradient(definition.colors,135);
     theme.text.color=definition.text;
-    if(index === 4) theme.background.gradient={angle:180,stops:[{color:'#0057b7',position:0},{color:'#0057b7',position:50},{color:'#ffd700',position:50},{color:'#ffd700',position:100}]};
+    if(index === 1) theme.text.backdrop={color:'#100c3d',opacity:80,padding:5,radius:5};
+    if(index === 4) {
+      theme.background.gradient={angle:180,stops:[{color:'#0057b7',position:0},{color:'#0057b7',position:50},{color:'#ffd700',position:50},{color:'#ffd700',position:100}]};
+      theme.text.color='#102d48';
+      theme.text.backdrop={color:'#fffdf3',opacity:95,padding:5,radius:5};
+    }
     return theme;
   }
   function defaults(user) {
@@ -101,12 +106,22 @@
     var frame=node('span','magic-label');
     var angle=node('span','magic-angle');
     angle.style.transform='rotate('+theme.text.angle+'deg)';
+    var name=node('span','magic-name');
+    var backdrop=theme.text.backdrop;
+    if(backdrop) {
+      name.classList.add('has-label-backdrop');
+      name.style.setProperty('--label-backdrop-color',backdrop.color);
+      name.style.setProperty('--label-backdrop-opacity',backdrop.opacity/100);
+      name.style.setProperty('--label-backdrop-padding',backdrop.padding+'px');
+      name.style.setProperty('--label-backdrop-radius',backdrop.radius+'px');
+    }
     label.style.fontSize='';
-    label.style.animationDuration=theme.text.rotation+'s';
-    label.classList.toggle('magic-spin',theme.text.rotation > 0);
+    label.classList.remove('magic-spin');
+    label.style.animationDuration='';
+    if(theme.text.rotation) { name.classList.add('magic-spin'); name.style.animationDuration=theme.text.rotation+'s'; }
     label.classList.toggle('magic-text-gradient',!!theme.text.gradient);
     label.style.backgroundImage=theme.text.gradient ? cssGradient(theme.text.gradient) : '';
-    angle.appendChild(label); frame.appendChild(angle); button.appendChild(frame);
+    name.appendChild(label); angle.appendChild(name); frame.appendChild(angle); button.appendChild(frame);
     var balance=button.querySelector('.extra');
     if(balance) button.appendChild(balance);
   }

@@ -23,8 +23,10 @@ test('each user gets an independent editable copy of their existing theme',()=>{
   assert.equal(styles.defaults('bugblue').background.kind,'glitter');
   assert.equal(styles.defaults('BugBlue').background.gradient.stops[0].color,'#102b65');
   assert.equal(styles.defaults('Anus').background.kind,'plasma');
+  assert.equal(styles.defaults('Anus').text.backdrop.color,'#100c3d');
   assert.equal(styles.defaults('Jos').icon.kind,'key');
   assert.equal(styles.defaults('nino').background.gradient.stops[1].position,50);
+  assert.equal(styles.defaults('nino').text.backdrop.color,'#fffdf3');
 });
 test('stitch keeps blue paint and bold white text with no bundled icon',()=>{
   const theme=load().defaults('stitch');

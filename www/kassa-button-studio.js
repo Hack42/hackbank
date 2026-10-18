@@ -146,6 +146,21 @@
       });
       if(draft.text.gradient) gradient(editor,draft.text.gradient,'Text gradient');
       else color(editor,'Text',draft.text.color,function(value) { draft.text.color=value; });
+      var backdrop=el('section','studio-gradient');
+      backdrop.appendChild(el('h3','','A little contrast for your letters'));
+      select(backdrop,'Label backdrop',draft.text.backdrop ? 'on' : 'off',{off:'No backdrop',on:'Colour backdrop'},function(value) {
+        draft.text.backdrop=value === 'on' ? {color:'#100c3d',opacity:75,padding:5,radius:5} : null;
+        renderEditor();
+      });
+      if(draft.text.backdrop) {
+        color(backdrop,'Backdrop colour',draft.text.backdrop.color,function(value) { draft.text.backdrop.color=value; });
+        range(backdrop,'Backdrop opacity',draft.text.backdrop.opacity,0,100,'%',function(value) { draft.text.backdrop.opacity=value; });
+        var backdropShape=el('div','studio-field-grid');
+        range(backdropShape,'Backdrop padding',draft.text.backdrop.padding,0,12,'px',function(value) { draft.text.backdrop.padding=value; });
+        range(backdropShape,'Backdrop rounding',draft.text.backdrop.radius,0,20,'px',function(value) { draft.text.backdrop.radius=value; });
+        backdrop.appendChild(backdropShape);
+      }
+      editor.appendChild(backdrop);
     }
     function loadImage(file) {
       if(!file || !/^image\/(png|jpeg|gif|webp)$/.test(file.type)) { message('Choose a PNG, JPEG, GIF or WebP image.'); return; }
