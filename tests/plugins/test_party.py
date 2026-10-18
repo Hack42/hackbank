@@ -328,12 +328,12 @@ def test_partymodeoff_without_active_mode_does_not_print(tmp_path, monkeypatch):
     assert plugin.input("partymodeoff") is True
 
     plugin.master.POS.printparty.assert_not_called()
-    plugin.master.send_message.assert_any_call(
-        True, "message", "Party mode is not on"
-    )
+    plugin.master.send_message.assert_any_call(True, "message", "Party mode is not on")
 
 
-def test_partymodeoff_saves_settlement_and_restores_members_when_print_fails(tmp_path, monkeypatch):
+def test_partymodeoff_saves_settlement_and_restores_members_when_print_fails(
+    tmp_path, monkeypatch
+):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "data").mkdir()
     (tmp_path / STATE_FILE).write_text(

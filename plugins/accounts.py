@@ -378,9 +378,7 @@ class accounts:
             plugins = getattr(self.master, "plugins", {})
             if isinstance(plugins, dict) and "historie" in plugins:
                 details.update(plugins["historie"].account_details(account))
-            self.master.send_message(
-                False, "infobox/account", json.dumps(details)
-            )
+            self.master.send_message(False, "infobox/account", json.dumps(details))
             self.master.send_message(
                 True, "buttons", json.dumps({"special": "infobox"})
             )

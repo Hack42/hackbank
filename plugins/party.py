@@ -103,7 +103,9 @@ class party:
         )
 
     def publish_state(self):
-        self.master.send_message(True, "settings/party", json.dumps({"enabled": self.active}))
+        self.master.send_message(
+            True, "settings/party", json.dumps({"enabled": self.active})
+        )
 
     def _credited_amount_from_log(self):
         credited_amount = 0.0

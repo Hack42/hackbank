@@ -33,7 +33,9 @@ def test_user_card_undo_rechecks_owner_and_transaction_id():
     plugin.undo[3] = {"totals": {"Jos": -1}, "receipt": [], "beni": "Jos"}
     assert plugin.undo_user_latest("1:Jos") is True
     plugin.doundo.assert_not_called()
-    master.send_message.assert_called_with(True, "message", "Latest transaction changed; reopen the user details")
+    master.send_message.assert_called_with(
+        True, "message", "Latest transaction changed; reopen the user details"
+    )
 
 
 def test_undo_hook_post_checkout():

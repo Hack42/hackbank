@@ -195,7 +195,9 @@ class undo:
     def input(self, text):
         if text == "undouserlatest":
             self.master.donext(self, "undo_user_latest")
-            self.master.send_message(True, "message", "Select a user transaction to undo")
+            self.master.send_message(
+                True, "message", "Select a user transaction to undo"
+            )
             return True
         if text == "undolist":
             self.listundo(0)
@@ -221,7 +223,9 @@ class undo:
         transaction, separator, user = text.partition(":")
         latest = self.latest_for(user) if separator else None
         if latest is None or str(latest) != transaction:
-            self.master.send_message(True, "message", "Latest transaction changed; reopen the user details")
+            self.master.send_message(
+                True, "message", "Latest transaction changed; reopen the user details"
+            )
             return True
         return self.doundo(latest)
 
