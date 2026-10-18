@@ -95,3 +95,12 @@ test("textfill leaves hidden labels untouched until their tile is visible", () =
   fillElement(element, {maxFontPixels: 22});
   assert.equal(element.style.fontSize, "18px");
 });
+
+test("button studio font sizes survive the standard label-fitting pass", () => {
+  const {fillElement}=loadTextfill();
+  const element=createElement("custom",20);
+  element.style.fontSize="38px";
+  element.closest=(selector)=>selector === ".magic-button" ? element.parentElement : null;
+  fillElement(element,{maxFontPixels:22,minFontPixels:12});
+  assert.equal(element.style.fontSize,"38px");
+});

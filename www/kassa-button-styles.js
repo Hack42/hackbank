@@ -1,0 +1,125 @@
+(function(window, document) {
+  var FONTS={system:'system-ui, sans-serif',rounded:'"Arial Rounded MT Bold", "Trebuchet MS", sans-serif',
+    comic:'"Comic Sans MS", "Comic Sans", cursive',mono:'ui-monospace, "Courier New", monospace',
+    serif:'Georgia, "Times New Roman", serif',condensed:'Impact, "Arial Narrow", sans-serif'};
+  var SYMBOLS={key:'🔑',star:'★',bolt:'ϟ',heart:'♥',smile:'☺'};
+  function copy(value) { return JSON.parse(JSON.stringify(value)); }
+  function gradient(colors,angle) {
+    return {angle:angle,stops:colors.map(function(color,index) { return {color:color,position:index*100/(colors.length-1)}; })};
+  }
+  function base() {
+    return {version:1,background:{kind:'solid',color:'#e7edf3',gradient:gradient(['#7760db','#f080b5'],135),speed:24,intensity:65},
+      text:{color:'#263e52',gradient:null,size:17,font:'system',weight:700,angle:0,rotation:0},
+      icon:{kind:'none',image:'',size:36,rotation:0}};
+  }
+  var PRESETS=[
+    {name:'Blue glitter',emoji:'✨',kind:'glitter',colors:['#102b65','#285c9d','#142e6b'],text:'#ffffff'},
+    {name:'Cosmic plasma',emoji:'🪐',kind:'plasma',colors:['#251055','#fa228c','#04d9d2'],text:'#ffffff'},
+    {name:'Candy shop',emoji:'🍬',kind:'gradient',colors:['#fdc5de','#c9b5ff','#a5e4f2'],text:'#38254e'},
+    {name:'Sunset',emoji:'🌅',kind:'gradient',colors:['#fead63','#ee6f98','#7c5bd4'],text:'#ffffff'},
+    {name:'Blue & yellow',emoji:'💙',kind:'gradient',colors:['#0057b7','#0057b7','#ffd700','#ffd700'],text:'#ffffff'},
+    {name:'Fresh paint',emoji:'🎨',kind:'solid',colors:['#6088b0','#9bb9d7'],text:'#ffffff'},
+  ];
+  function preset(index) {
+    var definition=PRESETS[index];
+    var theme=base();
+    theme.background.kind=definition.kind;
+    theme.background.color=definition.colors[0];
+    theme.background.gradient=gradient(definition.colors,135);
+    theme.text.color=definition.text;
+    if(index === 4) theme.background.gradient={angle:180,stops:[{color:'#0057b7',position:0},{color:'#0057b7',position:50},{color:'#ffd700',position:50},{color:'#ffd700',position:100}]};
+    return theme;
+  }
+  function defaults(user) {
+    switch(user.toLowerCase()) {
+      case 'stitch': return preset(5);
+      case 'bugblue': return preset(0);
+      case 'anus': return preset(1);
+      case 'nino': return preset(4);
+      case 'jos': {
+        var theme=base();
+        theme.background.kind='gradient';
+        theme.background.gradient=gradient(['#263649','#182533'],120);
+        theme.text.color='#fff8e7';
+        theme.icon.kind='key';
+        return theme;
+      }
+      default: return base();
+    }
+  }
+  function cssGradient(value) {
+    return 'linear-gradient('+value.angle+'deg, '+value.stops.slice().sort(function(a,b) { return a.position-b.position; }).map(function(stop) {
+      return stop.color+' '+stop.position+'%';
+    }).join(', ')+')';
+  }
+  function node(tag,className) {
+    var element=document.createElement(tag);
+    element.className=className;
+    return element;
+  }
+  function apply(button,user,design) {
+    var theme=design || defaults(user);
+    var label=button.querySelector('.Buttontext');
+    if(!label) return;
+    button.appendChild(label);
+    button.querySelectorAll('.magic-layer, .magic-label, .magic-icon').forEach(function(element) { element.remove(); });
+    button.classList.add('magic-button');
+    button.classList.toggle('magic-neutral',!design && !['stitch','bugblue','anus','nino','jos'].includes(user.toLowerCase()));
+    button.setAttribute('data-button-user',user);
+    var background=theme.background;
+    var layer=node('span','magic-layer magic-'+background.kind);
+    layer.setAttribute('aria-hidden','true');
+    layer.style.background=background.kind === 'solid' ? background.color : cssGradient(background.gradient);
+    layer.style.setProperty('--magic-speed',background.speed+'s');
+    layer.style.setProperty('--magic-power',background.intensity/100);
+    background.gradient.stops.slice(0,3).forEach(function(stop,index) { layer.style.setProperty('--magic-color-'+index,stop.color); });
+    if(background.gradient.stops.length < 3) layer.style.setProperty('--magic-color-2',background.gradient.stops[0].color);
+    button.prepend(layer);
+    button.style.setProperty('--magic-ink',theme.text.color);
+    button.style.setProperty('--magic-font',FONTS[theme.text.font] || FONTS.system);
+    button.style.setProperty('--magic-size',theme.text.size+'px');
+    button.style.setProperty('--magic-weight',theme.text.weight);
+    if(theme.icon.kind !== 'none') {
+      var icon=node('span','magic-icon');
+      icon.setAttribute('aria-hidden','true');
+      icon.style.width=theme.icon.size+'px';
+      icon.style.height=theme.icon.size+'px';
+      icon.style.flexBasis=theme.icon.size+'px';
+      var picture;
+      if(theme.icon.kind === 'image') {
+        picture=node('img','magic-icon-image');
+        picture.src=theme.icon.image; picture.alt='';
+      } else {
+        picture=node('span','magic-symbol');
+        picture.textContent=SYMBOLS[theme.icon.kind] || '';
+        picture.style.fontSize=theme.icon.size+'px';
+      }
+      if(theme.icon.rotation) { picture.classList.add('magic-spin'); picture.style.animationDuration=theme.icon.rotation+'s'; }
+      icon.appendChild(picture);
+      button.appendChild(icon);
+    }
+    var frame=node('span','magic-label');
+    var angle=node('span','magic-angle');
+    angle.style.transform='rotate('+theme.text.angle+'deg)';
+    label.style.fontSize='';
+    label.style.animationDuration=theme.text.rotation+'s';
+    label.classList.toggle('magic-spin',theme.text.rotation > 0);
+    label.classList.toggle('magic-text-gradient',!!theme.text.gradient);
+    label.style.backgroundImage=theme.text.gradient ? cssGradient(theme.text.gradient) : '';
+    angle.appendChild(label); frame.appendChild(angle); button.appendChild(frame);
+    var balance=button.querySelector('.extra');
+    if(balance) button.appendChild(balance);
+  }
+  function preview(user,amount,theme) {
+    var button=node('div','Knopje Knop account magic-preview');
+    button.setAttribute('role','img');
+    button.setAttribute('aria-label',user+' button preview');
+    var label=node('span','Buttontext'); label.textContent=user;
+    var balance=node('span','extra'+(amount < -13.37 ? ' rood' : (amount < 0 ? ' orange' : '')));
+    balance.textContent=Number(amount).toFixed(2);
+    button.appendChild(label); button.appendChild(balance);
+    apply(button,user,theme);
+    return button;
+  }
+  window.HackBankButtonStyles={apply:apply,preview:preview,defaults:defaults,copy:copy,gradient:gradient,cssGradient:cssGradient,preset:preset,presets:PRESETS,fonts:FONTS};
+})(window, document);

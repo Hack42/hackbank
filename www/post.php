@@ -21,13 +21,14 @@ function request_string($key, $max_length) {
 require_once(__DIR__."/config.php");
 
 $topic = request_string("topic", 128);
-if (!isset($_REQUEST["msg"]) || !is_string($_REQUEST["msg"]) || strlen($_REQUEST["msg"]) > 512) {
+if (!preg_match('/^session\/[A-Za-z0-9_-]{1,64}\/(input|sound_settings|button_studio)$/', $topic)) {
+  fail_request("Invalid topic");
+}
+$max_length = str_ends_with($topic, '/button_studio') ? 160 * 1024 : 512;
+if (!isset($_REQUEST["msg"]) || !is_string($_REQUEST["msg"]) || strlen($_REQUEST["msg"]) > $max_length) {
   fail_request("Invalid msg");
 }
 $msg = $_REQUEST["msg"];
-if (!preg_match('/^session\/[A-Za-z0-9_-]{1,64}\/(input|sound_settings)$/', $topic)) {
-  fail_request("Invalid topic");
-}
 
 require("phpMQTT.php");
 use Bluerhinos\phpMQTT;

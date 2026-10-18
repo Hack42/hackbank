@@ -9,3 +9,5 @@ tests/plugins/__pycache__/
 dev/data/
 dev/artifacts/
 !dev/config.yaml
+/data/revbank.buttons.json
+/data/revbank.buttons.json.*

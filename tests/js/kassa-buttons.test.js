@@ -168,14 +168,14 @@ test("retired sound controls are absent from command menus and search candidates
   }, {}, "drinks")[0].text, "blues");
 });
 
-test("account themes match names without changing account commands or balances", () => {
+test("account buttons keep their commands and debt badges independently of styling", () => {
   const helpers = loadButtonHelpers();
   const accounts = {Jos: {amount: -20}, nino: {amount: 1}, Anus: {amount: 2}, Anux: {amount: 3}};
   const buttons = plain(helpers.accountsToButtons(accounts, Object.keys(accounts), [], "m"));
   const byName = Object.fromEntries(buttons.map((button) => [button.text, button]));
-  assert.match(byName.Jos.class, /account-theme-lockpicker/);
-  assert.match(byName.nino.class, /account-theme-ukraine/);
-  assert.match(byName.Anus.class, /account-theme-plasma/);
+  assert.equal(byName.Jos.class, "account account-Jos");
+  assert.equal(byName.nino.class, "account account-nino");
+  assert.equal(byName.Anus.class, "account account-Anus");
   assert.doesNotMatch(byName.Anux.class, /account-theme/);
   assert.equal(byName.Jos.right, "-20.00");
   assert.equal(byName.Jos.rightclass, "Jos rood");

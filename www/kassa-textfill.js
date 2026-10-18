@@ -1,5 +1,6 @@
 (function(window) {
     function textfillElement(element, options) {
+        if(element.closest && element.closest('.magic-button')) return element;
         var parent = element.parentElement;
         if(!parent || !parent.clientWidth || !parent.clientHeight) return element;
 

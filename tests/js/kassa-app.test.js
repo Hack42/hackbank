@@ -552,7 +552,7 @@ test("clearing a product filter restores the selected product group", () => {
   assert.equal(fetchCalls.length, 1);
 });
 
-test("the Stitch icon belongs to the user button and preserves its command", () => {
+test("the stitch account has no bundled character image and keeps its command", () => {
   const {body, elements, eventSources, fetchCalls} = loadKassaApp();
   const send = (topic, msg) => eventSources[0].onmessage({
     data: JSON.stringify([`hack42bar/output/session/main/${topic}`, JSON.stringify(msg)]),
@@ -561,9 +561,8 @@ test("the Stitch icon belongs to the user button and preserves its command", () 
   send("members", ["stitch"]);
   send("buttons", {special: "accounts"});
   const account = findFirst(elements.AccountList, "#stitch");
-  assert.equal(account.children[0].tag, "img");
-  assert.equal(account.children[0].src, "images/users/stitch.png");
-  assert.equal(account.children[0].alt, "");
+  assert.equal(account.children[0].textContent, "stitch");
+  assert.equal(account.children.some((child) => child.tag === "img"), false);
   body.eventListeners.click({target: {
     closest(selector) {
       return selector === "div.normal" ? account : null;

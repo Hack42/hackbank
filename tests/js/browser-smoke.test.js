@@ -63,6 +63,7 @@ function writeKassaFixture(bodyScript) {
   <head>
     <meta charset="utf-8">
     <link rel="stylesheet" href="file://${path.resolve(__dirname, "../../www/stom.css")}">
+    <link rel="stylesheet" href="file://${path.resolve(__dirname, "../../www/kassa-button-studio.css")}">
     <script>
       window.__fetchCalls = [];
       window.fetch = function(url, options) {
@@ -82,6 +83,8 @@ function writeKassaFixture(bodyScript) {
     ${scriptTag("kassa-stream.js")}
     ${scriptTag("kassa-audio.js")}
     ${scriptTag("kassa-sound-settings.js")}
+    ${scriptTag("kassa-button-styles.js")}
+    ${scriptTag("kassa-button-studio.js")}
     ${scriptTag("kassa-confetti.js")}
     ${scriptTag("kassa-preferences.js")}
     ${scriptTag("kassa-app.js")}
@@ -253,6 +256,84 @@ test("filtering keeps account cell sizes and backspace restores the previous vie
   assert.deepEqual(data.counts, [2, 4, 5, 6]);
   assert.equal(data.fetchCount, 1);
   assert.equal(data.hasCash, true);
+});
+
+test("button studio previews locally, saves one user's design and cancels without a POS command", (t) => {
+  const command=chromiumCommand();
+  if(!command) { t.skip("Chromium is not available"); return; }
+  const fixturePath=writeKassaFixture(`
+    window.addEventListener('DOMContentLoaded',function() {
+      setTimeout(async function() {
+        var result={};
+        function send(topic,payload) {
+          window.__eventSource.onmessage({data:JSON.stringify(['hack42bar/output/session/main/'+topic,JSON.stringify(payload)])});
+        }
+        function wait(ms) { return new Promise(function(resolve) { setTimeout(resolve,ms); }); }
+        var saved=null, requests=[];
+        window.fetch=function(url,options) {
+          var params=new URLSearchParams(options.body);
+          var topic=params.get('topic'); requests.push(topic);
+          if(topic.endsWith('/button_studio')) {
+            var change=JSON.parse(params.get('msg'));
+            if(change.theme) saved=change.theme;
+            setTimeout(function() { send('button_studio',{request:change.request,ok:true,user:change.user,theme:saved}); },10);
+          }
+          return Promise.resolve({ok:true,json:function() { return Promise.resolve({done:1}); }});
+        };
+        try {
+          send('accounts/stitch',{amount:10}); send('accounts/BugBlue',{amount:-20});
+          send('members',['stitch','BugBlue']); send('buttons',{});
+          var other=document.querySelector('#BugBlue').innerHTML;
+          send('infobox/account',{user:'stitch',amount:10,purchases:[],history_available:true,undo_transaction:null});
+          send('buttons',{special:'infobox'});
+          document.querySelector('.studio-launch').click(); await wait(30);
+          var dialog=document.querySelector('.button-studio');
+          var current=dialog.querySelector('.studio-current').innerHTML;
+          dialog.querySelectorAll('.studio-preset')[0].click();
+          var style=dialog.querySelector('select'); style.value='plasma'; style.dispatchEvent(new Event('change'));
+          document.querySelector('#Studio-tab-Lettering').click();
+          var size=Array.from(dialog.querySelectorAll('input')).find(function(el) { return el.getAttribute('aria-label')==='Font size value'; });
+          size.value='30'; size.dispatchEvent(new Event('input'));
+          result.currentUnchanged=current===dialog.querySelector('.studio-current').innerHTML;
+          result.livePlasma=!!dialog.querySelector('.studio-new .magic-plasma');
+          result.previewSize=getComputedStyle(dialog.querySelector('.studio-new .Buttontext')).fontSize;
+          var postsBefore=requests.length;
+          dialog.querySelector('.studio-save').click(); await wait(900);
+          result.savedExactlyOnce=requests.length===postsBefore+1;
+          document.querySelector('#members').click();
+          result.savedFontSize=getComputedStyle(document.querySelector('#stitch .Buttontext')).fontSize;
+          result.otherUnchanged=other===document.querySelector('#BugBlue').innerHTML;
+          result.bounded=getComputedStyle(document.querySelector('#stitch')).overflow==='hidden';
+          send('infobox/account',{user:'stitch',amount:10,purchases:[],history_available:true,undo_transaction:null});
+          send('buttons',{special:'infobox'}); document.querySelector('.studio-launch').click(); await wait(30);
+          dialog=document.querySelector('.button-studio');
+          dialog.querySelectorAll('.studio-preset')[2].click();
+          postsBefore=requests.length; dialog.querySelector('.studio-cancel').click();
+          result.cancelSilent=requests.length===postsBefore;
+          result.noFinancialCommands=requests.every(function(topic) { return topic.endsWith('/button_studio'); });
+        } catch(error) { result.error=String(error.stack); }
+        var output=document.createElement('pre'); output.id='smoke-result'; output.textContent=JSON.stringify(result); document.body.appendChild(output);
+      },0);
+    });
+  `);
+  const result=runChromium(command,`file://${fixturePath}`);
+  fs.unlinkSync(fixturePath);
+  if(skipIfChromiumSandboxed(t,result)) return;
+  assert.ifError(result.error);
+  assert.equal(result.status,0,result.stderr);
+  const match=result.stdout.match(/<pre id="smoke-result">([^<]+)<\/pre>/);
+  assert(match,result.stdout);
+  const data=JSON.parse(match[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));
+  assert.equal(data.error,undefined,JSON.stringify(data));
+  assert.equal(data.currentUnchanged,true);
+  assert.equal(data.livePlasma,true);
+  assert.equal(data.previewSize,'30px');
+  assert.equal(data.savedFontSize,'30px');
+  assert.equal(data.savedExactlyOnce,true);
+  assert.equal(data.otherUnchanged,true);
+  assert.equal(data.bounded,true);
+  assert.equal(data.cancelSilent,true);
+  assert.equal(data.noFinancialCommands,true);
 });
 
 test("the checked-in jQuery vendor file is gone", () => {

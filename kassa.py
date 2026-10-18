@@ -266,6 +266,9 @@ def run_session(client, SID, action, data):
     elif action == "sound_settings":
         session = get_session(SID, client)
         session.plugins["sounds"].configure(data)
+    elif action == "button_studio":
+        session = get_session(SID, client)
+        session.plugins["buttonstudio"].configure(data)
     else:
         logger.warning("unhandled_session_action sid=%s action=%s", SID, action)
 

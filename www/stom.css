@@ -196,57 +196,34 @@ iframe { display: block; border: 0; }
 .account-list .Knop { justify-content: space-between; gap: 10px; min-height: var(--account-row-height); padding: 8px 12px; border-top: 1px solid var(--line); font-size: 17px; text-align: left; overflow: hidden; }
 .account-list .Knop .Buttontext { flex: 1 1 auto; width: auto; min-width: 0; }
 .account-list .Knop .extra { position: static; flex: 0 0 auto; max-width: 45%; width: auto; margin-left: auto; padding: 4px 8px; font-size: 14px; }
-.account-icon { display: block; flex: 0 0 32px; width: 32px; height: 32px; object-fit: contain; pointer-events: none; }
-.account-icon svg { display: block; width: 100%; height: 100%; }
-.key-icon { color: #ffdc87; }
 
-/* Personal account themes are presentation only; balances keep their meaning. */
-.Knop.account-stitch { border-color: #6088B0; background-color: #6088B0; color: #fff; font-weight: 750; }
-.Knop.account-stitch:hover { border-color: #b9dfff; background-color: #6088B0; box-shadow: 0 4px 14px #254a7030; }
-.account-stitch .Buttontext { text-shadow: 0 1px 1px #1c3b5e60; }
-.Knop.account-BugBlue {
-  border-color: #315fb0;
-  background-color: #153a79;
-  background-image:
-    radial-gradient(circle, #fff 0 .6px, transparent 1.3px),
-    radial-gradient(circle, #b4e7ffcc 0 .7px, transparent 1.4px),
-    radial-gradient(circle, #69b5ff99 0 1px, transparent 1.7px),
-    radial-gradient(circle, #d4c6ff99 0 .5px, transparent 1.2px),
-    linear-gradient(115deg, #102b65, #285c9d 45%, #16477f 65%, #142e6b);
-  background-size: 13px 17px, 23px 19px, 17px 29px, 31px 23px, 200% 100%;
-  background-repeat: repeat, repeat, repeat, repeat, no-repeat;
-  color: #fff;
-  animation: blue-glitter 24s ease-in-out infinite alternate;
-}
-.Knop.account-BugBlue:hover { border-color: #a7d4ff; background-color: #153a79; box-shadow: 0 4px 14px #214b8e30; }
-.account-BugBlue .Buttontext { text-shadow: 0 1px 3px #061a43; }
-.account:is(.account-stitch, .account-BugBlue) .extra { color: #fff; background: #102c58b3; }
-.account:is(.account-stitch, .account-BugBlue) .extra.rood { color: #a33342; background: #fce6e9; }
-.account:is(.account-stitch, .account-BugBlue) .extra.orange { color: #8b5512; background: #fff0d9; }
-.Knop.account-theme-lockpicker { border-color: #b59554; background: linear-gradient(120deg, #263649, #182533); color: #fff8e7; font-weight: 750; }
-.Knop.account-theme-lockpicker:hover { border-color: #ffdc87; }
-.Knop.account-theme-ukraine { border-color: #3770b4; background: linear-gradient(to bottom, #0057b7 0 50%, #ffd700 50% 100%); color: #102d48; font-weight: 750; }
-.account-theme-ukraine .Buttontext { padding: 5px 8px; border-radius: 5px; background: #fffdf3f2; }
-.account-theme-ukraine .extra { color: #102d48; background: #fffdf3; }
-.Knop.account-theme-plasma { isolation: isolate; border-color: #835ee8; background: #20114d; color: #fff; font-weight: 750; }
-.account-theme-plasma::before, .account-theme-plasma::after { content: ""; position: absolute; inset: -90%; z-index: 0; pointer-events: none; }
-.account-theme-plasma::before {
-  background: radial-gradient(ellipse at 25% 35%, #fa228c 0, transparent 48%), radial-gradient(ellipse at 80% 70%, #04e9e2 0, transparent 48%), radial-gradient(ellipse at 65% 10%, #9951ff 0, #251055 65%);
-  filter: blur(9px);
-  animation: plasma-flow 16s ease-in-out infinite alternate;
-}
-.account-theme-plasma::after {
-  background: repeating-radial-gradient(ellipse at 50% 20%, #32cfed99 0, #9548ed77 12%, #f45b9955 24%, transparent 36%);
-  mix-blend-mode: screen;
-  opacity: .65;
-  filter: blur(7px);
-  animation: plasma-flow 23s ease-in-out -7s infinite alternate-reverse;
-}
-.account-theme-plasma > * { position: relative; z-index: 1; }
-.account-theme-plasma .Buttontext { padding: 5px 8px; border-radius: 5px; background: #100c3dcc; text-shadow: 0 1px 3px #09051c; }
-.account:is(.account-theme-lockpicker, .account-theme-plasma) .extra { color: #fff; background: #131b3dcc; }
-.account:is(.account-theme-lockpicker, .account-theme-ukraine, .account-theme-plasma) .extra.rood { color: #a33342; background: #fce6e9; }
-.account:is(.account-theme-lockpicker, .account-theme-ukraine, .account-theme-plasma) .extra.orange { color: #8b5512; background: #fff0d9; }
+/* Every personal design is painted inside its own clipped button. */
+.magic-button { isolation: isolate; overflow: hidden; gap: 10px; }
+.studio-launch { border-color: #baa4dc; color: #704ab1; background: #f0e7ff; }
+.dark-mode .studio-launch { border-color: #8c72ba; color: #e3d2ff; background: #40304f; }
+.magic-button > .magic-layer { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.magic-layer::before, .magic-layer::after { content: ""; position: absolute; pointer-events: none; }
+.magic-glitter::before { inset: 0; opacity: var(--magic-power); background-image: radial-gradient(circle, #fff 0 .7px, transparent 1.5px), radial-gradient(circle, #bceaff 0 .8px, transparent 1.7px), radial-gradient(circle, #fff9ce 0 .6px, transparent 1.3px); background-size: 13px 17px, 23px 19px, 31px 29px; animation: magic-glitter var(--magic-speed) linear infinite alternate; }
+.magic-glitter::after { inset: -100%; opacity: calc(var(--magic-power) * .35); background: linear-gradient(110deg, transparent 35%, #ffffffb0 50%, transparent 65%); animation: magic-shimmer var(--magic-speed) ease-in-out infinite; }
+.magic-plasma::before { inset: -80%; opacity: var(--magic-power); background: radial-gradient(ellipse at 25% 35%, var(--magic-color-1) 0, transparent 48%), radial-gradient(ellipse at 80% 70%, var(--magic-color-2, #04d9d2) 0, transparent 48%), radial-gradient(ellipse at 65% 10%, var(--magic-color-0) 0, transparent 65%); filter: blur(8px); animation: plasma-flow var(--magic-speed) ease-in-out infinite alternate; }
+.magic-plasma::after { inset: -80%; opacity: calc(var(--magic-power) * .7); background: repeating-radial-gradient(ellipse at 50% 20%, var(--magic-color-2, #04d9d2) 0, var(--magic-color-1) 12%, transparent 30%); mix-blend-mode: screen; filter: blur(7px); animation: plasma-flow calc(var(--magic-speed) * 1.4) ease-in-out -7s infinite alternate-reverse; }
+.magic-button .magic-label { display: flex; flex: 1 1 0; justify-content: flex-start; min-width: 0; z-index: 1; pointer-events: none; }
+.magic-angle { display: block; max-width: 100%; }
+.magic-button .Buttontext { display: block; width: auto; color: var(--magic-ink); font-family: var(--magic-font); font-size: var(--magic-size); font-weight: var(--magic-weight); line-height: 1.15; }
+.magic-button .magic-text-gradient { color: transparent !important; background-clip: text; -webkit-background-clip: text; }
+.magic-icon { position: relative; display: flex; flex-shrink: 0; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px; pointer-events: none; z-index: 1; }
+.magic-icon-image { display: block; width: 100%; height: 100%; object-fit: cover; }
+.magic-symbol { display: block; line-height: 1; color: var(--magic-ink); }
+.magic-spin { animation: magic-spin linear infinite; transform-origin: center; }
+.magic-button .extra { position: relative; z-index: 2; flex: 0 0 auto; margin-left: auto; background: #f1f6f2ee; color: #234f3c; }
+.magic-button .extra.rood { color: #a33342; background: #fce6e9; }
+.magic-button .extra.orange { color: #8b5512; background: #fff0d9; }
+.magic-neutral .magic-layer { background: #e7edf3 !important; }
+.dark-mode .magic-neutral .magic-layer { background: #233448 !important; }
+.dark-mode .magic-neutral .Buttontext { color: #e1eaf3; }
+@keyframes magic-spin { to { transform: rotate(360deg); } }
+@keyframes magic-glitter { to { background-position: 47px 31px, -23px 41px, 31px -29px; } }
+@keyframes magic-shimmer { 0%, 20% { transform: translateX(-35%); } 80%, 100% { transform: translateX(35%); } }
 .Knopje.abort:not(.topknop), .Knopje.remove { color: #a33342; border-color: #edc9ce; background: #fff1f2; }
 .Knopje.ok, .Knopje.enter, .Knopje.knopjes, .Knopje.back { color: #194d3a; border-color: #b9d9c7; background: #dff0e7; }
 .Knopje.undo, .Knopje.restore { color: #815715; border-color: #ead9b9; background: #fff4df; }
@@ -419,7 +396,7 @@ body.dark-mode { --ink: #e1eaf3; --muted: #a4b6c9; --line: #3a4b60; --panel: #19
 .dark-mode .receipt-columns, .dark-mode .receipt-footer, .dark-mode .receipt-currency, .dark-mode .eyebrow, .dark-mode .receipt-empty, .dark-mode .welcome { color: #b0c1d0; }
 .dark-mode .receipt-empty strong { color: #c7d8e6; }
 .dark-mode .receipt-barcode { filter: brightness(3); }
-.dark-mode .Knopje:where(:not(.topknop, .account-stitch, .account-BugBlue, .account-theme-lockpicker, .account-theme-ukraine, .account-theme-plasma)),
+.dark-mode .Knopje:where(:not(.topknop, .magic-button)),
 .dark-mode .command-section, .dark-mode .purchase-row, .dark-mode .audio-volume-card, .dark-mode .mylines, .dark-mode .lines, .dark-mode .infoboxes .Userline { color: #e1eaf3; background-color: #233448; border-color: #40546a; }
 .dark-mode .command-section h2, .dark-mode .audio-volume-label, .dark-mode .audio-volume-value, .dark-mode .audio-status { color: #b8cee3; }
 .dark-mode .command-tab, .dark-mode .archive-tab, .dark-mode .profile-action, .dark-mode .setting-toggle { color: #d9e5ef; background: #26394d; border-color: #445d73; }
@@ -453,10 +430,6 @@ body.dark-mode { --ink: #e1eaf3; --muted: #a4b6c9; --line: #3a4b60; --panel: #19
   .purchase-row { flex-wrap: wrap; }
   .reorder-purchase { width: 100%; }
   .settings-grid { grid-template-columns: 1fr; }
-}
-@keyframes blue-glitter {
-  from { background-position: 0 0, 8px 3px, 3px 11px, 15px 7px, 0 50%; }
-  to { background-position: 13px 17px, -15px 22px, 20px -18px, -16px 30px, 100% 50%; }
 }
 @keyframes plasma-flow {
   from { transform: translate(-7%, -4%) rotate(-15deg) scale(1); filter: blur(9px) hue-rotate(0deg); }

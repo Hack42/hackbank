@@ -21,6 +21,12 @@ document.addEventListener("DOMContentLoaded", function() {
   var audioControl=null;
   var soundSettingsControl=null;
   var soundSettings=null;
+  var buttonThemes=Object.create(null);
+  var buttonStudio=window.HackBankButtonStudio ? window.HackBankButtonStudio.create({
+    session:session,
+    getTheme:function(user) { return buttonThemes[user] || null; },
+    onSaved:updateButtonTheme,
+  }) : null;
   var currentView='accounts';
   var commandCategory='All commands';
   var soundButtons=[];
@@ -272,6 +278,13 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     accounts[name]=JSON.parse(msg);
   }
+  function updateButtonTheme(user,theme) {
+    buttonThemes[user]=theme;
+    if(!window.HackBankButtonStyles) return;
+    allElements('#MainButtons .account').forEach(function(button) {
+      if(button.getAttribute('data-button-user') === user) window.HackBankButtonStyles.apply(button,user,theme);
+    });
+  }
   function setupcommands(msg) {
     commands=JSON.parse(msg);
     if(preferences) Object.assign(commands,preferences.commands);
@@ -321,6 +334,11 @@ document.addEventListener("DOMContentLoaded", function() {
     screen.appendChild(heading);
     var actions=createElement('div',{class:'profile-actions'});
     actions.appendChild(actionButton('Full user history','history '+profile.user));
+    if(buttonStudio) {
+      var studioButton=createElement('button',{type:'button',class:'profile-action studio-launch',text:'✨ Button studio'});
+      studioButton.addEventListener('click',function() { buttonStudio.open(profile); });
+      actions.appendChild(studioButton);
+    }
     if(profile.undo_transaction !== null && profile.undo_transaction !== undefined) {
       actions.appendChild(actionButton('Undo latest transaction','undouserlatest '+profile.undo_transaction+':'+profile.user,'profile-action undo-user-transaction'));
     }
@@ -487,12 +505,6 @@ document.addEventListener("DOMContentLoaded", function() {
       createElement('span',{class: "Buttontext ",text: stuff.display}),
     ]);
     if(stuff.hint) knopje.appendChild(createElement('small',{class:'command-hint',text:stuff.hint}));
-    if(stuff.text === 'stitch' && stuff.class && stuff.class.indexOf('account ') === 0) {
-      knopje.prepend(createElement('img',{class: 'account-icon', src: 'images/users/stitch.png', width: '32', height: '32', alt: '', 'aria-hidden': 'true'}));
-    }
-    if(stuff.class && stuff.class.indexOf('account-theme-lockpicker') !== -1) {
-      knopje.prepend(createElement('span',{class: 'account-icon key-icon', 'aria-hidden': 'true', html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5"/><path d="m11.5 11.5 9 9M16 16l3-3M19 19l3-3"/></svg>'}));
-    }
     if(stuff.right) {
       var fullwidth='';
       if(!stuff.left && stuff.fill) fullwidth=' fullwidthButton ';
@@ -500,6 +512,9 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     if(stuff.left) {
       appendToElement(knopje, createElement('span',{class: "left extra "+stuff.leftclass,text: stuff.left}));
+    }
+    if(window.HackBankButtonStyles && stuff.class && stuff.class.indexOf('account ') === 0) {
+      window.HackBankButtonStyles.apply(knopje,stuff.text,buttonThemes[stuff.text]);
     }
     return knopje;
   }
@@ -757,6 +772,9 @@ document.addEventListener("DOMContentLoaded", function() {
          case 'sound_settings':
             if(soundSettingsControl) soundSettingsControl.receive(JSON.parse(msg));
             break;
+         case 'button_studio':
+            if(buttonStudio) buttonStudio.receive(JSON.parse(msg));
+            break;
          case 'effects':
             if(preferences && JSON.parse(msg).type === 'sale') preferences.sale();
             break;
@@ -793,6 +811,10 @@ document.addEventListener("DOMContentLoaded", function() {
          if(elms[3] === 'sounds') {
            soundSettings=JSON.parse(msg);
            if(soundSettingsControl) soundSettingsControl.update(soundSettings);
+         }
+         if(elms[3] === 'buttons') {
+           var design=JSON.parse(msg);
+           if(design && typeof design.user === 'string') updateButtonTheme(design.user,design.theme);
          }
          break;
       case 'session':

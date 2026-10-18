@@ -182,14 +182,38 @@ Opening the page or receiving settings from another browser stays silent.
 Settings requests use a separate route so they cannot answer a pending POS
 question. The error alert retains its two repetitions for unrecognised input.
 
-Account themes use the existing `account-<username>` CSS classes. `stitch`
-has a local Stitch icon, a `#6088B0` background and bold white text; `BugBlue`
-has a slowly animated blue glitter background and white text. Jos has a gold
-key icon and dark theme; nino has a Ukrainian flag background; the existing Anus
-account has an animated plasma effect. These three names match without regard
-to case. Balance badges keep their debt colours, and animations respect
-reduced-motion settings.
-See `www/images/users/README.md` for the icon source.
+The **Button studio** action on each user profile opens “Hack42 Magic Button
+Studio (tm)”. Current and draft buttons remain visible beside the editing
+tools. Backgrounds support solid paint, 2–6 gradient stops with percentages
+and a full 360° angle, glitter, and plasma. Effect speed and intensity are
+adjustable. Lettering has colour or a separate gradient, six system font
+stacks, size, weight, a fixed angle and optional continuous rotation. Icons
+can be built-in symbols or a personal image, with size and rotation controls.
+The native colour picker and six-digit hex fields work together.
+Large scroll buttons also work on the bar's touch screen without swipe gestures.
+
+Upload a PNG, JPEG, WebP or GIF (up to 8 MB), drag it into the icon area, or
+paste an image with Ctrl+V / ⌘V while the dialog is focused. The browser crops
+it to a square and resizes it to a 144 × 144 PNG; GIFs become still icons.
+The original upload is not stored. Images use `object-fit: cover`.
+
+**Use my new button** saves to `data/revbank.buttons.json`, using an atomic
+write. Designs and their embedded icons survive backend/browser restarts and
+are shared across the bar's terminals through retained MQTT messages. This
+file belongs to the installation's private runtime data and is ignored by
+the public application repository. Include it in private data backups.
+Cancel or Escape discards the draft; Revert changes restores the saved design,
+and Start fresh restores the account's initial design as an unsaved draft.
+
+Initial designs keep stitch’s blue and bold white text (without a bundled
+character image), BugBlue’s glitter, Jos’s key, nino’s blue/yellow flag and
+Anus’s plasma. Personal icons must be supplied locally through the studio.
+All effects are clipped inside their own button; balance badges keep their
+debt colours. Animation respects reduced-motion settings. Saving a design
+uses its own `button_studio` route, so it cannot answer a pending sale prompt
+or change receipts, account names or balances. Only validated presentation
+settings and small PNG data URLs are accepted; no arbitrary CSS or remote
+image/font URLs are stored. No new external runtime dependencies are needed.
 
 The Home Assistant shortcut opens its page in the left-hand iframe, with a link
 to open it in a separate tab. Music is hidden until a LAN music interface is
@@ -239,6 +263,9 @@ updating its Python controller. Changes to `plugins/sounds.py`, including the
 silent Sounds navigation, also require restarting the existing POS backend.
 The profile response fix in `kassa.py` and sale display events in
 `plugins/historie.py` require the same backend restart.
+Button studio deployments must also include `button_themes.py`,
+`plugins/buttonstudio.py`, the new JS/CSS files and the updated PHP routes,
+and restart the POS backend. Existing private button data must be preserved.
 The sound-folder update also requires a backend restart and an audio-controller
 restart; include `pos_sound_settings.py` and the entire `www/sounds` tree when
 deploying. Preserve the saved choices in the existing data directory.

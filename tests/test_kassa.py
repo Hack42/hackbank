@@ -100,6 +100,23 @@ def test_sound_settings_route_does_not_consume_a_pending_pos_question():
     assert session.nextcall is pending
 
 
+def test_button_studio_route_preserves_a_pending_pos_question_and_receipt():
+    session = kassa.Session("SID", Mock())
+    plugin = Mock()
+    session.plugins = {"buttonstudio": plugin}
+    pending = {"plug": Mock(), "function": "answer"}
+    session.nextcall = pending
+    session.receipt = [{"product": "cola", "count": 2}]
+    session.input = Mock()
+    payload = b'{"request":"studio-1","user":"stitch"}'
+    with patch("kassa.get_session", return_value=session):
+        kassa.run_session(Mock(), "SID", "button_studio", payload)
+    plugin.configure.assert_called_once_with(payload)
+    session.input.assert_not_called()
+    assert session.nextcall is pending
+    assert session.receipt == [{"product": "cola", "count": 2}]
+
+
 def test_realcallhook():
     session = kassa.Session("SID", Mock())
     plugin_mock = Mock()
