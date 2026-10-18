@@ -81,6 +81,8 @@ class PurchaseIndex:
             self.signature = signature
             self.available = True
         except OSError:
+            self.identity = None
+            self.signature = None
             self.available = False
         return self
 

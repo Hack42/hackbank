@@ -27,7 +27,9 @@ def test_cache_skips_reads_and_does_not_leak_profile_mutations(tmp_path):
     index = PurchaseIndex(path)
     records = index.recent("Jos")
     records[0]["description"] = "changed by caller"
-    with patch.object(type(path), "open", side_effect=AssertionError("re-read unchanged log")):
+    with patch.object(
+        type(path), "open", side_effect=AssertionError("re-read unchanged log")
+    ):
         assert index.recent("Jos")[0]["description"] == "Cola"
 
 
@@ -47,7 +49,26 @@ def test_missing_rotated_and_partial_logs(tmp_path):
     assert len(index.recent("nino")) == 1
 
 
-def test_large_logs_have_a_read_limit_and_do_not_claim_full_year_coverage(tmp_path, monkeypatch):
+def test_recreated_log_rebuilds_cache_when_file_metadata_is_reused(tmp_path):
+    path = tmp_path / "sales.log"
+    path.write_text(sale("user_a"))
+    original_stat = path.stat()
+    index = PurchaseIndex(path)
+    assert len(index.recent("user_a")) == 1
+
+    path.unlink()
+    assert index.recent("user_a") == []
+    path.write_text(sale("user_b"))
+
+    # Some filesystems can reuse both the inode and timestamp immediately.
+    with patch.object(type(path), "stat", return_value=original_stat):
+        assert index.recent("user_a") == []
+        assert len(index.recent("user_b")) == 1
+
+
+def test_large_logs_have_a_read_limit_and_do_not_claim_full_year_coverage(
+    tmp_path, monkeypatch
+):
     path = tmp_path / "sales.log"
     path.write_text(sale("Jos", date="2026-10-16_12:00:00") * 100)
     monkeypatch.setattr("purchase_history.MAX_READ", 512)
@@ -58,6 +79,7 @@ def test_large_logs_have_a_read_limit_and_do_not_claim_full_year_coverage(tmp_pa
 
 def test_refunds_and_undo_entries_are_not_purchase_history(tmp_path):
     path = tmp_path / "sales.log"
-    path.write_text(sale("Jos") + sale("Jos", 2, "Undo 1")
-                    + sale("Jos", 3).replace("LOSE", "GAIN"))
+    path.write_text(
+        sale("Jos") + sale("Jos", 2, "Undo 1") + sale("Jos", 3).replace("LOSE", "GAIN")
+    )
     assert len(PurchaseIndex(path).recent("Jos")) == 1
