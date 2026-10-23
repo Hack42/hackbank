@@ -1,0 +1,66 @@
+name: hackbank-ui
+
+services:
+  audio:
+    image: python:3.12-slim
+    volumes:
+      - ./audio_control.py:/app/audio_control.py:ro
+      - ./www/sounds/POS/command/KDE_Beep_ClassicBeep.wav:/app/www/sounds/POS/command/KDE_Beep_ClassicBeep.wav:ro
+      - audio-runtime:/run/hackbank-audio
+    command: ["python", "/app/audio_control.py", "--demo"]
+    # Match www-data in the PHP development container.
+    user: "0:33"
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    volumes:
+      - ./dev/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    healthcheck:
+      test: ["CMD", "mosquitto_pub", "-h", "localhost", "-t", "dev/health", "-m", "ok"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  backend:
+    build:
+      context: .
+      dockerfile: dev/Dockerfile
+    working_dir: /app
+    volumes:
+      - ./kassa.py:/app/kassa.py:ro
+      - ./config.py:/app/config.py:ro
+      - ./input_validation.py:/app/input_validation.py:ro
+      - ./purchase_history.py:/app/purchase_history.py:ro
+      - ./pos_sound_settings.py:/app/pos_sound_settings.py:ro
+      - ./button_themes.py:/app/button_themes.py:ro
+      - ./www/sounds:/app/www/sounds:ro
+      - ./plugins:/app/plugins:ro
+      - ./images:/app/images:ro
+      - ./fakedata:/app/fakedata:ro
+      - ./dev:/app/dev:ro
+      - ./dev/data:/app/data
+    environment:
+      KASSA_CONFIG: /app/dev/config.yaml
+      PYTHONDONTWRITEBYTECODE: "1"
+    command: ["sh", "/app/dev/start.sh"]
+    depends_on:
+      mqtt:
+        condition: service_healthy
+
+  web:
+    image: php:8.3-apache
+    volumes:
+      - ./www:/var/www/html:ro
+      - audio-runtime:/run/hackbank-audio:ro
+    ports:
+      - "127.0.0.1:4123:80"
+    environment:
+      MQTT_HOST: mqtt
+    depends_on:
+      mqtt:
+        condition: service_healthy
+      audio:
+        condition: service_started
+
+volumes:
+  audio-runtime:

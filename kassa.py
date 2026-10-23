@@ -163,6 +163,21 @@ class Session:
             self.send_message(True, "buttons", json.dumps({}))
             return
 
+        # Configuration must remain reachable while a product/user prompt is
+        # waiting for an answer, without aborting the pending sale or prompt.
+        if text.strip() in ("partymodeon", "partymodeoff") and "party" in self.plugins:
+            self.pre_input(text)
+            try:
+                self.plugins["party"].input(text.strip())
+            except Exception:
+                logger.exception("Party configuration failed sid=%s", self.SID)
+                self.send_message(
+                    True, "message", "Could not change party mode; please try again"
+                )
+            if not self.nextcall:
+                self.send_message(True, "buttons", json.dumps({}))
+            return
+
         self.buttons = {}
         self.pre_input(text)
 
@@ -214,6 +229,8 @@ class Session:
             or self.cache["hack42bar/output/session/" + self.SID + "/" + topic]
             != message
             or len(topic) < 8
+            # A profile is a response to a new visit, even when its data is unchanged.
+            or (not retain and topic == "infobox/account")
         ):
             logger.debug(
                 "send_message sid=%s retain=%s topic=%s message=%r",
@@ -246,6 +263,12 @@ def run_session(client, SID, action, data):
     if action == "input":
         session = get_session(SID, client)
         session.input(data.decode())
+    elif action == "sound_settings":
+        session = get_session(SID, client)
+        session.plugins["sounds"].configure(data)
+    elif action == "button_studio":
+        session = get_session(SID, client)
+        session.plugins["buttonstudio"].configure(data)
     else:
         logger.warning("unhandled_session_action sid=%s action=%s", SID, action)
 

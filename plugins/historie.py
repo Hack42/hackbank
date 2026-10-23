@@ -1,11 +1,13 @@
 import json
 import os
+from purchase_history import purchase_index
 
 
 class historie:
     def __init__(self, SID, master):
         self.master = master
         self.SID = SID
+        self.checkout = None
 
     def reverse_readline(self, filename, buf_size=8192):
         """a generator that returns the lines of a file in reverse order"""
@@ -51,6 +53,66 @@ class historie:
     def help(self):
         return {"history": "User History"}
 
+    def account_details(self, user):
+        products = self.master.products.products
+        purchases = purchase_index.recent(user)
+        for purchase in purchases:
+            matches = [
+                name
+                for name, product in products.items()
+                if product["description"] == purchase["description"]
+            ]
+            if len(matches) == 1:
+                purchase["product"] = matches[0]
+                purchase["current_price"] = products[matches[0]]["price"]
+        undo = self.master.plugins.get("undo")
+        latest = undo.latest_for(user) if undo else None
+        return {
+            "user": user,
+            "purchases": purchases,
+            "history_available": purchase_index.available,
+            "history_complete": purchase_index.complete,
+            "undo_transaction": latest,
+        }
+
+    def publish_activity(self):
+        self.master.send_message(
+            True, "activity", json.dumps(purchase_index.activity())
+        )
+
+    def hook_endsession(self, _user):
+        self.publish_activity()
+
+    def hook_post_checkout(self, user):
+        # Observe the receipt for display effects; accounting stays in its own hooks.
+        sale = any(
+            row["Lose"]
+            and row["count"] > 0
+            and row["value"] > 0
+            and row["product"] not in ("undo", "give", "take", "declaratie")
+            and not row["product"].startswith("pfand_")
+            for row in self.master.receipt.receipt
+        )
+        self.checkout = {"user": user, "sale": sale}
+
+    def hook_post_endsession(self, _user):
+        checkout, self.checkout = self.checkout, None
+        if not checkout:
+            return
+        user = checkout["user"]
+        if user in self.master.accounts.accounts:
+            details = {
+                **self.master.accounts.accounts[user],
+                **self.account_details(user),
+                "checkout": True,
+            }
+            self.master.send_message(False, "infobox/account", json.dumps(details))
+            self.master.send_message(
+                True, "buttons", json.dumps({"special": "infobox"})
+            )
+        if checkout["sale"]:
+            self.master.send_message(False, "effects", json.dumps({"type": "sale"}))
+
     def history(self, text):
         if text in self.master.accounts.accounts:
             lines = self.reversesearch(text)
@@ -80,4 +142,4 @@ class historie:
         return None
 
     def startup(self):
-        pass
+        self.publish_activity()

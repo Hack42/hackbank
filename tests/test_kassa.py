@@ -6,6 +6,36 @@ import kassa
 from plugins.products import products
 
 
+def test_party_configuration_does_not_consume_a_pending_user_or_sale_prompt():
+    session = kassa.Session("SID", Mock())
+    party = Mock()
+    question = Mock()
+    session.plugins = {"party": party}
+    session.nextcall = {"plug": question, "function": "answer"}
+    session.receipt = Mock()
+    session.receipt.receipt = [{"product": "cola", "count": 2}]
+    session.pre_input = Mock()
+    session.input("partymodeoff")
+    party.input.assert_called_once_with("partymodeoff")
+    question.answer.assert_not_called()
+    session.receipt.assert_not_called()
+    assert session.receipt.receipt == [{"product": "cola", "count": 2}]
+    assert session.nextcall == {"plug": question, "function": "answer"}
+
+
+def test_party_configuration_error_does_not_stop_the_command_host():
+    session = kassa.Session("SID", Mock())
+    party = Mock()
+    party.input.side_effect = OSError("storage unavailable")
+    session.plugins = {"party": party}
+    session.pre_input = Mock()
+    session.send_message = Mock()
+    session.input("partymodeoff")
+    session.send_message.assert_any_call(
+        True, "message", "Could not change party mode; please try again"
+    )
+
+
 def test_session_startup():
     client_mock = Mock()
     session = kassa.Session("SID", client_mock)
@@ -53,6 +83,38 @@ def test_on_message():
 
         mock_get_session.assert_called_with("1234", client_mock)
         mock_get_session.return_value.input.assert_called_with("some data")
+
+
+def test_sound_settings_route_does_not_consume_a_pending_pos_question():
+    session = kassa.Session("SID", Mock())
+    plugin = Mock()
+    session.plugins = {"sounds": plugin}
+    pending = {"plug": Mock(), "function": "answer"}
+    session.nextcall = pending
+    session.input = Mock()
+    payload = b'{"request":"sample-1","feature":"sale","sound":"cash_tycoon.wav"}'
+    with patch("kassa.get_session", return_value=session):
+        kassa.run_session(Mock(), "SID", "sound_settings", payload)
+    plugin.configure.assert_called_once_with(payload)
+    session.input.assert_not_called()
+    assert session.nextcall is pending
+
+
+def test_button_studio_route_preserves_a_pending_pos_question_and_receipt():
+    session = kassa.Session("SID", Mock())
+    plugin = Mock()
+    session.plugins = {"buttonstudio": plugin}
+    pending = {"plug": Mock(), "function": "answer"}
+    session.nextcall = pending
+    session.receipt = [{"product": "cola", "count": 2}]
+    session.input = Mock()
+    payload = b'{"request":"studio-1","user":"stitch"}'
+    with patch("kassa.get_session", return_value=session):
+        kassa.run_session(Mock(), "SID", "button_studio", payload)
+    plugin.configure.assert_called_once_with(payload)
+    session.input.assert_not_called()
+    assert session.nextcall is pending
+    assert session.receipt == [{"product": "cola", "count": 2}]
 
 
 def test_realcallhook():
@@ -461,6 +523,20 @@ def test_send_message_updates_prompt_buttons_and_skips_cached_long_topic():
     assert session.prompt == "hello"
     assert session.buttons == "{}"
     assert client_mock.publish.call_count == 3
+
+
+def test_unchanged_profile_response_is_published_on_each_visit():
+    client = Mock()
+    session = kassa.Session("SID", client)
+    for _visit in range(2):
+        session.send_message(False, "infobox/account", '{"user":"Jos","amount":12}')
+    assert client.publish.call_count == 2
+    client.publish.assert_called_with(
+        "hack42bar/output/session/SID/infobox/account",
+        '{"user":"Jos","amount":12}',
+        1,
+        False,
+    )
 
 
 def test_send_message_logs_debug(caplog):

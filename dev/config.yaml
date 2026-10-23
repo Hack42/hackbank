@@ -1,0 +1,19 @@
+mqtt:
+  host: mqtt
+  port: 1883
+  keepalive: 60
+door:
+  mqtt:
+    host: mqtt
+    port: 1883
+    topic: dev/door
+stickers:
+  printer:
+    host: localhost
+    port: 9100
+pos:
+  serial:
+    port: /dev/hackbank-no-printer
+    baudrate: 19200
+logging:
+  level: INFO

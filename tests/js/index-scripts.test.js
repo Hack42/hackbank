@@ -7,7 +7,7 @@ test("main index loads split kassa scripts in dependency order", () => {
   const indexPath = path.join(__dirname, "../../www/index.html");
   const html = fs.readFileSync(indexPath, "utf8");
   const scripts = Array.from(html.matchAll(/<script src="([^"]+)"><\/script>/g)).map(
-    (match) => match[1],
+    (match) => match[1].split("?")[0],
   );
 
   assert.deepEqual(scripts, [
@@ -15,6 +15,12 @@ test("main index loads split kassa scripts in dependency order", () => {
     "kassa-dom.js",
     "kassa-buttons.js",
     "kassa-stream.js",
+    "kassa-audio.js",
+    "kassa-sound-settings.js",
+    "kassa-confetti.js",
+    "kassa-preferences.js",
+    "kassa-button-styles.js",
+    "kassa-button-studio.js",
     "kassa-app.js",
   ]);
   assert(!html.includes('src="all.js"'));
