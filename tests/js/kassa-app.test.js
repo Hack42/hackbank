@@ -58,6 +58,9 @@ function makeElement(tag, register) {
     focus() {
       this.focused = true;
     },
+    showModal() {
+      this.open = true;
+    },
     cloneNode(deep) {
       const clone = makeElement(this.tag, register);
       clone.attributes = {...this.attributes};
@@ -268,6 +271,28 @@ function loadKassaApp({hash = "", pageCapacity = 25, accountCapacity = 42} = {})
     timers,
   };
 }
+
+test("deposit payment opens a modal with bank details and closes without confirming payment", () => {
+  const {elements,eventSources,fetchCalls}=loadKassaApp();
+  const send=(state) => eventSources[0].onmessage({data:JSON.stringify([
+    'hack42bar/output/session/main/deposit_payment',JSON.stringify(state),
+  ])});
+  send({payments:[{name:'Hack42',iban:'NL43ABNA0136777643',amount:'25.50',reference:'test_user',qr:'data:image/png;base64,test'}]});
+  const dialog=elements.DepositPayment;
+  assert.equal(dialog.open,true);
+  const image=findFirst(dialog,'.deposit-payment-qr');
+  assert.equal(image.width,400);
+  assert.match(image.alt,/test_user/);
+  const values=findFirst(dialog,'.deposit-payment-details').children.map((child) => child.textContent);
+  assert(values.includes('NL43ABNA0136777643'));
+  assert(values.includes('EUR 25.50'));
+  assert(values.includes('test_user'));
+  findFirst(dialog,'.deposit-payment-close').eventListeners.click();
+  assert.equal(dialog.parentElement,null);
+  assert.equal(String(fetchCalls.at(-1).options.body),'topic=session%2Fmain%2Finput&msg=ok');
+  send({});
+  assert.equal(dialog.parentElement,null);
+});
 
 test("kassa app builds the startup layout and opens a session stream", () => {
   const {elements, eventSources, fetchCalls, textfillCalls} = loadKassaApp({

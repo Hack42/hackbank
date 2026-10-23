@@ -59,6 +59,7 @@ document.addEventListener("DOMContentLoaded", function() {
   var topButton=dom.topButton;
 
   function postmsg(topic,msg) {
+    if(topic === 'input') removeElement('#DepositPayment');
     if(topic === 'input' && preferences && preferences.handleCommand(msg)) {
       preferences.command();
       if(currentView === 'commands') locked=1;
@@ -295,6 +296,42 @@ document.addEventListener("DOMContentLoaded", function() {
   function setupproducts(name,msg) {
     prods[name]=JSON.parse(msg);
     buttons.rebuildProductIndexes(prods, groups, nobcgroup);
+  }
+
+  function showDepositPayment(state) {
+    removeElement('#DepositPayment');
+    if(!state.payments || !state.payments.length) return;
+    var dialog=createElement('dialog',{id:'DepositPayment',class:'deposit-payment','aria-labelledby':'DepositPaymentTitle'});
+    dialog.appendChild(createElement('h2',{id:'DepositPaymentTitle',text:'Bankoverschrijving'}));
+    state.payments.forEach(function(payment) {
+      var entry=createElement('section',{class:'deposit-payment-entry'});
+      entry.appendChild(createElement('img',{
+        class:'deposit-payment-qr',src:payment.qr,
+        alt:'EPC-betaalcode voor '+payment.reference+' - EUR '+payment.amount,
+        width:400,height:400,
+      }));
+      var details=createElement('dl',{class:'deposit-payment-details'});
+      [['Bedrag','EUR '+payment.amount],['Ontvanger',payment.name],['IBAN',payment.iban],['Omschrijving',payment.reference]].forEach(function(field) {
+        details.appendChild(createElement('dt',{text:field[0]}));
+        details.appendChild(createElement('dd',{text:field[1]}));
+      });
+      entry.appendChild(details);
+      dialog.appendChild(entry);
+    });
+    var close=createElement('button',{type:'button',class:'deposit-payment-close',text:'Sluiten'});
+    function dismiss() {
+      postmsg('input','ok');
+      focus();
+    }
+    close.addEventListener('click',dismiss);
+    dialog.addEventListener('cancel',function(event) {
+      event.preventDefault();
+      dismiss();
+    });
+    dialog.appendChild(close);
+    document.body.appendChild(dialog);
+    dialog.showModal();
+    close.focus();
   }
 
   function makepage_infobox() {
@@ -768,6 +805,9 @@ document.addEventListener("DOMContentLoaded", function() {
             break;
          case 'sound':
             playsound(msg);
+            break;
+         case 'deposit_payment':
+            showDepositPayment(JSON.parse(msg));
             break;
          case 'sound_settings':
             if(soundSettingsControl) soundSettingsControl.receive(JSON.parse(msg));

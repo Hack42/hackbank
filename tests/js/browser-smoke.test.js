@@ -342,6 +342,54 @@ test("button studio previews locally, saves one user's design and cancels withou
   assert.equal(data.noFinancialCommands,true);
 });
 
+test("a completed deposit displays a native payment dialog and dismisses through OK", (t) => {
+  const command=chromiumCommand();
+  if(!command) { t.skip('Chromium is not available'); return; }
+  const repo=path.resolve(__dirname,'../..');
+  const payment=spawnSync(path.join(repo,'.venv/bin/python'),[
+    '-c','import json; from epc_payment import create_payment; print(json.dumps(create_payment("test_user", "25.50")))',
+  ],{cwd:repo,encoding:'utf8'});
+  assert.equal(payment.status,0,payment.stderr);
+  const fixture=writeKassaFixture(`
+    window.addEventListener('DOMContentLoaded',function() {
+      setTimeout(function() {
+        var result={};
+        try {
+          window.__eventSource.onmessage({data:JSON.stringify([
+            'hack42bar/output/session/main/deposit_payment',JSON.stringify({payments:[${payment.stdout.trim()}]})
+          ])});
+          var dialog=document.getElementById('DepositPayment');
+          var image=dialog.querySelector('img');
+          result.modal=dialog.open && dialog.matches(':modal');
+          result.qrWidth=image.getBoundingClientRect().width;
+          result.details=dialog.textContent;
+          dialog.querySelector('button').click();
+          result.closed=!document.getElementById('DepositPayment');
+          result.lastPost=window.__fetchCalls.at(-1).body;
+        } catch(error) { result.error=String(error.stack); }
+        var output=document.createElement('pre'); output.id='smoke-result';
+        output.textContent=JSON.stringify(result); document.body.appendChild(output);
+      },100);
+    });
+  `);
+  const result=runChromium(command,`file://${fixture}`);
+  fs.unlinkSync(fixture);
+  if(skipIfChromiumSandboxed(t,result)) return;
+  assert.ifError(result.error);
+  assert.equal(result.status,0,result.stderr);
+  const match=result.stdout.match(/<pre id="smoke-result">([^<]+)<\/pre>/);
+  assert(match,result.stdout);
+  const data=JSON.parse(match[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));
+  assert.equal(data.error,undefined,JSON.stringify(data));
+  assert.equal(data.modal,true);
+  assert(data.qrWidth>=300);
+  assert.match(data.details,/NL43ABNA0136777643/);
+  assert.match(data.details,/25.50/);
+  assert.match(data.details,/test_user/);
+  assert.equal(data.closed,true);
+  assert.equal(data.lastPost,'topic=session%2Fmain%2Finput&msg=ok');
+});
+
 test("the checked-in jQuery vendor file is gone", () => {
   assert.equal(fs.existsSync(path.resolve(__dirname, "../../www/jquery.min.js")), false);
 });

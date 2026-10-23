@@ -3,6 +3,24 @@
 The hackbank consist of a php front-end that communicates with a python
 back-end over mqtt.
 
+## Deposit bank transfers
+
+After checking out a deposit to an account, the screen displays a large EPC QR
+code with the deposited amount and the account's username as the transfer
+description. The recipient defaults to Hack42, IBAN `NL43ABNA0136777643`;
+override `deposit.epc.name` and `deposit.epc.iban` in `config.yaml` if needed.
+The payment details are also displayed as text. QR images are generated locally.
+
+The dialog is a payment request, not a bank confirmation. Deposits are credited
+using the existing checkout flow; bank payments are not automatically verified.
+Closing the dialog or entering the next command clears the request. Startup
+also clears retained requests. Cash checkouts do not produce a transfer code.
+Multiple deposit lines for the same user are combined; purchases do not reduce
+the requested deposit amount. Amounts must be whole cents.
+
+The payload follows [EPC069-12](https://www.europeanpaymentscouncil.eu/document-library/guidance-documents/quick-response-code-guidelines-enable-data-capture-initiation).
+Support for scanning EPC codes depends on the banking app.
+
 ## Development set-up
 
 You need python, paho-mqtt-client and apache+php. 
