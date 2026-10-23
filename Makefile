@@ -1,7 +1,7 @@
 PYTHON ?= python3
 NPM ?= npm
 PHP ?= php
-PY_FILES := kassa.py load_printer_logo.py pos_sound_settings.py button_themes.py $(shell find plugins tests -type f -name '*.py' | sort)
+PY_FILES := kassa.py epc_payment.py load_printer_logo.py pos_sound_settings.py button_themes.py $(shell find plugins tests -type f -name '*.py' | sort)
 PHP_FILES := $(shell find www -type f -name '*.php' | sort)
 
 .PHONY: test python-test js-test php-test venv pip-compile pip-sync pip-sync-dev lint python-lint js-lint php-lint check-types fix check
@@ -42,7 +42,7 @@ pip-sync-dev: ## synchronizes the .venv with the state of requirements.txt
 lint: python-lint js-lint php-lint  ## Do basic linting
 
 python-lint: venv
-	@. .venv/bin/activate && ${env} ${PYTHON} -m pylint --persistent=no kassa.py load_printer_logo.py pos_sound_settings.py button_themes.py plugins
+	@. .venv/bin/activate && ${env} ${PYTHON} -m pylint --persistent=no kassa.py epc_payment.py load_printer_logo.py pos_sound_settings.py button_themes.py plugins
 	@. .venv/bin/activate; for file in ${PY_FILES}; do ${env} ${PYTHON} -m black --check --quiet --workers 1 "$$file" || exit $$?; done
 
 node_modules/.package-lock.json: package.json package-lock.json

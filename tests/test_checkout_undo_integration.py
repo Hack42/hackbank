@@ -1,3 +1,4 @@
+import json
 from unittest.mock import Mock, patch
 
 import kassa
@@ -7,6 +8,7 @@ from plugins.products import products
 from plugins.receipt import receipt
 from plugins.stock import stock
 from plugins.undo import undo
+from plugins.deposit import deposit
 
 
 def make_session():
@@ -46,6 +48,25 @@ def make_checkout_session():
         stock_plugin,
         pos_plugin,
     )
+
+
+def test_deposit_payment_uses_checkout_user_and_survives_endsession():
+    session = kassa.Session("SID", Mock())
+    session.receipt = receipt("SID", session)
+    plugin = deposit("SID", session)
+    session.plugins = {"deposit": plugin, "receipt": session.receipt}
+    plugin.value("25.50")
+    session.callhook("checkout", "test_user")
+    session.callhook("endsession", "test_user")
+    topic = "hack42bar/output/session/SID/deposit_payment"
+    calls = [
+        call for call in session.client.publish.call_args_list if call.args[0] == topic
+    ]
+    payment = json.loads(calls[-1].args[1])["payments"][0]
+    assert payment["reference"] == "test_user"
+    assert payment["amount"] == "25.50"
+    assert session.receipt.receipt == []
+    assert plugin.payment_shown
 
 
 def test_checkout_stores_undo_snapshot_after_receipt_checkout():

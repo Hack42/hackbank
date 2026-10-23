@@ -7,6 +7,9 @@ import yaml
 CONFIG_PATH = "config.yaml"
 
 DEFAULT_CONFIG = {
+    "deposit": {
+        "epc": {"name": "Hack42", "iban": "NL43ABNA0136777643"},
+    },
     "mqtt": {
         "host": "localhost",
         "port": 1883,

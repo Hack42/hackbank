@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch, call
 import json
 import plugins.deposit as deposit_module
+import pytest
 
 
 def test_deposit_help():
@@ -88,3 +89,59 @@ def test_deposit_startup():
     # Assuming startup is a placeholder with no functional code
     deposit.startup()
     # No assertion needed, just checking if method exists and runs without error
+
+
+@pytest.mark.parametrize("value", ["0.001", "1.234", "NaN", "Infinity", "-1"])
+def test_deposit_rejects_fractional_cents_and_nonfinite_values(value):
+    master = Mock()
+    plugin = deposit_module.deposit("SID", master)
+    plugin.value(value)
+    master.receipt.add.assert_not_called()
+
+
+def test_checkout_aggregates_deposits_by_user_and_clears_on_next_input():
+    master = Mock()
+    master.receipt.receipt = [
+        {
+            "beni": "test_user",
+            "product": "deposit",
+            "Lose": False,
+            "value": 25,
+            "count": 2,
+        },
+        {
+            "beni": "test_user",
+            "product": "deposit",
+            "Lose": False,
+            "value": 5,
+            "count": 1,
+        },
+        {
+            "beni": "test_user",
+            "product": "drink",
+            "Lose": True,
+            "value": 10,
+            "count": 1,
+        },
+        {"beni": "cash", "product": "deposit", "Lose": False, "value": 2, "count": 1},
+    ]
+    plugin = deposit_module.deposit("SID", master)
+    plugin.hook_post_checkout("test_user")
+    retain, topic, payload = master.send_message.call_args.args
+    assert retain and topic == "deposit_payment"
+    payments = json.loads(payload)["payments"]
+    assert len(payments) == 1
+    assert payments[0]["amount"] == "55.00"
+    assert payments[0]["reference"] == "test_user"
+    plugin.pre_input("ok")
+    master.send_message.assert_called_with(True, "deposit_payment", "{}")
+    master.send_message.reset_mock()
+    plugin.pre_input("next")
+    master.send_message.assert_not_called()
+
+
+def test_normal_checkout_does_not_offer_payment():
+    master = Mock()
+    master.receipt.receipt = []
+    deposit_module.deposit("SID", master).hook_post_checkout("test_user")
+    master.send_message.assert_not_called()
