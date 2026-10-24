@@ -227,6 +227,32 @@ letters. Older saved designs continue to load with the backdrop off.
 The native colour picker and six-digit hex fields work together.
 Large scroll buttons also work on the bar's touch screen without swipe gestures.
 
+**Pick your kind of magic** includes four animated shader presets alongside
+the other backgrounds: Five lights, Snow, Cubes and Synthwave.
+Cubes rotate in a wave from bottom left to top right; Synthwave drives through
+a landscape of wireframe hills. Tap a sample or choose it under Background style, then
+adjust its scene colours, effect cycle (longer is slower) and intensity.
+These are original, texture-free shaders inspired by the supplied
+[lights](https://glslsandbox.com/e#109700.0),
+[snow](https://glslsandbox.com/e#109692.0),
+[cubes](https://www.shadertoy.com/view/MdVXzw) and
+[synthwave](https://www.shadertoy.com/view/tsScRK) references; no demo code,
+remote assets or third-party shader libraries are shipped.
+
+The local WebGL 1 renderer shares one context across every button and preview,
+batches identical scenes for the same user, caps its internal image at 320 × 128 pixels and
+runs at up to 24 frames per second. Hidden/off-screen buttons pause; opening
+the studio pauses buttons behind the dialog. Reduced-motion mode uses a
+still scene. If WebGL is unavailable or its context is lost, the saved colour
+gradient stays visible and names, balances and button actions keep working.
+Shader choices use the existing private button design storage, with the same
+version-1 schema and a fixed allowlist of scene names.
+Animation phases include a stable hash of the username, so people sharing a
+preset move differently. Studio samples and the draft use the current user's
+seed. Selecting another preset keeps the gallery canvases and draft canvas
+alive; the small shared render buffer is preserved between copies to avoid
+empty frames on Firefox graphics backends.
+
 Upload a PNG, JPEG, WebP or GIF (up to 8 MB), drag it into the icon area, or
 paste an image with Ctrl+V / ⌘V while the dialog is focused. The browser crops
 it to a square and resizes it to a 144 × 144 PNG; GIFs become still icons.
@@ -303,7 +329,8 @@ silent Sounds navigation, also require restarting the existing POS backend.
 The profile response fix in `kassa.py` and sale display events in
 `plugins/historie.py` require the same backend restart.
 Button studio deployments must also include `button_themes.py`,
-`plugins/buttonstudio.py`, the new JS/CSS files and the updated PHP routes,
+`plugins/buttonstudio.py`, the JS/CSS files (including
+`www/kassa-button-shaders.js`) and the updated PHP routes,
 and restart the POS backend. Existing private button data must be preserved.
 The sound-folder update also requires a backend restart and an audio-controller
 restart; include `pos_sound_settings.py` and the entire `www/sounds` tree when

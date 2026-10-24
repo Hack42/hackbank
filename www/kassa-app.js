@@ -371,11 +371,6 @@ document.addEventListener("DOMContentLoaded", function() {
     screen.appendChild(heading);
     var actions=createElement('div',{class:'profile-actions'});
     actions.appendChild(actionButton('Full user history','history '+profile.user));
-    if(profile.user !== 'cash') {
-      var isMember=typeof profile.is_member === 'boolean' ? profile.is_member : members.includes(profile.user);
-      actions.appendChild(actionButton(isMember ? 'Promote to guest' : 'Promote to Member',
-        (isMember ? 'delmember ' : 'addmember ')+profile.user,'profile-action membership-action'));
-    }
     if(buttonStudio) {
       var studioButton=createElement('button',{type:'button',class:'profile-action studio-launch',text:'✨ Button studio'});
       studioButton.addEventListener('click',function() { buttonStudio.open(profile); });
@@ -383,6 +378,11 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     if(profile.undo_transaction !== null && profile.undo_transaction !== undefined) {
       actions.appendChild(actionButton('Undo latest transaction','undouserlatest '+profile.undo_transaction+':'+profile.user,'profile-action undo-user-transaction'));
+    }
+    if(profile.user !== 'cash') {
+      var isMember=typeof profile.is_member === 'boolean' ? profile.is_member : members.includes(profile.user);
+      actions.appendChild(actionButton(isMember ? 'Promote to guest' : 'Promote to Member',
+        (isMember ? 'delmember ' : 'addmember ')+profile.user,'profile-action membership-action'));
     }
     screen.appendChild(actions);
     screen.appendChild(createElement('h2',{text:'Last 10 purchases'}));

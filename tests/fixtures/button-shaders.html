@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ambient button shader checks</title>
+  <link rel="stylesheet" href="../../www/stom.css">
+  <link rel="stylesheet" href="../../www/kassa-button-studio.css">
+  <style>
+    body { display: block; overflow: auto; padding: 30px; }
+    #gallery { display: grid; grid-template-columns: repeat(4,240px); gap: 12px; }
+    #gallery .magic-preview { width: 240px; }
+  </style>
+  <script>
+    window.shaderChecks={contexts:0,draws:0,source:null};
+    // Chromium's dump-DOM virtual clock does not drive compositor callbacks.
+    // Give the pixel/compile check deterministic frames; interactive checks
+    // in Firefox keep the native frame and visibility observers.
+    if(location.search.includes('report')) {
+      window.requestAnimationFrame=callback=>setTimeout(()=>callback(performance.now()),16);
+      window.cancelAnimationFrame=clearTimeout;
+      window.IntersectionObserver=undefined;
+    }
+    const getContext=HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext=function(kind,options) {
+      if(kind==='webgl') {
+        shaderChecks.contexts++;
+        if(location.search.includes('disabled'))return null;
+      }
+      const context=getContext.call(this,kind,options);
+      if(kind==='webgl' && context) {
+        shaderChecks.source=this;
+        shaderChecks.gl=context;
+        const draw=context.drawArrays.bind(context);
+        context.drawArrays=function() { shaderChecks.draws++; return draw(...arguments); };
+      }
+      return context;
+    };
+  </script>
+  <script src="../../www/kassa-button-shaders.js"></script>
+  <script src="../../www/kassa-button-styles.js"></script>
+</head>
+<body>
+  <div id="gallery"></div>
+  <button id="plain">A normal button</button>
+  <script>
+    const definitions=HackBankButtonStyles.presets.map((p,i)=>({preset:p,index:i})).filter(p=>p.preset.kind.startsWith('shader-'));
+    function addScene(definition,name) {
+      const button=HackBankButtonStyles.preview(name,12.34,HackBankButtonStyles.preset(definition.index));
+      document.getElementById('gallery').appendChild(button);
+      return button;
+    }
+    definitions.forEach(definition=>addScene(definition,definition.preset.name));
+    shaderChecks.addCopies=function(count) {
+      for(let i=0;i<count;i++)addScene(definitions[0],'Copy '+i);
+    };
+    shaderChecks.sample=function(canvas) {
+        const data=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+        let hash=0,bright=0;
+        for(let i=0;i<data.length;i+=4) {
+          hash=(Math.imul(hash,31)+data[i]*3+data[i+1]*5+data[i+2]*7)|0;
+          if(data[i]+data[i+1]+data[i+2]>20)bright++;
+        }
+        return {state:canvas.dataset.shaderState,hash:hash,bright:bright,width:canvas.width,height:canvas.height};
+    };
+    shaderChecks.samples=function() {
+      return Array.from(document.querySelectorAll('#gallery .magic-shader-canvas')).slice(0,4).map(shaderChecks.sample);
+    };
+    if(location.search.includes('report')) {
+      shaderChecks.addCopies(12);
+      addScene(definitions[0],definitions[0].preset.name);
+      setTimeout(()=>{
+        const output=document.createElement('pre');output.id='smoke-result';
+        output.textContent=JSON.stringify({status:HackBankButtonShaders.status(),contexts:shaderChecks.contexts,
+          samples:shaderChecks.samples(),canvases:document.querySelectorAll('.magic-shader-canvas').length,
+          seedSamples:Array.from(document.querySelectorAll('#gallery .magic-shader-canvas')).slice(4).map(shaderChecks.sample),
+          preserved:shaderChecks.gl && shaderChecks.gl.getContextAttributes().preserveDrawingBuffer,
+          labels:document.querySelectorAll('.Buttontext').length,
+          fallback:Array.from(document.querySelectorAll('.magic-layer')).every(el=>getComputedStyle(el).backgroundImage.includes('linear-gradient'))});
+        document.body.appendChild(output);
+      },1800);
+    }
+  </script>
+</body>
+</html>

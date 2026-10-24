@@ -202,6 +202,8 @@ iframe { display: block; border: 0; }
 .studio-launch { border-color: #baa4dc; color: #704ab1; background: #f0e7ff; }
 .dark-mode .studio-launch { border-color: #8c72ba; color: #e3d2ff; background: #40304f; }
 .magic-button > .magic-layer { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.magic-shader-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; pointer-events: none; }
+.magic-shader-canvas[data-shader-state="fallback"] { visibility: hidden; }
 .magic-layer::before, .magic-layer::after { content: ""; position: absolute; pointer-events: none; }
 .magic-glitter::before { inset: 0; opacity: var(--magic-power); background-image: radial-gradient(circle, #fff 0 .7px, transparent 1.5px), radial-gradient(circle, #bceaff 0 .8px, transparent 1.7px), radial-gradient(circle, #fff9ce 0 .6px, transparent 1.3px); background-size: 13px 17px, 23px 19px, 31px 29px; animation: magic-glitter var(--magic-speed) linear infinite alternate; }
 .magic-glitter::after { inset: -100%; opacity: calc(var(--magic-power) * .35); background: linear-gradient(110deg, transparent 35%, #ffffffb0 50%, transparent 65%); animation: magic-shimmer var(--magic-speed) ease-in-out infinite; }
@@ -366,6 +368,8 @@ iframe { display: block; border: 0; }
 .archived-account { filter: grayscale(.85); opacity: .62; }
 .archived-account:hover { opacity: .95; }
 .profile-heading, .profile-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 18px; }
+.profile-action.membership-action { margin-left: auto; color: #115370; background: #d9f1fb; border-color: #87cfe4; }
+.profile-action.membership-action:hover { background: #c2e8f6; border-color: #5ab6d2; }
 .infoboxes:has(+ .user-profile) { min-height: 0; margin-bottom: 18px; }
 .profile-heading h1 { font-size: 28px; margin-right: auto; }
 .profile-balance { padding: 12px 18px; border-radius: 8px; color: #285e49; background: #e2f0e8; font-family: ui-monospace,monospace; font-weight: 700; }
@@ -400,6 +404,8 @@ body.dark-mode { --ink: #e1eaf3; --muted: #a4b6c9; --line: #3a4b60; --panel: #19
 .dark-mode .command-section, .dark-mode .purchase-row, .dark-mode .audio-volume-card, .dark-mode .mylines, .dark-mode .lines, .dark-mode .infoboxes .Userline { color: #e1eaf3; background-color: #233448; border-color: #40546a; }
 .dark-mode .command-section h2, .dark-mode .audio-volume-label, .dark-mode .audio-volume-value, .dark-mode .audio-status { color: #b8cee3; }
 .dark-mode .command-tab, .dark-mode .archive-tab, .dark-mode .profile-action, .dark-mode .setting-toggle { color: #d9e5ef; background: #26394d; border-color: #445d73; }
+.dark-mode .membership-action { color: #b8eaf9; background: #164459; border-color: #3b88a6; }
+.dark-mode .membership-action:hover { background: #1d536a; border-color: #62a8c1; }
 .dark-mode .command-tab.selected, .dark-mode .archive-tab.selected { background: #365675; border-color: #8eafcd; }
 .dark-mode .setting-toggle[aria-checked="true"] { background: #214b3d; border-color: #76aa8f; }
 .dark-mode .setting-toggle[aria-checked="true"] .setting-state { background: #76be99; color: #102f22; }

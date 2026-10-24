@@ -118,7 +118,17 @@ def validate_theme(value):
         "version": 1,
         "background": {
             "kind": choice(
-                background["kind"], {"solid", "gradient", "glitter", "plasma"}
+                background["kind"],
+                {
+                    "solid",
+                    "gradient",
+                    "glitter",
+                    "plasma",
+                    "shader-lights",
+                    "shader-snow",
+                    "shader-cubes",
+                    "shader-synthwave",
+                },
             ),
             "color": color(background["color"]),
             "gradient": gradient(background["gradient"]),

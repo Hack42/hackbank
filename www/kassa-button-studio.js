@@ -3,7 +3,7 @@
   function create(options) {
     var styles=window.HackBankButtonStyles;
     var dialog=null, profile=null, draft=null, current=null, pending=null, timeout=null;
-    var editor, currentSlot, newSlot, status, save, retry, tabs, controls, returnFocus;
+    var editor, currentSlot, newSlot, status, save, retry, tabs, controls, returnFocus, shaderNote;
     var selectedTab='Background', ready=false, processing=false, dirty=false, generation=0;
 
     function el(tag,className,text) {
@@ -17,14 +17,27 @@
     }
     function hint(text) { return el('p','studio-hint',text); }
     function message(text) { if(status) status.textContent=text; }
+    function shaderStatus() {
+      if(!shaderNote) return;
+      var renderer=window.HackBankButtonShaders, state=renderer ? renderer.status(draft.background.kind) : 'unavailable';
+      shaderNote.hidden=!['unavailable','lost'].includes(state) && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      shaderNote.textContent=['unavailable','lost'].includes(state)
+        ? 'Animation is unavailable here. Your colour gradient is still shown, and you can keep designing.'
+        : (window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ? 'Reduced motion is on. These scenes keep a still preview.'
+          : '');
+      shaderNote.classList.toggle('studio-shader-fallback',['unavailable','lost'].includes(state));
+    }
     function refreshButtons() {
       save.disabled=!ready || !!pending || processing;
       controls.disabled=!!pending || processing;
       retry.hidden=ready || !!pending;
     }
     function preview() {
-      newSlot.textContent='';
-      newSlot.appendChild(styles.preview(profile.user,profile.amount,!dirty && !options.getTheme(profile.user) ? null : draft));
+      var design=!dirty && !options.getTheme(profile.user) ? null : draft;
+      var button=newSlot.querySelector('.magic-preview');
+      if(button) styles.apply(button,profile.user,design);
+      else newSlot.appendChild(styles.preview(profile.user,profile.amount,design));
     }
     function changed() {
       dirty=true; preview(); message('Looking magical. Save when you’re happy!');
@@ -104,30 +117,56 @@
       parent.appendChild(section);
     }
     function backgroundPanel() {
-      editor.appendChild(el('h2','','Pick your kind of magic'));
-      var presets=el('div','studio-presets');
-      styles.presets.forEach(function(preset,index) {
-        var tile=button('', 'studio-preset',function() {
-          var next=styles.preset(index); draft.background=next.background; draft.text.color=next.text.color;
-          renderEditor(); changed();
+      var settings=editor.querySelector('.studio-background-settings');
+      if(!settings) {
+        editor.appendChild(el('h2','','Pick your kind of magic'));
+        var presets=el('div','studio-presets');
+        presets.setAttribute('aria-label','Background presets');
+        styles.presets.forEach(function(preset,index) {
+          var shader=preset.kind.startsWith('shader-');
+          var tile=button('', 'studio-preset',function() {
+            var next=styles.preset(index); draft.background=next.background; draft.text.color=next.text.color;
+            if(shader && !draft.text.backdrop) draft.text.backdrop=next.text.backdrop;
+            renderEditor(); changed();
+          });
+          tile.dataset.preset=index;
+          var swatch=el('span','studio-swatch',shader ? '' : preset.emoji);
+          swatch.setAttribute('aria-hidden','true');
+          var design=styles.preset(index);
+          swatch.style.background=design.background.kind === 'solid' ? design.background.color : styles.cssGradient(design.background.gradient);
+          if(shader && window.HackBankButtonShaders) window.HackBankButtonShaders.attach(swatch,design.background,profile.user);
+          tile.appendChild(swatch); tile.appendChild(el('span','',preset.name)); presets.appendChild(tile);
         });
-        var swatch=el('span','studio-swatch',preset.emoji);
-        swatch.setAttribute('aria-hidden','true');
-        var design=styles.preset(index);
-        swatch.style.background=design.background.kind === 'solid' ? design.background.color : styles.cssGradient(design.background.gradient);
-        tile.appendChild(swatch); tile.appendChild(el('span','',preset.name)); presets.appendChild(tile);
+        editor.appendChild(presets);
+        shaderNote=hint(''); shaderNote.setAttribute('role','status'); editor.appendChild(shaderNote);
+        settings=el('div','studio-background-settings'); editor.appendChild(settings);
+      }
+      settings.textContent='';
+      editor.querySelectorAll('.studio-preset').forEach(function(tile) {
+        var background=styles.preset(Number(tile.dataset.preset)).background;
+        tile.setAttribute('aria-pressed',String(background.kind === draft.background.kind && JSON.stringify(background.gradient) === JSON.stringify(draft.background.gradient) && background.color === draft.background.color));
       });
-      editor.appendChild(presets);
-      select(editor,'Background style',draft.background.kind,{solid:'Solid paint',gradient:'Colour gradient',glitter:'Glitter ✨',plasma:'Plasma 🪐'},function(kind) {
+      shaderStatus();
+      select(settings,'Background style',draft.background.kind,{solid:'Solid paint',gradient:'Colour gradient',glitter:'Glitter ✨',plasma:'Plasma 🪐',
+        'shader-lights':'Five lights','shader-snow':'Snow','shader-cubes':'Cubes','shader-synthwave':'Synthwave'},function(kind) {
         draft.background.kind=kind; renderEditor();
       });
-      if(draft.background.kind === 'solid') color(editor,'Background',draft.background.color,function(value) { draft.background.color=value; });
-      else gradient(editor,draft.background.gradient,'Background gradient');
-      if(['glitter','plasma'].includes(draft.background.kind)) {
+      var shader=draft.background.kind.startsWith('shader-');
+      if(draft.background.kind === 'solid') color(settings,'Background',draft.background.color,function(value) { draft.background.color=value; });
+      else if(shader && window.HackBankButtonShaders) {
+        var palette=el('section','studio-gradient'); palette.appendChild(el('h3','','Scene colours'));
+        window.HackBankButtonShaders.palette(draft.background).filter(function(stop,index,all) { return all.indexOf(stop) === index; }).forEach(function(stop,index) {
+          color(palette,'Scene colour '+(index+1),stop.color,function(value) { stop.color=value; });
+        });
+        palette.appendChild(hint('Your palette also becomes the still background when animation is unavailable.'));
+        settings.appendChild(palette);
+      }
+      else gradient(settings,draft.background.gradient,'Background gradient');
+      if(shader || ['glitter','plasma'].includes(draft.background.kind)) {
         var row=el('div','studio-field-grid');
         range(row,'Effect cycle',draft.background.speed,2,60,'sec',function(value) { draft.background.speed=value; });
         range(row,'Magic intensity',draft.background.intensity,0,100,'%',function(value) { draft.background.intensity=value; });
-        editor.appendChild(row); editor.appendChild(hint('Longer cycles move more slowly. All the sparkles stay inside your button.'));
+        settings.appendChild(row); settings.appendChild(hint('Longer cycles move more slowly. All the sparkles stay inside your button.'));
       }
     }
     function textPanel() {
@@ -212,7 +251,10 @@
       editor.appendChild(hint('Rotation: 0 is still. Larger numbers give a slower spin.'));
     }
     function renderEditor() {
-      editor.textContent=''; editor.scrollTop=0;
+      if(selectedTab !== 'Background' || !editor.querySelector('.studio-background-settings')) {
+        shaderNote=null;
+        editor.textContent=''; editor.scrollTop=0;
+      }
       tabs.forEach(function(tab) { tab.setAttribute('aria-selected',String(tab.dataset.tab === selectedTab)); });
       editor.setAttribute('aria-labelledby','Studio-tab-'+selectedTab);
       if(selectedTab === 'Background') backgroundPanel();
@@ -223,6 +265,7 @@
       if(pending && pending.action === 'save') { message('Saving your magic. Just a moment…'); return; }
       ++generation; processing=false;
       window.clearTimeout(timeout); pending=null;
+      document.removeEventListener('buttonshaderstatus',shaderStatus); shaderNote=null;
       var previous=dialog; dialog=null;
       previous.close(); previous.remove();
       if(returnFocus && returnFocus.isConnected) returnFocus.focus();
@@ -264,6 +307,7 @@
     }
     function open(userProfile) {
       if(dialog) return;
+      document.addEventListener('buttonshaderstatus',shaderStatus);
       profile=userProfile; selectedTab='Background'; dirty=false; ready=false;
       returnFocus=document.activeElement;
       current=styles.copy(options.getTheme(profile.user) || styles.defaults(profile.user)); draft=styles.copy(current);

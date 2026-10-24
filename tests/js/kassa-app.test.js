@@ -655,6 +655,7 @@ test("profile membership actions send the existing command for the selected user
     const action=findFirst(elements.MainButtons,".membership-action");
     assert.equal(action.textContent,scenario.label);
     assert.equal(findAll(elements.MainButtons,".membership-action").length,1);
+    assert.equal(findFirst(elements.MainButtons,".profile-actions").children.at(-1),action);
     action.eventListeners.click();
     assert.equal(fetchCalls.length,2);
     const params=new URLSearchParams(fetchCalls[1].options.body);

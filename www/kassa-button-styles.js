@@ -19,6 +19,10 @@
     {name:'Sunset',emoji:'🌅',kind:'gradient',colors:['#fead63','#ee6f98','#7c5bd4'],text:'#ffffff'},
     {name:'Blue & yellow',emoji:'💙',kind:'gradient',colors:['#0057b7','#0057b7','#ffd700','#ffd700'],text:'#ffffff'},
     {name:'Fresh paint',emoji:'🎨',kind:'solid',colors:['#6088b0','#9bb9d7'],text:'#ffffff'},
+    {name:'Five lights',emoji:'💡',kind:'shader-lights',colors:['#18183c','#ed548a','#6fddd5'],text:'#ffffff',speed:40},
+    {name:'Snow',emoji:'❄️',kind:'shader-snow',colors:['#102d48','#416c9b','#e9f6ff'],text:'#ffffff',speed:32},
+    {name:'Cubes',emoji:'🧊',kind:'shader-cubes',colors:['#182742','#448eab','#a9d5e2'],text:'#ffffff',speed:44},
+    {name:'Synthwave',emoji:'🌴',kind:'shader-synthwave',colors:['#201136','#d749a1','#ffc07b'],text:'#ffffff',speed:40},
   ];
   function preset(index) {
     var definition=PRESETS[index];
@@ -27,6 +31,10 @@
     theme.background.color=definition.colors[0];
     theme.background.gradient=gradient(definition.colors,135);
     theme.text.color=definition.text;
+    if(definition.kind.startsWith('shader-')) {
+      theme.background.speed=definition.speed; theme.background.intensity=90;
+      theme.text.backdrop={color:'#100c26',opacity:65,padding:5,radius:5};
+    }
     if(index === 1) theme.text.backdrop={color:'#100c3d',opacity:80,padding:5,radius:5};
     if(index === 4) {
       theme.background.gradient={angle:180,stops:[{color:'#0057b7',position:0},{color:'#0057b7',position:50},{color:'#ffd700',position:50},{color:'#ffd700',position:100}]};
@@ -67,12 +75,13 @@
     var label=button.querySelector('.Buttontext');
     if(!label) return;
     button.appendChild(label);
-    button.querySelectorAll('.magic-layer, .magic-label, .magic-icon').forEach(function(element) { element.remove(); });
+    button.querySelectorAll('.magic-label, .magic-icon').forEach(function(element) { element.remove(); });
     button.classList.add('magic-button');
     button.classList.toggle('magic-neutral',!design && !['stitch','bugblue','anus','nino','jos'].includes(user.toLowerCase()));
     button.setAttribute('data-button-user',user);
     var background=theme.background;
-    var layer=node('span','magic-layer magic-'+background.kind);
+    var layer=button.querySelector('.magic-layer') || node('span','magic-layer');
+    layer.className='magic-layer magic-'+background.kind;
     layer.setAttribute('aria-hidden','true');
     layer.style.background=background.kind === 'solid' ? background.color : cssGradient(background.gradient);
     layer.style.setProperty('--magic-speed',background.speed+'s');
@@ -80,6 +89,7 @@
     background.gradient.stops.slice(0,3).forEach(function(stop,index) { layer.style.setProperty('--magic-color-'+index,stop.color); });
     if(background.gradient.stops.length < 3) layer.style.setProperty('--magic-color-2',background.gradient.stops[0].color);
     button.prepend(layer);
+    if(window.HackBankButtonShaders) window.HackBankButtonShaders.attach(layer,background,user);
     button.style.setProperty('--magic-ink',theme.text.color);
     button.style.setProperty('--magic-font',FONTS[theme.text.font] || FONTS.system);
     button.style.setProperty('--magic-size',theme.text.size+'px');

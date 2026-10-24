@@ -19,6 +19,7 @@ test("main index loads split kassa scripts in dependency order", () => {
     "kassa-sound-settings.js",
     "kassa-confetti.js",
     "kassa-preferences.js",
+    "kassa-button-shaders.js",
     "kassa-button-styles.js",
     "kassa-button-studio.js",
     "kassa-idle-focus.js",

@@ -19,7 +19,7 @@ function chromiumCommand() {
   });
 }
 
-function runChromium(command, url) {
+function runChromium(command, url, extraArgs=[]) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "kassa-chromium-"));
   try {
     return spawnSync(command, [
@@ -34,6 +34,7 @@ function runChromium(command, url) {
       "--allow-file-access-from-files",
       "--dump-dom",
       "--virtual-time-budget=3000",
+      ...extraArgs,
       url,
     ], {
       encoding: "utf8",
@@ -54,6 +55,36 @@ function skipIfChromiumSandboxed(t, result) {
 
 function scriptTag(scriptName) {
   return `<script src="file://${path.resolve(__dirname, "../../www", scriptName)}"></script>`;
+}
+
+for(const disabled of [false,true]) {
+  test(disabled ? 'shader buttons keep their gradient and labels when WebGL is unavailable' : 'ambient presets render distinct scenes through one shared WebGL context', (t)=>{
+    const command=chromiumCommand();
+    if(!command) { t.skip('Chromium is not available'); return; }
+    const url='file://'+path.resolve(__dirname,'../fixtures/button-shaders.html')+'?report'+(disabled ? '&disabled' : '');
+    const result=runChromium(command,url,['--enable-unsafe-swiftshader','--use-angle=swiftshader']);
+    if(skipIfChromiumSandboxed(t,result)) return;
+    assert.ifError(result.error);
+    assert.equal(result.status,0,result.stderr);
+    const match=result.stdout.match(/<pre id="smoke-result">([^<]+)<\/pre>/);
+    assert(match,result.stdout);
+    const data=JSON.parse(match[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));
+    assert.equal(data.contexts,1);
+    assert.equal(data.canvases,17);
+    assert.equal(data.labels,17);
+    assert.equal(data.fallback,true);
+    if(disabled) {
+      assert.equal(data.status,'unavailable');
+      assert(data.samples.every(sample=>sample.state==='fallback'));
+    } else {
+      assert.equal(data.status,'ready',result.stderr);
+      assert(data.samples.every(sample=>sample.state==='animated' && sample.bright>1000 && sample.width<=320 && sample.height<=128),JSON.stringify(data));
+      assert.equal(new Set(data.samples.map(sample=>sample.hash)).size,4);
+      assert.equal(new Set(data.seedSamples.slice(0,12).map(sample=>sample.hash)).size,12);
+      assert.equal(data.seedSamples.at(-1).hash,data.samples[0].hash);
+      assert.equal(data.preserved,true);
+    }
+  });
 }
 
 function writeKassaFixture(bodyScript) {
@@ -83,6 +114,7 @@ function writeKassaFixture(bodyScript) {
     ${scriptTag("kassa-stream.js")}
     ${scriptTag("kassa-audio.js")}
     ${scriptTag("kassa-sound-settings.js")}
+    ${scriptTag("kassa-button-shaders.js")}
     ${scriptTag("kassa-button-styles.js")}
     ${scriptTag("kassa-button-studio.js")}
     ${scriptTag("kassa-confetti.js")}
@@ -290,6 +322,13 @@ test("button studio previews locally, saves one user's design and cancels withou
           document.querySelector('.studio-launch').click(); await wait(30);
           var dialog=document.querySelector('.button-studio');
           var current=dialog.querySelector('.studio-current').innerHTML;
+          var presets=Array.from(dialog.querySelectorAll('.studio-presets .studio-preset'));
+          result.allPresetsTogether=presets.length===10 && !dialog.querySelector('.studio-ambient');
+          presets[6].click();
+          var previewCanvas=dialog.querySelector('.studio-new .magic-shader-canvas');
+          presets[7].click(); presets[8].click(); presets[9].click();
+          result.previewCanvasPreserved=previewCanvas===dialog.querySelector('.studio-new .magic-shader-canvas');
+          result.presetCanvasesPreserved=presets.every(function(tile,index) { return tile===dialog.querySelectorAll('.studio-presets .studio-preset')[index]; });
           dialog.querySelectorAll('.studio-preset')[0].click();
           var style=dialog.querySelector('select'); style.value='plasma'; style.dispatchEvent(new Event('change'));
           document.querySelector('#Studio-tab-Lettering').click();
@@ -331,6 +370,9 @@ test("button studio previews locally, saves one user's design and cancels withou
   const data=JSON.parse(match[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));
   assert.equal(data.error,undefined,JSON.stringify(data));
   assert.equal(data.currentUnchanged,true);
+  assert.equal(data.allPresetsTogether,true);
+  assert.equal(data.previewCanvasPreserved,true);
+  assert.equal(data.presetCanvasesPreserved,true);
   assert.equal(data.livePlasma,true);
   assert.equal(data.liveBackdrop,true);
   assert.equal(data.previewSize,'30px');

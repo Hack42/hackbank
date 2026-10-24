@@ -70,6 +70,31 @@ def test_designs_are_shared_survive_restart_and_keep_other_users(tmp_path, theme
     assert saved["stitch"]["background"]["color"] == "#6088b0"
 
 
+@pytest.mark.parametrize(
+    "kind", ["shader-lights", "shader-snow", "shader-cubes", "shader-synthwave"]
+)
+def test_ambient_shaders_survive_restart_without_changing_other_settings(
+    tmp_path, theme, kind
+):
+    theme["background"]["kind"] = kind
+    store = ButtonThemes(tmp_path / "buttons.json")
+    saved = store.save("stitch", theme)
+    assert ButtonThemes(store.path).all()["stitch"] == saved
+    assert saved["background"]["kind"] == kind
+    assert saved["text"]["rotation"] == theme["text"]["rotation"]
+    assert saved["icon"] == theme["icon"]
+
+
+def test_shader_choices_do_not_allow_uploaded_source_or_urls(theme):
+    theme["background"]["kind"] = "shader-https://example.test/demo"
+    with pytest.raises(ValueError):
+        validate_theme(theme)
+    theme["background"]["kind"] = "shader-snow"
+    theme["background"]["source"] = "void main() {}"
+    with pytest.raises(ValueError):
+        validate_theme(theme)
+
+
 def test_uploaded_icons_stay_in_runtime_data_and_do_not_need_a_public_file(
     tmp_path, theme
 ):
