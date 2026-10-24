@@ -240,7 +240,8 @@ settings and small PNG data URLs are accepted; no arbitrary CSS or remote
 image/font URLs are stored. No new external runtime dependencies are needed.
 
 Home Assistant and Music open directly in the left-hand iframe with rounded
-corners and no extra toolbar. Music uses the LAN sound-system interface at
+top corners, square bottom corners and no extra toolbar. Music uses the LAN
+sound-system interface at
 `http://192.168.142.157:3000/`.
 The [supplied Hack42 logo](https://johnkr.com/wp-content/uploads/sites/2/2015/12/Hack42.png)
 is already included as `www/images/Hack42.png` and is now displayed in the header.

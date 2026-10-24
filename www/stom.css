@@ -332,8 +332,10 @@ iframe { display: block; border: 0; }
 .NewSaldo { grid-column: 3 / 5; margin-top: 14px; color: #31634e; font-size: 20px; }
 .NewSaldo::before { content: "€ "; }
 .mylines, .lines { height: 100%; padding: 16px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: #425364; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; line-height: 1.8; }
-.embedded-screen { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; overflow: hidden; border-radius: 12px; background: #fff; }
-.embedded-screen iframe { flex: 1 1 0; width: 100%; min-height: 0; border-radius: inherit; }
+/* Clip once at the panel's inner top edge; a second rounded white surface
+   behind the iframe creates a pale fringe, particularly in dark mode. */
+.embedded-screen { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; overflow: hidden; border-radius: 11px 11px 0 0; background: var(--panel); }
+.embedded-screen iframe { flex: 1 1 0; width: 100%; min-height: 0; border-radius: 0; background: transparent; }
 
 @keyframes receipt-in { from { opacity: .3; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
 
