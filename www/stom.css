@@ -103,6 +103,8 @@ iframe { display: block; border: 0; }
 }
 .topknop:hover { color: #fff; background: #ffffff0c; border-color: #ffffff18; box-shadow: none; }
 .topknop.activetop { color: #1e2730; background: var(--accent); box-shadow: 0 3px 14px #ffbf6912; }
+.topknop.irc.activetop { color: #211307; background: #ff6600; box-shadow: none; }
+.topknop.spacecon.activetop { color: #082c3a; background: #18bcf2; box-shadow: none; }
 .topknop.abort { flex: .8 1 0; color: #f6a1a6; border-color: #dc69702b; background: #7b263226; }
 .topknop.abort:hover { color: #fff; border-color: #e17980; background: #8b3542; }
 .topknop.spacecon { flex-grow: 1.35; }
@@ -345,6 +347,7 @@ iframe { display: block; border: 0; }
 .category-icon { display: inline-block; margin-right: 7px; font-size: 17px; line-height: 1; letter-spacing: 0; vertical-align: middle; }
 .command-tab.selected, .archive-tab.selected { color: #1c3f59; border-color: #91adc2; background: #dce9f3; }
 .archive-tab:disabled { opacity: .5; cursor: default; }
+.archive-tab.archive { margin-left: auto; }
 .abort-all { background: #fff0f1; border-color: #edc9ce; color: #a33342; white-space: nowrap; }
 .command-sections { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; align-items: start; }
 .command-section { padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff; min-width: 0; }

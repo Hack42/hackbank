@@ -202,9 +202,9 @@ document.addEventListener("DOMContentLoaded", function() {
   function addArchiveTabs() {
     if(!accountSections) return;
     var top=document.getElementById('TopButtons');
-    var name=accountType === 'm' ? 'Members' : 'Other users';
+    var name=accountType === 'm' ? 'Members' : 'Guests';
     [[false,name],[true,name+' Archive']].forEach(function(item) {
-      var tab=createElement('button',{type:'button',class:'archive-tab'+(archivedAccounts === item[0] ? ' selected' : ''),text:item[1]+' ('+accountSections[item[0] ? 'archive' : 'active'].length+')', 'aria-pressed':String(archivedAccounts === item[0])});
+      var tab=createElement('button',{type:'button',class:'archive-tab'+(item[0] ? ' archive' : '')+(archivedAccounts === item[0] ? ' selected' : ''),text:item[1]+' ('+accountSections[item[0] ? 'archive' : 'active'].length+')', 'aria-pressed':String(archivedAccounts === item[0])});
       if(item[0] && (!activity || !activity.available)) { tab.disabled=true; tab.title='Archive unavailable until purchase history can be checked'; }
       tab.addEventListener('click',function() { makeAccountSections(accountType,item[0]); prependCashButton(); focus(); });
       if(item[0]) top.appendChild(tab);
@@ -373,7 +373,7 @@ document.addEventListener("DOMContentLoaded", function() {
     actions.appendChild(actionButton('Full user history','history '+profile.user));
     if(profile.user !== 'cash') {
       var isMember=typeof profile.is_member === 'boolean' ? profile.is_member : members.includes(profile.user);
-      actions.appendChild(actionButton(isMember ? 'Promote to non-member' : 'Promote to Member',
+      actions.appendChild(actionButton(isMember ? 'Promote to guest' : 'Promote to Member',
         (isMember ? 'delmember ' : 'addmember ')+profile.user,'profile-action membership-action'));
     }
     if(buttonStudio) {
@@ -1102,12 +1102,12 @@ document.addEventListener("DOMContentLoaded", function() {
 
   function buildLayout() {
     var header=createElement('header',{class: 'app-header row'});
-    var logoAbort=createElement('button',{id: 'LogoAbort', class: 'brand brand-abort col-auto', type: 'button', title: 'Reset current sale', 'aria-label': 'Hack42 HackBank — Reset current sale'});
+    var logoAbort=createElement('button',{id: 'LogoAbort', class: 'brand brand-abort col-auto', type: 'button', title: 'Reset current sale', 'aria-label': 'Lovelace Bar — Reset current sale'});
     appendChildren(logoAbort,[
       createElement('img',{class: 'brand-logo', src: 'images/Hack42.png', alt: 'Hack42 · Hackerspace Arnhem', width: '84', height: '56'}),
       appendChildren(createElement('span'), [
-        createElement('span',{class: 'brand-name', text: 'hackbank'}),
-        createElement('span',{class: 'brand-caption', text: 'HACK42 · BAR & DRINKS'}),
+        createElement('span',{class: 'brand-name', text: 'Lovelace Bar'}),
+        createElement('span',{class: 'brand-caption', text: 'Drinks @ Hack42'}),
       ]),
     ]);
     logoAbort.addEventListener('click',function() {
@@ -1136,15 +1136,14 @@ document.addEventListener("DOMContentLoaded", function() {
     screens.appendChild(createElement('div',{id: 'IRCwindow', class: 'embedded-screen'}));
     screens.appendChild(createElement('div',{id: 'spacewindow', class: 'embedded-screen'}));
     leftColumn.appendChild(screens);
-    leftColumn.appendChild(appendChildren(createElement('section',{class: 'activity', 'aria-label': 'Register activity'}), [
-      createElement('span',{class: 'activity-label', text: 'ACTIVITY'}),
+    leftColumn.appendChild(appendChildren(createElement('section',{class: 'activity', 'aria-label': 'Register history'}), [
+      createElement('span',{class: 'activity-label', text: 'HISTORY'}),
       createElement('div',{id: 'Log', role: 'log', 'aria-live': 'polite'}),
     ]));
     workspace.appendChild(leftColumn);
 
     var receiptPanel=createElement('aside',{class: 'receipt-panel col-auto', 'aria-label': 'Sale receipt'});
     receiptPanel.appendChild(appendChildren(createElement('div',{class: 'receipt-heading'}), [
-      createElement('span',{class: 'eyebrow', text: 'THE HACK42 BAR'}),
       createElement('h2',{text: 'On the tab'}),
       createElement('span',{class: 'receipt-currency', text: 'EUR'}),
     ]));
@@ -1157,7 +1156,7 @@ document.addEventListener("DOMContentLoaded", function() {
     receiptPanel.appendChild(createElement('div',{id: 'Totals', class: 'Totals', 'aria-label': 'Account totals', 'aria-live': 'polite'}));
     receiptPanel.appendChild(appendChildren(createElement('div',{class: 'receipt-footer'}), [
       createElement('span',{class: 'receipt-barcode', 'aria-hidden': 'true'}),
-      createElement('span',{text: 'HACK42 · HACK. SIP. REPEAT.'}),
+      createElement('span',{text: 'Eat. Drink. Hack. Repeat.'}),
     ]));
     workspace.appendChild(receiptPanel);
     appendTo('#body', workspace);
@@ -1187,9 +1186,9 @@ document.addEventListener("DOMContentLoaded", function() {
       spacecon: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/><path d="M9 21v-9h6v9"/>',
     };
     var buttons=[
-      ["Knopje Button topknop normal abort",'abort',"Abort"],
+      ["Knopje Button topknop normal abort",'abort',"Cancel"],
       ["Knopje Button topknop special",'members',"Members"],
-      ["Knopje Button topknop special",'otherusers',"Other Users"],
+      ["Knopje Button topknop special",'otherusers',"Guests"],
       ["Knopje Button topknop special",'products',"Products"],
       ["Knopje Button topknop special",'commands',"Commands"],
       ["Knopje Button topknop sounds",'sounds',"Sounds"],
@@ -1248,6 +1247,10 @@ document.addEventListener("DOMContentLoaded", function() {
   fillVisibleText(".Knopjetext:visible");
   bindButtonEvents();
   bindSearchInput();
+  if(window.HackBankIdleFocus) window.HackBankIdleFocus.watch({
+    getInput:searchInput,
+    isPaused:function() { return currentView === 'embedded'; },
+  });
   document.body.addEventListener('keydown', function(event) {
     if(event.target.id === 'Zoek' || (event.key !== 'Enter' && event.key !== ' ')) return;
     var button=event.target.closest && event.target.closest('.Knopje');

@@ -21,6 +21,7 @@ test("main index loads split kassa scripts in dependency order", () => {
     "kassa-preferences.js",
     "kassa-button-styles.js",
     "kassa-button-studio.js",
+    "kassa-idle-focus.js",
     "kassa-app.js",
   ]);
   assert(!html.includes('src="all.js"'));

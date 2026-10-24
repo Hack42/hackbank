@@ -87,6 +87,7 @@ function writeKassaFixture(bodyScript) {
     ${scriptTag("kassa-button-studio.js")}
     ${scriptTag("kassa-confetti.js")}
     ${scriptTag("kassa-preferences.js")}
+    ${scriptTag("kassa-idle-focus.js")}
     ${scriptTag("kassa-app.js")}
     <script>${bodyScript}</script>
   </head>

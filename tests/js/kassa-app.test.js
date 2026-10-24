@@ -318,6 +318,13 @@ test("kassa app builds the startup layout and opens a session stream", () => {
   assert.equal(String(fetchCalls[0].options.body), "topic=session%2Fbar%2Finput&msg=");
   assert.equal(elements.Zoek.placeholder, "Starting network communication");
   assert(textfillCalls.length > 0);
+  assert.equal(findFirst(elements.LogoAbort,'.brand-name').textContent,'Lovelace Bar');
+  assert.equal(findFirst(elements.LogoAbort,'.brand-caption').textContent,'Drinks @ Hack42');
+  assert.equal(findFirst(elements.LeftButtons,'#abort').children[0].textContent,'Cancel');
+  assert.equal(findFirst(elements.LeftButtons,'#otherusers').children[0].textContent,'Guests');
+  assert.equal(findFirst(elements.Log.parentElement,'.activity-label').textContent,'HISTORY');
+  assert.equal(findFirst(elements.Receipt2.parentElement,'.eyebrow'),null);
+  assert.equal(findFirst(elements.Receipt2.parentElement,'.receipt-footer').children.at(-1).textContent,'Eat. Drink. Hack. Repeat.');
 });
 
 test("kassa app wires Enter in the search input to post input and clear it", () => {
@@ -453,7 +460,7 @@ test("account pages use their own capacity and retain cash and amount controls",
     }});
     assert.deepEqual(findAll(elements.AccountList, ".Buttontext").map((el) => el.textContent), names.slice(66));
     assert.equal(findAll(elements.TopButtons, ".page").length, Math.ceil(125/capacity));
-    assert.equal(elements.TopButtons.children.at(-1).textContent, "Other users Archive (0)");
+    assert.equal(elements.TopButtons.children.at(-1).textContent, "Guests Archive (0)");
   });
 });
 
@@ -631,11 +638,11 @@ test("Music and Home Assistant open their LAN frames and switch cleanly", () => 
 
 test("profile membership actions send the existing command for the selected user", () => {
   const cases=[
-    {members:["Jos"],profile:{is_member:true},label:"Promote to non-member",command:"delmember Jos"},
+    {members:["Jos"],profile:{is_member:true},label:"Promote to guest",command:"delmember Jos"},
     {members:[],profile:{is_member:false},label:"Promote to Member",command:"addmember Jos"},
-    {members:["party"],profile:{is_member:true},label:"Promote to non-member",command:"delmember Jos"},
+    {members:["party"],profile:{is_member:true},label:"Promote to guest",command:"delmember Jos"},
     {members:["Jos"],profile:{is_member:false},label:"Promote to Member",command:"addmember Jos"},
-    {members:["Jos"],profile:{},label:"Promote to non-member",command:"delmember Jos"},
+    {members:["Jos"],profile:{},label:"Promote to guest",command:"delmember Jos"},
   ];
   cases.forEach((scenario) => {
     const {elements,eventSources,fetchCalls}=loadKassaApp();

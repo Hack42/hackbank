@@ -109,7 +109,17 @@ both update the filter; Tab still completes a unique match.
 Products and commands retain pages of up to 56 buttons (8×7) at 1920×1080,
 or 25 buttons on smaller screens. The command bar's Enter button submits the
 same command as pressing Enter on the keyboard.
-The larger Members/Other users buttons and page tabs support touch selection.
+After one minute without keyboard, pointer, touch, wheel or form activity, the
+command line regains focus if it has lost it. This preserves unsubmitted text,
+the current screen and receipt, and sends no command. Music, Home Assistant
+and open dialogs keep their focus; hidden or unfocused browser windows are
+left alone. Activity inside the cross-origin embedded pages cannot be observed
+by the bar, so their selected views are excluded until the user leaves them.
+
+The header identifies the venue as Lovelace Bar, with Drinks @ Hack42 below it.
+The log strip is labelled HISTORY and the receipt footer reads
+Eat. Drink. Hack. Repeat.
+The larger Members/Guests buttons and page tabs support touch selection.
 Commands are grouped into Products, Users, Sales, Wholesale, Market and Misc,
 with an Abort action and a Settings section. Category tabs and headings have
 emoji icons. All commands stacks the groups vertically, with four buttons per
@@ -140,7 +150,8 @@ let clicks through. The local canvas renderer stops when no particles remain;
 switching the setting off clears them immediately. Refunds, deposits, transfers
 and undo do not trigger the larger sale shower, and reconnecting does not replay it.
 
-Member and Other users lists end with an Archive tab after the page buttons.
+Members and Guests lists keep their Archive tab at the far right, after the
+page buttons, including when there are multiple pages.
 Archives list accounts whose last purchase is older than a year, in alphabetical order.
 New accounts with no purchase record use their last account update as a conservative fallback.
 A read-only index of
@@ -153,7 +164,7 @@ refunds and undo lines are excluded from purchase history.
 Clicking a user with an empty sale shows the balance and up to ten recent
 purchase line items, alongside OK, undo, restore, receipt and cash drawer controls.
 Every visit receives a fresh profile response, even when its data is unchanged.
-The user page also offers Promote to non-member or Promote to Member, using
+The user page also offers Promote to guest or Promote to Member, using
 the existing `delmember <user>` / `addmember <user>` commands. The action uses
 actual membership, including while party mode changes the visible member list.
 After checkout, the same view combines the transaction summary with the updated
@@ -243,6 +254,9 @@ Home Assistant and Music open directly in the left-hand iframe with rounded
 top corners, square bottom corners and no extra toolbar. Music uses the LAN
 sound-system interface at
 `http://192.168.142.157:3000/`.
+The selected Music tab matches Trollibox orange, while Home Assistant uses
+its [primary blue](https://contributors.home-assistant.io/design/foundations/color/).
+Both use dark text and icons for contrast.
 The [supplied Hack42 logo](https://johnkr.com/wp-content/uploads/sites/2/2015/12/Hack42.png)
 is already included as `www/images/Hack42.png` and is now displayed in the header.
 
