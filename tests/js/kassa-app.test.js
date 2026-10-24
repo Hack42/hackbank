@@ -597,8 +597,8 @@ test("the stitch account has no bundled character image and keeps its command", 
   assert.equal(String(fetchCalls[1].options.body), "topic=session%2Fmain%2Finput&msg=stitch");
 });
 
-test("Music is hidden and Home Assistant opens its frame and switches cleanly", () => {
-  const {body, elements} = loadKassaApp();
+test("Music and Home Assistant open their LAN frames and switch cleanly", () => {
+  const {body, elements, fetchCalls} = loadKassaApp();
   function clickMain(id) {
     body.eventListeners.click({
       target: {
@@ -609,16 +609,24 @@ test("Music is hidden and Home Assistant opens its frame and switches cleanly", 
     });
   }
 
-  assert.equal(findFirst(elements.LeftButtons, "#irc"), null);
+  assert.equal(findFirst(elements.LeftButtons, "#irc").children[0].textContent, "Music");
   assert.equal(findFirst(elements.LeftButtons, "#spacecon").children[0].textContent, "Home Assistant");
+  clickMain("irc");
+  assert.equal(elements.IRCwindow.children[1].src, "http://192.168.142.157:3000/");
+  assert.equal(elements.IRCwindow.children[1].title, "Music");
+  assert.equal(findAll(elements.IRCwindow, ".embed-note").length, 0);
   clickMain("spacecon");
   assert.equal(elements.spacewindow.children[1].src, "http://hass.space.hack42.nl:8123/home/overview");
   assert.equal(elements.spacewindow.children[1].title, "Home Assistant");
   assert.equal(findAll(elements.spacewindow, ".embed-note").length, 0);
   assert.equal(elements.IRCwindow.style.display, "none");
+  clickMain("irc");
+  assert.equal(elements.spacewindow.style.display, "none");
+  assert.equal(elements.IRCwindow.childElementCount, 2);
   clickMain("members");
   assert.equal(elements.spacewindow.style.display, "none");
-  assert.equal(elements.IRCwindow.childElementCount, 0);
+  assert.equal(elements.IRCwindow.style.display, "none");
+  assert.equal(fetchCalls.length, 1);
 });
 
 test("kassa app handles closed streams by scheduling one reconnect", () => {

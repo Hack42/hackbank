@@ -33,6 +33,7 @@ services:
       - ./purchase_history.py:/app/purchase_history.py:ro
       - ./pos_sound_settings.py:/app/pos_sound_settings.py:ro
       - ./button_themes.py:/app/button_themes.py:ro
+      - ./epc_payment.py:/app/epc_payment.py:ro
       - ./www/sounds:/app/www/sounds:ro
       - ./plugins:/app/plugins:ro
       - ./images:/app/images:ro

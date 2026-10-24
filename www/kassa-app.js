@@ -1037,9 +1037,10 @@ document.addEventListener("DOMContentLoaded", function() {
          focus();
          break;
       case 'irc':
+         currentView='embedded';
          activateTopButton(this.id);
          locked=0;
-         showEmbeddedScreen('#IRCwindow','YouTube','https://www.youtube.com/','If the page cannot be displayed here, open it in a new tab.');
+         showEmbeddedScreen('#IRCwindow','Music','http://192.168.142.157:3000/');
          break;
       case 'spacecon':
          currentView='embedded';
@@ -1192,6 +1193,7 @@ document.addEventListener("DOMContentLoaded", function() {
       ["Knopje Button topknop special",'products',"Products"],
       ["Knopje Button topknop special",'commands',"Commands"],
       ["Knopje Button topknop sounds",'sounds',"Sounds"],
+      ["Knopje Button topknop irc",'irc',"Music"],
       ["Knopje Button topknop spacecon",'spacecon',"Home Assistant"],
     ];
     buttons.forEach(function(button) {
