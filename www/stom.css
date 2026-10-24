@@ -332,14 +332,8 @@ iframe { display: block; border: 0; }
 .NewSaldo { grid-column: 3 / 5; margin-top: 14px; color: #31634e; font-size: 20px; }
 .NewSaldo::before { content: "€ "; }
 .mylines, .lines { height: 100%; padding: 16px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: #425364; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; line-height: 1.8; }
-.embedded-screen { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; overflow: hidden; background: #fff; }
-.embedded-screen iframe { flex: 1 1 0; width: 100%; min-height: 0; }
-.embed-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 14px 16px; border-bottom: 1px solid var(--line); background: #fcfdfd; font-size: 14px; }
-.embed-toolbar strong { margin-right: auto; }
-.embed-note { flex: 1; color: var(--muted); font-size: 12px; }
-.embed-toolbar a { padding: 8px 12px; border: 1px solid #d3dfd7; border-radius: 6px; background: #eef5f0; color: #285840; font-weight: 600; text-decoration: none; }
-.embed-toolbar a:hover { border-color: #7ea58b; background: #e1eee5; }
-.embed-toolbar a:focus-visible { outline: 3px solid #db860d; outline-offset: 2px; }
+.embedded-screen { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; overflow: hidden; border-radius: 12px; background: #fff; }
+.embedded-screen iframe { flex: 1 1 0; width: 100%; min-height: 0; border-radius: inherit; }
 
 @keyframes receipt-in { from { opacity: .3; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
 

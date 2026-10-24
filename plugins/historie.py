@@ -69,6 +69,7 @@ class historie:
         latest = undo.latest_for(user) if undo else None
         return {
             "user": user,
+            "is_member": user in self.master.accounts.members,
             "purchases": purchases,
             "history_available": purchase_index.available,
             "history_complete": purchase_index.complete,

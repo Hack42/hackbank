@@ -612,21 +612,48 @@ test("Music and Home Assistant open their LAN frames and switch cleanly", () => 
   assert.equal(findFirst(elements.LeftButtons, "#irc").children[0].textContent, "Music");
   assert.equal(findFirst(elements.LeftButtons, "#spacecon").children[0].textContent, "Home Assistant");
   clickMain("irc");
-  assert.equal(elements.IRCwindow.children[1].src, "http://192.168.142.157:3000/");
-  assert.equal(elements.IRCwindow.children[1].title, "Music");
-  assert.equal(findAll(elements.IRCwindow, ".embed-note").length, 0);
+  assert.equal(elements.IRCwindow.children[0].src, "http://192.168.142.157:3000/");
+  assert.equal(elements.IRCwindow.children[0].title, "Music");
+  assert.equal(elements.IRCwindow.childElementCount, 1);
   clickMain("spacecon");
-  assert.equal(elements.spacewindow.children[1].src, "http://hass.space.hack42.nl:8123/home/overview");
-  assert.equal(elements.spacewindow.children[1].title, "Home Assistant");
-  assert.equal(findAll(elements.spacewindow, ".embed-note").length, 0);
+  assert.equal(elements.spacewindow.children[0].src, "http://hass.space.hack42.nl:8123/home/overview");
+  assert.equal(elements.spacewindow.children[0].title, "Home Assistant");
+  assert.equal(elements.spacewindow.childElementCount, 1);
   assert.equal(elements.IRCwindow.style.display, "none");
   clickMain("irc");
   assert.equal(elements.spacewindow.style.display, "none");
-  assert.equal(elements.IRCwindow.childElementCount, 2);
+  assert.equal(elements.IRCwindow.childElementCount, 1);
   clickMain("members");
   assert.equal(elements.spacewindow.style.display, "none");
   assert.equal(elements.IRCwindow.style.display, "none");
   assert.equal(fetchCalls.length, 1);
+});
+
+test("profile membership actions send the existing command for the selected user", () => {
+  const cases=[
+    {members:["Jos"],profile:{is_member:true},label:"Promote to non-member",command:"delmember Jos"},
+    {members:[],profile:{is_member:false},label:"Promote to Member",command:"addmember Jos"},
+    {members:["party"],profile:{is_member:true},label:"Promote to non-member",command:"delmember Jos"},
+    {members:["Jos"],profile:{is_member:false},label:"Promote to Member",command:"addmember Jos"},
+    {members:["Jos"],profile:{},label:"Promote to non-member",command:"delmember Jos"},
+  ];
+  cases.forEach((scenario) => {
+    const {elements,eventSources,fetchCalls}=loadKassaApp();
+    function send(topic,value) {
+      eventSources[0].onmessage({data:JSON.stringify([`hack42bar/output/session/main/${topic}`,JSON.stringify(value)])});
+    }
+    send("members",scenario.members);
+    send("infobox/account",{user:"Jos",amount:12,purchases:[],history_available:true,...scenario.profile});
+    send("buttons",{special:"infobox"});
+    const action=findFirst(elements.MainButtons,".membership-action");
+    assert.equal(action.textContent,scenario.label);
+    assert.equal(findAll(elements.MainButtons,".membership-action").length,1);
+    action.eventListeners.click();
+    assert.equal(fetchCalls.length,2);
+    const params=new URLSearchParams(fetchCalls[1].options.body);
+    assert.equal(params.get("topic"),"session/main/input");
+    assert.equal(params.get("msg"),scenario.command);
+  });
 });
 
 test("kassa app handles closed streams by scheduling one reconnect", () => {

@@ -153,6 +153,9 @@ refunds and undo lines are excluded from purchase history.
 Clicking a user with an empty sale shows the balance and up to ten recent
 purchase line items, alongside OK, undo, restore, receipt and cash drawer controls.
 Every visit receives a fresh profile response, even when its data is unchanged.
+The user page also offers Promote to non-member or Promote to Member, using
+the existing `delmember <user>` / `addmember <user>` commands. The action uses
+actual membership, including while party mode changes the visible member list.
 After checkout, the same view combines the transaction summary with the updated
 profile and purchase history. Add again uses the current product price and only
 adds to the sale, leaving the normal account selection and checkout flow intact.
@@ -236,9 +239,9 @@ or change receipts, account names or balances. Only validated presentation
 settings and small PNG data URLs are accepted; no arbitrary CSS or remote
 image/font URLs are stored. No new external runtime dependencies are needed.
 
-The Home Assistant shortcut opens its page in the left-hand iframe, with a link
-to open it in a separate tab. Music opens the LAN sound-system interface at
-`http://192.168.142.157:3000/` in the same pane, with a link to open it separately.
+Home Assistant and Music open directly in the left-hand iframe with rounded
+corners and no extra toolbar. Music uses the LAN sound-system interface at
+`http://192.168.142.157:3000/`.
 The [supplied Hack42 logo](https://johnkr.com/wp-content/uploads/sites/2/2015/12/Hack42.png)
 is already included as `www/images/Hack42.png` and is now displayed in the header.
 

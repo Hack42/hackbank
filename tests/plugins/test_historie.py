@@ -75,6 +75,18 @@ class TestHistorie:
     def test_input_other(self):
         assert not self.historie.input("other")
 
+    def test_profile_reports_actual_membership_independently_of_party_visibility(self):
+        self.master_mock.products.products = {}
+        self.master_mock.plugins = {}
+        self.master_mock.accounts.members = ["Jos"]
+        self.master_mock.accounts.visible_members.return_value = ["party"]
+        index = Mock(available=True, complete=True)
+        index.recent.return_value = []
+        with patch.object(historie_module, "purchase_index", index):
+            assert self.historie.account_details("Jos")["is_member"] is True
+            assert self.historie.account_details("guest")["is_member"] is False
+        assert self.master_mock.accounts.members == ["Jos"]
+
     def test_checkout_refreshes_profile_and_celebrates_once_after_session_ends(self):
         self.master_mock.receipt.receipt = [
             {"Lose": True, "count": 1, "value": 2, "product": "cola"}

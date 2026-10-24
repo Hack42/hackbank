@@ -371,6 +371,11 @@ document.addEventListener("DOMContentLoaded", function() {
     screen.appendChild(heading);
     var actions=createElement('div',{class:'profile-actions'});
     actions.appendChild(actionButton('Full user history','history '+profile.user));
+    if(profile.user !== 'cash') {
+      var isMember=typeof profile.is_member === 'boolean' ? profile.is_member : members.includes(profile.user);
+      actions.appendChild(actionButton(isMember ? 'Promote to non-member' : 'Promote to Member',
+        (isMember ? 'delmember ' : 'addmember ')+profile.user,'profile-action membership-action'));
+    }
     if(buttonStudio) {
       var studioButton=createElement('button',{type:'button',class:'profile-action studio-launch',text:'✨ Button studio'});
       studioButton.addEventListener('click',function() { buttonStudio.open(profile); });
@@ -987,17 +992,12 @@ document.addEventListener("DOMContentLoaded", function() {
      focus();
   }
 
-  function showEmbeddedScreen(selector,title,url,hint) {
+  function showEmbeddedScreen(selector,title,url) {
     hideElement('#IRCwindow');
     hideElement('#spacewindow');
     showElement(selector);
     var screen=first(selector);
     if(screen.childElementCount !== 0) return;
-    var toolbar=createElement('div',{class: 'embed-toolbar'});
-    toolbar.appendChild(createElement('strong',{text: title}));
-    if(hint) toolbar.appendChild(createElement('span',{class: 'embed-note', text: hint}));
-    toolbar.appendChild(createElement('a',{href: url, target: '_blank', rel: 'noopener noreferrer', text: 'Open '+title+' ↗'}));
-    screen.appendChild(toolbar);
     screen.appendChild(createElement('iframe',{src: url, title: title, allow: 'autoplay; encrypted-media; picture-in-picture; fullscreen', allowfullscreen: ''}));
   }
 
