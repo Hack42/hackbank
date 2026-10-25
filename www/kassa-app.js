@@ -203,13 +203,20 @@ document.addEventListener("DOMContentLoaded", function() {
     if(!accountSections) return;
     var top=document.getElementById('TopButtons');
     var name=accountType === 'm' ? 'Members' : 'Guests';
+    var tools=createElement('div',{class:'account-display-tools'});
     [[false,name],[true,name+' Archive']].forEach(function(item) {
       var tab=createElement('button',{type:'button',class:'archive-tab'+(item[0] ? ' archive' : '')+(archivedAccounts === item[0] ? ' selected' : ''),text:item[1]+' ('+accountSections[item[0] ? 'archive' : 'active'].length+')', 'aria-pressed':String(archivedAccounts === item[0])});
       if(item[0] && (!activity || !activity.available)) { tab.disabled=true; tab.title='Archive unavailable until purchase history can be checked'; }
       tab.addEventListener('click',function() { makeAccountSections(accountType,item[0]); prependCashButton(); focus(); });
-      if(item[0]) top.appendChild(tab);
+      if(item[0]) tools.appendChild(tab);
       else top.prepend(tab);
     });
+    if(window.HackBankButtonStyles) {
+      var appearance=window.HackBankButtonStyles.toggleButton();
+      appearance.addEventListener('click',focus);
+      tools.appendChild(appearance);
+    }
+    top.appendChild(tools);
   }
   function build_receipt(msg) {
     var parts=JSON.parse(msg);
@@ -563,34 +570,51 @@ document.addEventListener("DOMContentLoaded", function() {
   function makeAccountList(accountButtons) {
     makepages('normal',accountButtons,true);
   }
+  function reuseAccountGrid(extraclass,buttons,capacity) {
+    if(!pagedButtons || !pagedButtons.accountList || pagedButtons.className !== extraclass || pagedButtons.capacity !== capacity) return null;
+    if(!allElements('#MainButtons #AccountList').length || buttons.length !== pagedButtons.buttons.length) return null;
+    var nodes=allElements('#MainButtons .account');
+    if(nodes.length !== buttons.length) return null;
+    var fields=['text','display','class','left','leftclass','hint','fill'];
+    if(!buttons.every(function(button,index) {
+      return fields.every(function(field) { return button[field] === pagedButtons.buttons[index][field]; });
+    })) return null;
+    return nodes;
+  }
   function makepages(extraclass,buttons,accountList) {
     stopAudio();
     if(!filtering) filterRestore=null;
     var capacity=buttonsPerPage(accountList);
+    var reused=accountList ? reuseAccountGrid(extraclass,buttons,capacity) : null;
+    var currentPage=allElements('#TopButtons .currentpage')[0];
+    var selectedPage=reused && currentPage ? currentPage.id : '1';
+    var previous=pagedButtons;
     pagedButtons={className: extraclass, buttons: buttons, capacity: capacity, accountList: !!accountList};
     var pagecount=1;
-    clearElement('#MainButtons');
+    if(!reused) {
+      clearElement('#MainButtons');
+      first('#MainButtons').scrollTop=0;
+    }
     clearElement('#TopButtons');
-    first('#MainButtons').scrollTop=0;
     var container='#MainButtons';
     var pageClass='Pagina';
     if(accountList) {
-      appendTo(container,createElement('div',{id: 'AccountList', role: 'group', 'aria-label': 'Accounts'}));
+      if(!reused) appendTo(container,createElement('div',{id: 'AccountList', role: 'group', 'aria-label': 'Accounts'}));
       container='#AccountList';
       pageClass+=' account-list';
     }
-    appendTo(container, createElement('div',{id: 'Page'+pagecount, class: pageClass}));
-    appendTo('#TopButtons', topButton("page currentpage",'1',"Page 1"));
+    if(!reused) appendTo(container, createElement('div',{id: 'Page'+pagecount, class: pageClass}));
+    appendTo('#TopButtons', topButton('page'+(selectedPage === '1' ? ' currentpage' : ''),'1',"Page 1"));
     var counter=0;
     var donewpage=0;
     var firstOnPage=1;
     var lastchar="";
-    buttons.forEach(function(stuff) {
+    buttons.forEach(function(stuff,index) {
       if(donewpage === 1) {
         appendToPageLabel(pagecount, ' - '+lastchar);
         pagecount++;
-        appendTo(container, createElement('div',{id: 'Page'+pagecount, class: pageClass, style: {display: 'none'}}));
-        appendTo('#TopButtons', topButton("page",String(pagecount),"Page "+pagecount));
+        if(!reused) appendTo(container, createElement('div',{id: 'Page'+pagecount, class: pageClass, style: {display: 'none'}}));
+        appendTo('#TopButtons', topButton('page'+(selectedPage === String(pagecount) ? ' currentpage' : ''),String(pagecount),"Page "+pagecount));
         counter=0;
         donewpage=0;
         firstOnPage=1;
@@ -600,7 +624,15 @@ document.addEventListener("DOMContentLoaded", function() {
         firstOnPage=0;
       }
       lastchar=stuff.display.charAt(0).toUpperCase();
-      appendTo('#Page'+pagecount, commandButton(extraclass,stuff));
+      if(reused) {
+        if(stuff.right !== previous.buttons[index].right || stuff.rightclass !== previous.buttons[index].rightclass) {
+          var balance=reused[index].querySelector('.right');
+          if(balance) {
+            balance.textContent=stuff.right;
+            balance.className='right extra '+(!stuff.left && stuff.fill ? ' fullwidthButton ' : '')+stuff.rightclass;
+          }
+        }
+      } else appendTo('#Page'+pagecount, commandButton(extraclass,stuff));
       counter++;
       if(counter>=capacity) {
         donewpage=1;
@@ -613,7 +645,7 @@ document.addEventListener("DOMContentLoaded", function() {
     } else {
       appendToPageLabel(pagecount, ' - '+lastchar);
       fillVisibleText(".Paginatext:visible");
-      allElements(".Pagina").forEach(function(page) {
+      if(!reused) allElements(".Pagina").forEach(function(page) {
         hideElements('.Pagina');
         page.style.display='';
         fillVisibleText(".Buttontext:visible");

@@ -1,4 +1,4 @@
-/* Original, texture-free ambient shaders. One WebGL context serves every button. */
+/* Ambient scenes and local shader adaptations share one WebGL context. */
 (function(window, document) {
   var WIDTH=320, HEIGHT=128, FRAME_MS=1000/24;
   var VERTEX='attribute vec2 position; varying vec2 uv; void main() { uv=position*.5+.5; gl_Position=vec4(position,0.,1.); }';
@@ -119,6 +119,7 @@
       }
     `,
   };
+  Object.assign(SCENES,window.HackBankExtraButtonShaders || {});
   var FOOTER='void main() { gl_FragColor=vec4(clamp(mix(palette(uv.y*.6+uv.x*.4),scene(),intensity),0.,1.),1.); }';
   var source=null, gl=null, programs={}, state='idle';
   var targets=new Map(), observer=null, sizes=null, mutations=null, observing=false;
@@ -199,8 +200,10 @@
   }
   function visibleTargets() {
     var dialog=document.querySelector('dialog[open]');
+    var quiet=document.body.classList.contains('button-styles-off');
     return Array.from(targets.values()).filter(function(target) {
-      return target.canvas.isConnected && target.visible && target.width && target.height && (!dialog || dialog.contains(target.canvas));
+      return target.canvas.isConnected && target.visible && target.width && target.height && (!dialog || dialog.contains(target.canvas))
+        && (!quiet || !target.canvas.closest('.magic-button') || target.canvas.closest('.magic-preview'));
     });
   }
   function schedule() {
@@ -254,6 +257,7 @@
       motion=window.matchMedia('(prefers-reduced-motion: reduce)');
       motion.addEventListener('change',function() { stop(); schedule(); document.dispatchEvent(new window.CustomEvent('buttonshaderstatus')); });
       document.addEventListener('visibilitychange',function() { stop(); if(!document.hidden) schedule(); });
+      document.addEventListener('buttonstyleschange',function() { stop(); schedule(); });
       if(window.IntersectionObserver) observer=new window.IntersectionObserver(function(entries) {
         entries.forEach(function(entry) {
           var target=targets.get(entry.target);

@@ -147,8 +147,9 @@
         tile.setAttribute('aria-pressed',String(background.kind === draft.background.kind && JSON.stringify(background.gradient) === JSON.stringify(draft.background.gradient) && background.color === draft.background.color));
       });
       shaderStatus();
-      select(settings,'Background style',draft.background.kind,{solid:'Solid paint',gradient:'Colour gradient',glitter:'Glitter ✨',plasma:'Plasma 🪐',
-        'shader-lights':'Five lights','shader-snow':'Snow','shader-cubes':'Cubes','shader-synthwave':'Synthwave'},function(kind) {
+      var choices={solid:'Solid paint',gradient:'Colour gradient',glitter:'Glitter ✨',plasma:'Plasma 🪐'};
+      styles.presets.forEach(function(preset) { if(preset.kind.startsWith('shader-')) choices[preset.kind]=preset.name; });
+      select(settings,'Background style',draft.background.kind,choices,function(kind) {
         draft.background.kind=kind; renderEditor();
       });
       var shader=draft.background.kind.startsWith('shader-');

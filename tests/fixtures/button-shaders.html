@@ -36,6 +36,11 @@
       return context;
     };
   </script>
+  <script src="../../www/shaders/wonderful.js"></script>
+  <script src="../../www/shaders/heartfelt.js"></script>
+  <script src="../../www/shaders/star-nest.js"></script>
+  <script src="../../www/shaders/clouds.js"></script>
+  <script src="../../www/shaders/universe-within.js"></script>
   <script src="../../www/kassa-button-shaders.js"></script>
   <script src="../../www/kassa-button-styles.js"></script>
 </head>
@@ -44,6 +49,7 @@
   <button id="plain">A normal button</button>
   <script>
     const definitions=HackBankButtonStyles.presets.map((p,i)=>({preset:p,index:i})).filter(p=>p.preset.kind.startsWith('shader-'));
+    shaderChecks.sceneCount=definitions.length;
     function addScene(definition,name) {
       const button=HackBankButtonStyles.preview(name,12.34,HackBankButtonStyles.preset(definition.index));
       document.getElementById('gallery').appendChild(button);
@@ -63,16 +69,16 @@
         return {state:canvas.dataset.shaderState,hash:hash,bright:bright,width:canvas.width,height:canvas.height};
     };
     shaderChecks.samples=function() {
-      return Array.from(document.querySelectorAll('#gallery .magic-shader-canvas')).slice(0,4).map(shaderChecks.sample);
+      return Array.from(document.querySelectorAll('#gallery .magic-shader-canvas')).slice(0,definitions.length).map(shaderChecks.sample);
     };
     if(location.search.includes('report')) {
       shaderChecks.addCopies(12);
       addScene(definitions[0],definitions[0].preset.name);
       setTimeout(()=>{
         const output=document.createElement('pre');output.id='smoke-result';
-        output.textContent=JSON.stringify({status:HackBankButtonShaders.status(),contexts:shaderChecks.contexts,
+        output.textContent=JSON.stringify({status:HackBankButtonShaders.status(),contexts:shaderChecks.contexts,sceneCount:definitions.length,
           samples:shaderChecks.samples(),canvases:document.querySelectorAll('.magic-shader-canvas').length,
-          seedSamples:Array.from(document.querySelectorAll('#gallery .magic-shader-canvas')).slice(4).map(shaderChecks.sample),
+          seedSamples:Array.from(document.querySelectorAll('#gallery .magic-shader-canvas')).slice(definitions.length).map(shaderChecks.sample),
           preserved:shaderChecks.gl && shaderChecks.gl.getContextAttributes().preserveDrawingBuffer,
           labels:document.querySelectorAll('.Buttontext').length,
           fallback:Array.from(document.querySelectorAll('.magic-layer')).every(el=>getComputedStyle(el).backgroundImage.includes('linear-gradient'))});

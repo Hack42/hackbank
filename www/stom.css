@@ -226,6 +226,16 @@ iframe { display: block; border: 0; }
 .magic-neutral .magic-layer { background: #e7edf3 !important; }
 .dark-mode .magic-neutral .magic-layer { background: #233448 !important; }
 .dark-mode .magic-neutral .Buttontext { color: #e1eaf3; }
+/* Quiet account lists keep every saved design intact; the studio previews it. */
+.button-styles-off .magic-button:not(.magic-preview) { color: #263e52; background: #e7edf3; }
+.button-styles-off .magic-button:not(.magic-preview) > .magic-layer,
+.button-styles-off .magic-button:not(.magic-preview) > .magic-icon,
+.button-styles-off .magic-button:not(.magic-preview) .magic-name::before { display: none; }
+.button-styles-off .magic-button:not(.magic-preview) .magic-angle { transform: none !important; }
+.button-styles-off .magic-button:not(.magic-preview) .magic-name { padding: 0; animation: none !important; }
+.button-styles-off .magic-button:not(.magic-preview) .Buttontext { color: #263e52 !important; background-image: none !important; font: 700 17px/1.15 system-ui, sans-serif !important; }
+.dark-mode.button-styles-off .magic-button:not(.magic-preview) { color: #e1eaf3; background: #233448; }
+.dark-mode.button-styles-off .magic-button:not(.magic-preview) .Buttontext { color: #e1eaf3 !important; }
 @keyframes magic-spin { to { transform: rotate(360deg); } }
 @keyframes magic-glitter { to { background-position: 47px 31px, -23px 41px, 31px -29px; } }
 @keyframes magic-shimmer { 0%, 20% { transform: translateX(-35%); } 80%, 100% { transform: translateX(35%); } }
@@ -350,6 +360,9 @@ iframe { display: block; border: 0; }
 .command-tab.selected, .archive-tab.selected { color: #1c3f59; border-color: #91adc2; background: #dce9f3; }
 .archive-tab:disabled { opacity: .5; cursor: default; }
 .archive-tab.archive { margin-left: auto; }
+.account-display-tools { display: flex; flex: 0 0 auto; align-items: stretch; gap: 8px; margin-left: auto; }
+.button-styles-toggle { flex: 0 0 56px; width: 56px; padding: 8px; font-size: 24px; }
+.button-styles-toggle[aria-pressed="false"] { color: #1c3f59; background: #dce9f3; border-color: #91adc2; }
 .abort-all { background: #fff0f1; border-color: #edc9ce; color: #a33342; white-space: nowrap; }
 .command-sections { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; align-items: start; }
 .command-section { padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff; min-width: 0; }

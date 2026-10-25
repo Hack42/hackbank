@@ -1,4 +1,36 @@
 (function(window, document) {
+  var STORAGE_KEY='hackbank-button-styles', enabled=true;
+  try { enabled=window.localStorage.getItem(STORAGE_KEY) !== 'off'; } catch(_error) { /* The toggle still works without storage. */ }
+  function updateToggle(button) {
+    button.textContent=enabled ? '😎' : '🙂';
+    button.setAttribute('aria-pressed',String(enabled));
+    button.title=enabled ? 'Hide button styles' : 'Show button styles';
+  }
+  function updateAppearance() {
+    if(document.body) document.body.classList.toggle('button-styles-off',!enabled);
+    if(document.querySelectorAll) document.querySelectorAll('.button-styles-toggle').forEach(updateToggle);
+  }
+  function announceAppearance() {
+    updateAppearance();
+    document.dispatchEvent(new window.CustomEvent('buttonstyleschange'));
+  }
+  function setEnabled(value) {
+    enabled=value !== false;
+    try { window.localStorage.setItem(STORAGE_KEY,enabled ? 'on' : 'off'); } catch(_error) { /* Keep the in-memory preference. */ }
+    announceAppearance();
+  }
+  function toggleButton() {
+    var button=node('button','archive-tab button-styles-toggle');
+    button.type='button';
+    button.setAttribute('aria-label','Button styles'); updateToggle(button);
+    button.addEventListener('click',function() { setEnabled(!enabled); });
+    return button;
+  }
+  if(document.addEventListener) document.addEventListener('DOMContentLoaded',updateAppearance);
+  if(window.addEventListener) window.addEventListener('storage',function(event) {
+    if(event.key !== STORAGE_KEY && event.key !== null) return;
+    enabled=event.newValue !== 'off'; announceAppearance();
+  });
   var FONTS={system:'system-ui, sans-serif',rounded:'"Arial Rounded MT Bold", "Trebuchet MS", sans-serif',
     comic:'"Comic Sans MS", "Comic Sans", cursive',mono:'ui-monospace, "Courier New", monospace',
     serif:'Georgia, "Times New Roman", serif',condensed:'Impact, "Arial Narrow", sans-serif'};
@@ -23,6 +55,11 @@
     {name:'Snow',emoji:'❄️',kind:'shader-snow',colors:['#102d48','#416c9b','#e9f6ff'],text:'#ffffff',speed:32},
     {name:'Cubes',emoji:'🧊',kind:'shader-cubes',colors:['#182742','#448eab','#a9d5e2'],text:'#ffffff',speed:44},
     {name:'Synthwave',emoji:'🌴',kind:'shader-synthwave',colors:['#201136','#d749a1','#ffc07b'],text:'#ffffff',speed:40},
+    {name:'Wonderful',emoji:'🔮',kind:'shader-wonderful',colors:['#c95bd8','#56e5d1','#ffb36c'],text:'#ffffff',speed:48},
+    {name:'Heartfelt',emoji:'💜',kind:'shader-heartfelt',colors:['#171c3b','#415d91','#ffc6a1'],text:'#ffffff',speed:48},
+    {name:'Star Nest',emoji:'🌌',kind:'shader-star-nest',colors:['#ff0000','#00ff00','#0000ff'],text:'#ffffff',speed:40},
+    {name:'2D Clouds',emoji:'☁️',kind:'shader-clouds',colors:['#336699','#66b3ff','#ffffe6'],text:'#ffffff',speed:36},
+    {name:'Universe Within',emoji:'🌠',kind:'shader-universe',colors:['#552d91','#6ccdee','#dfbdf2'],text:'#ffffff',speed:48},
   ];
   function preset(index) {
     var definition=PRESETS[index];
@@ -146,5 +183,6 @@
     apply(button,user,theme);
     return button;
   }
-  window.HackBankButtonStyles={apply:apply,preview:preview,defaults:defaults,copy:copy,gradient:gradient,cssGradient:cssGradient,preset:preset,presets:PRESETS,fonts:FONTS};
+  window.HackBankButtonStyles={apply:apply,preview:preview,defaults:defaults,copy:copy,gradient:gradient,cssGradient:cssGradient,preset:preset,presets:PRESETS,fonts:FONTS,
+    enabled:function() { return enabled; },setEnabled:setEnabled,toggleButton:toggleButton};
 })(window, document);

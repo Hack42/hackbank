@@ -214,6 +214,15 @@ Opening the page or receiving settings from another browser stays silent.
 Settings requests use a separate route so they cannot answer a pending POS
 question. The error alert retains its two repetitions for unrecognised input.
 
+The **😎 / 🙂** button sits immediately to the right of Members Archive or Guests
+Archive. It toggles personal button styling for this browser: off gives user
+buttons standard colours and lettering, hides custom icons and backdrops,
+and pauses their shader rendering. Names, balances and button actions still
+work normally. The preference survives reloads and follows other tabs in the
+same browser; saved user designs stay intact. Studio previews continue to
+show the designs while editing.
+Sunglasses mean styles are on; a normal smile means styles are off.
+
 The **Button studio** action on each user profile opens “Hack42 Magic Button
 Studio (tm)”. Current and draft buttons remain visible beside the editing
 tools. Backgrounds support solid paint, 2–6 gradient stops with percentages
@@ -227,17 +236,23 @@ letters. Older saved designs continue to load with the backdrop off.
 The native colour picker and six-digit hex fields work together.
 Large scroll buttons also work on the bar's touch screen without swipe gestures.
 
-**Pick your kind of magic** includes four animated shader presets alongside
-the other backgrounds: Five lights, Snow, Cubes and Synthwave.
+**Pick your kind of magic** includes nine animated shader presets alongside
+the other backgrounds: Five lights, Snow, Cubes, Synthwave, Wonderful,
+Heartfelt, Star Nest, 2D Clouds and Universe Within.
 Cubes rotate in a wave from bottom left to top right; Synthwave drives through
 a landscape of wireframe hills. Tap a sample or choose it under Background style, then
 adjust its scene colours, effect cycle (longer is slower) and intensity.
-These are original, texture-free shaders inspired by the supplied
+The first four are original, texture-free shaders inspired by the supplied
 [lights](https://glslsandbox.com/e#109700.0),
 [snow](https://glslsandbox.com/e#109692.0),
 [cubes](https://www.shadertoy.com/view/MdVXzw) and
-[synthwave](https://www.shadertoy.com/view/tsScRK) references; no demo code,
-remote assets or third-party shader libraries are shipped.
+[synthwave](https://www.shadertoy.com/view/tsScRK) references.
+The other five adapt the GLSL supplied by the user; their source credits,
+individual licence notices and adaptation details are in
+[`www/shaders/README.md`](www/shaders/README.md).
+Heartfelt uses a procedural palette backdrop instead of a missing image;
+Heartfelt and Universe Within run silently without audio inputs or long
+intro/outro blackouts. No remote assets or third-party runtime libraries load.
 
 The local WebGL 1 renderer shares one context across every button and preview,
 batches identical scenes for the same user, caps its internal image at 320 × 128 pixels and
@@ -252,6 +267,10 @@ preset move differently. Studio samples and the draft use the current user's
 seed. Selecting another preset keeps the gallery canvases and draft canvas
 alive; the small shared render buffer is preserved between copies to avoid
 empty frames on Firefox graphics backends.
+Repeated scan/selection updates retain an unchanged account grid and its page.
+Balances and debt colours update directly, preserving shader canvases, glitter,
+plasma, and text/icon rotations. Changed account sets or grid capacities still
+rebuild the list; contextual command controls update on every response.
 
 Upload a PNG, JPEG, WebP or GIF (up to 8 MB), drag it into the icon area, or
 paste an image with Ctrl+V / ⌘V while the dialog is focused. The browser crops

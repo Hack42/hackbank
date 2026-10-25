@@ -71,7 +71,18 @@ def test_designs_are_shared_survive_restart_and_keep_other_users(tmp_path, theme
 
 
 @pytest.mark.parametrize(
-    "kind", ["shader-lights", "shader-snow", "shader-cubes", "shader-synthwave"]
+    "kind",
+    [
+        "shader-lights",
+        "shader-snow",
+        "shader-cubes",
+        "shader-synthwave",
+        "shader-wonderful",
+        "shader-heartfelt",
+        "shader-star-nest",
+        "shader-clouds",
+        "shader-universe",
+    ],
 )
 def test_ambient_shaders_survive_restart_without_changing_other_settings(
     tmp_path, theme, kind

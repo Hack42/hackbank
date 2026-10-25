@@ -108,9 +108,9 @@ function makeElement(tag, register) {
 }
 
 function matchesSelector(element, selector) {
-  if(!element.className) return false;
   const cleanSelector = selector.replace(":visible", "");
   if(cleanSelector.startsWith("#")) return element.id === cleanSelector.slice(1);
+  if(!element.className) return false;
   if(cleanSelector.startsWith(".")) {
     return element.className.split(/\s+/).includes(cleanSelector.slice(1));
   }
@@ -435,7 +435,7 @@ test("account pages use their own capacity and retain cash and amount controls",
     send("members", names.slice(0, 66));
     send("nonmembers", names.slice(66));
     send("buttons", {special: "accounts"});
-    assert.equal(elements.TopButtons.children.at(-1).textContent, "Members Archive (0)");
+    assert.equal(findFirst(elements.TopButtons.children.at(-1),'.archive').textContent, "Members Archive (0)");
     send("buttons", {special: "accountsamount"});
 
     assert.equal(findAll(elements.AccountList, ".account").length, 66);
@@ -460,8 +460,49 @@ test("account pages use their own capacity and retain cash and amount controls",
     }});
     assert.deepEqual(findAll(elements.AccountList, ".Buttontext").map((el) => el.textContent), names.slice(66));
     assert.equal(findAll(elements.TopButtons, ".page").length, Math.ceil(125/capacity));
-    assert.equal(elements.TopButtons.children.at(-1).textContent, "Guests Archive (0)");
+    assert.equal(findFirst(elements.TopButtons.children.at(-1),'.archive').textContent, "Guests Archive (0)");
   });
+});
+
+test('scan updates retain the account grid and refresh balances and workflow controls',()=>{
+  const {elements,eventSources}=loadKassaApp();
+  const send=(topic,value)=>eventSources[0].onmessage({data:JSON.stringify([`hack42bar/output/session/main/${topic}`,JSON.stringify(value)])});
+  send('accounts/Alice',{amount:10});send('accounts/Bob',{amount:20});
+  send('members',['Alice','Bob']);send('buttons',{special:'accounts'});
+  const grid=elements.AccountList, alice=findFirst(grid,'#Alice'), bob=findFirst(grid,'#Bob');
+  send('receipt',[{description:'Club-Mate',count:1,Lose:true,total:2}]);
+  send('buttons',{special:'accounts'});
+  assert.equal(elements.AccountList,grid);
+  assert.equal(findFirst(grid,'#Alice'),alice);
+  assert.equal(findFirst(grid,'#Bob'),bob);
+  assert(findFirst(elements.TopButtons,'#cash'));
+  send('accounts/Bob',{amount:-20});
+  send('buttons',{special:'accountsamount'});
+  assert.equal(elements.AccountList,grid);
+  assert.equal(findFirst(grid,'#Bob'),bob);
+  assert.equal(findFirst(bob,'.right').textContent,'-20.00');
+  assert.match(findFirst(bob,'.right').className,/rood/);
+  assert(findFirst(elements.TopButtons,'#shownumbers'));
+  send('members',['Alice']);send('buttons',{special:'accounts'});
+  assert.notEqual(elements.AccountList,grid);
+  assert.equal(findAll(elements.AccountList,'.account').length,1);
+  assert.equal(findFirst(elements.TopButtons,'#shownumbers'),null);
+});
+
+test('an unchanged account grid keeps its selected page after another scan',()=>{
+  const {body,elements,eventSources}=loadKassaApp({accountCapacity:2});
+  const send=(topic,value)=>eventSources[0].onmessage({data:JSON.stringify([`hack42bar/output/session/main/${topic}`,JSON.stringify(value)])});
+  ['Alice','Bob','Charlie'].forEach(user=>send('accounts/'+user,{amount:10}));
+  send('members',['Alice','Bob','Charlie']);send('buttons',{special:'accounts'});
+  const grid=elements.AccountList, page=elements.Page2;
+  body.eventListeners.click({target:{closest(selector){return selector==='div.page' ? findFirst(elements.TopButtons,'#2') : null;}}});
+  assert.equal(page.style.display,'');
+  send('buttons',{special:'accounts'});
+  assert.equal(elements.AccountList,grid);
+  assert.equal(elements.Page2,page);
+  assert.equal(page.style.display,'');
+  assert.equal(elements.Page1.style.display,'none');
+  assert(findFirst(elements.TopButtons,'#2').classList.contains('currentpage'));
 });
 
 test("backspacing a user filter expands results and clearing restores the selection", () => {

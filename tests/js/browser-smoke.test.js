@@ -70,8 +70,9 @@ for(const disabled of [false,true]) {
     assert(match,result.stdout);
     const data=JSON.parse(match[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));
     assert.equal(data.contexts,1);
-    assert.equal(data.canvases,17);
-    assert.equal(data.labels,17);
+    assert.equal(data.sceneCount,9);
+    assert.equal(data.canvases,22);
+    assert.equal(data.labels,22);
     assert.equal(data.fallback,true);
     if(disabled) {
       assert.equal(data.status,'unavailable');
@@ -79,7 +80,7 @@ for(const disabled of [false,true]) {
     } else {
       assert.equal(data.status,'ready',result.stderr);
       assert(data.samples.every(sample=>sample.state==='animated' && sample.bright>1000 && sample.width<=320 && sample.height<=128),JSON.stringify(data));
-      assert.equal(new Set(data.samples.map(sample=>sample.hash)).size,4);
+      assert.equal(new Set(data.samples.map(sample=>sample.hash)).size,9);
       assert.equal(new Set(data.seedSamples.slice(0,12).map(sample=>sample.hash)).size,12);
       assert.equal(data.seedSamples.at(-1).hash,data.samples[0].hash);
       assert.equal(data.preserved,true);
@@ -114,6 +115,11 @@ function writeKassaFixture(bodyScript) {
     ${scriptTag("kassa-stream.js")}
     ${scriptTag("kassa-audio.js")}
     ${scriptTag("kassa-sound-settings.js")}
+    ${scriptTag("shaders/wonderful.js")}
+    ${scriptTag("shaders/heartfelt.js")}
+    ${scriptTag("shaders/star-nest.js")}
+    ${scriptTag("shaders/clouds.js")}
+    ${scriptTag("shaders/universe-within.js")}
     ${scriptTag("kassa-button-shaders.js")}
     ${scriptTag("kassa-button-styles.js")}
     ${scriptTag("kassa-button-studio.js")}
@@ -291,6 +297,55 @@ test("filtering keeps account cell sizes and backspace restores the previous vie
   assert.equal(data.hasCash, true);
 });
 
+test('sunglasses quiet both account lists without sending a command or changing saved styles', (t)=>{
+  const command=chromiumCommand();
+  if(!command){t.skip('Chromium is not available');return;}
+  const fixture=writeKassaFixture(`
+    window.addEventListener('DOMContentLoaded',function(){setTimeout(function(){
+      var result={};
+      try{
+        function send(topic,value){window.__eventSource.onmessage({data:JSON.stringify(['hack42bar/output/session/main/'+topic,JSON.stringify(value)])});}
+        send('accounts/BugBlue',{amount:-20});send('accounts/stitch',{amount:42});send('accounts/guest',{amount:1});
+        send('members',['BugBlue','stitch']);send('nonmembers',['guest']);send('buttons',{});
+        var account=document.querySelector('#AccountList #BugBlue'), before=account.getBoundingClientRect();
+        var original=account.innerHTML, input=document.getElementById('Zoek');input.value='unfinished command';
+        var posts=window.__fetchCalls.length;
+        var toggle=document.querySelector('.button-styles-toggle');
+        result.archiveThenToggle=toggle.previousElementSibling.classList.contains('archive');
+        toggle.click();
+        result.off=toggle.getAttribute('aria-pressed')==='false' && document.body.classList.contains('button-styles-off');
+        result.plain=getComputedStyle(account.querySelector('.magic-layer')).display==='none' && getComputedStyle(account.querySelector('.Buttontext')).fontSize==='17px';
+        result.draftKept=input.value==='unfinished command';
+        result.focus=input===document.activeElement;
+        var after=account.getBoundingClientRect();
+        result.sameSize=before.width===after.width && before.height===after.height;
+        result.balance=account.querySelector('.extra').textContent==='-20.00' && account.querySelector('.extra').classList.contains('rood');
+        document.body.classList.add('dark-mode');
+        result.darkInk=getComputedStyle(account.querySelector('.Buttontext')).color==='rgb(225, 234, 243)';
+        var preview=HackBankButtonStyles.preview('preview',42,HackBankButtonStyles.preset(0));
+        document.body.appendChild(preview);
+        result.studioShowsDesign=getComputedStyle(preview.querySelector('.magic-layer')).display!=='none';preview.remove();
+        document.getElementById('otherusers').click();
+        toggle=document.querySelector('.button-styles-toggle');
+        result.guestsOff=toggle.getAttribute('aria-pressed')==='false' && toggle.previousElementSibling.classList.contains('archive');
+        document.getElementById('members').click();
+        document.querySelector('.button-styles-toggle').click();
+        result.restored=!document.body.classList.contains('button-styles-off') && document.querySelector('#AccountList #BugBlue').innerHTML===original;
+        result.noCommand=window.__fetchCalls.length===posts;
+      }catch(error){result.error=String(error.stack);}
+      var output=document.createElement('pre');output.id='smoke-result';output.textContent=JSON.stringify(result);document.body.appendChild(output);
+    },0);});
+  `);
+  const result=runChromium(command,'file://'+fixture);
+  fs.unlinkSync(fixture);
+  if(skipIfChromiumSandboxed(t,result))return;
+  assert.ifError(result.error);assert.equal(result.status,0,result.stderr);
+  const match=result.stdout.match(/<pre id="smoke-result">([^<]+)<\/pre>/);assert(match,result.stdout);
+  const data=JSON.parse(match[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));
+  assert.equal(data.error,undefined,JSON.stringify(data));
+  Object.keys(data).forEach(key=>assert.equal(data[key],true,key+': '+JSON.stringify(data)));
+});
+
 test("button studio previews locally, saves one user's design and cancels without a POS command", (t) => {
   const command=chromiumCommand();
   if(!command) { t.skip("Chromium is not available"); return; }
@@ -323,7 +378,7 @@ test("button studio previews locally, saves one user's design and cancels withou
           var dialog=document.querySelector('.button-studio');
           var current=dialog.querySelector('.studio-current').innerHTML;
           var presets=Array.from(dialog.querySelectorAll('.studio-presets .studio-preset'));
-          result.allPresetsTogether=presets.length===10 && !dialog.querySelector('.studio-ambient');
+          result.allPresetsTogether=presets.length===15 && !dialog.querySelector('.studio-ambient');
           presets[6].click();
           var previewCanvas=dialog.querySelector('.studio-new .magic-shader-canvas');
           presets[7].click(); presets[8].click(); presets[9].click();
