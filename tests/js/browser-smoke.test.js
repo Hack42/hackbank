@@ -57,12 +57,16 @@ function scriptTag(scriptName) {
   return `<script src="file://${path.resolve(__dirname, "../../www", scriptName)}"></script>`;
 }
 
-for(const disabled of [false,true]) {
-  test(disabled ? 'shader buttons keep their gradient and labels when WebGL is unavailable' : 'ambient presets render distinct scenes through one shared WebGL context', (t)=>{
+for(const mode of ['animated','disabled','still']) {
+  const disabled=mode === 'disabled';
+  test(disabled ? 'shader buttons keep their gradient and labels when WebGL is unavailable' :
+    (mode === 'still' ? 'ambient presets render still scenes with reduced motion' : 'ambient presets render distinct scenes through one shared WebGL context'), (t)=>{
     const command=chromiumCommand();
     if(!command) { t.skip('Chromium is not available'); return; }
     const url='file://'+path.resolve(__dirname,'../fixtures/button-shaders.html')+'?report'+(disabled ? '&disabled' : '');
-    const result=runChromium(command,url,['--enable-unsafe-swiftshader','--use-angle=swiftshader']);
+    const flags=['--enable-unsafe-swiftshader','--use-angle=swiftshader'];
+    if(mode === 'still') flags.push('--force-prefers-reduced-motion');
+    const result=runChromium(command,url,flags);
     if(skipIfChromiumSandboxed(t,result)) return;
     assert.ifError(result.error);
     assert.equal(result.status,0,result.stderr);
@@ -70,17 +74,17 @@ for(const disabled of [false,true]) {
     assert(match,result.stdout);
     const data=JSON.parse(match[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));
     assert.equal(data.contexts,1);
-    assert.equal(data.sceneCount,9);
-    assert.equal(data.canvases,22);
-    assert.equal(data.labels,22);
+    assert.equal(data.sceneCount,10);
+    assert.equal(data.canvases,23);
+    assert.equal(data.labels,23);
     assert.equal(data.fallback,true);
     if(disabled) {
       assert.equal(data.status,'unavailable');
       assert(data.samples.every(sample=>sample.state==='fallback'));
     } else {
       assert.equal(data.status,'ready',result.stderr);
-      assert(data.samples.every(sample=>sample.state==='animated' && sample.bright>1000 && sample.width<=320 && sample.height<=128),JSON.stringify(data));
-      assert.equal(new Set(data.samples.map(sample=>sample.hash)).size,9);
+      assert(data.samples.every(sample=>sample.state===mode && sample.bright>1000 && sample.width<=320 && sample.height<=128),JSON.stringify(data));
+      assert.equal(new Set(data.samples.map(sample=>sample.hash)).size,10);
       assert.equal(new Set(data.seedSamples.slice(0,12).map(sample=>sample.hash)).size,12);
       assert.equal(data.seedSamples.at(-1).hash,data.samples[0].hash);
       assert.equal(data.preserved,true);
@@ -378,7 +382,7 @@ test("button studio previews locally, saves one user's design and cancels withou
           var dialog=document.querySelector('.button-studio');
           var current=dialog.querySelector('.studio-current').innerHTML;
           var presets=Array.from(dialog.querySelectorAll('.studio-presets .studio-preset'));
-          result.allPresetsTogether=presets.length===15 && !dialog.querySelector('.studio-ambient');
+          result.allPresetsTogether=presets.length===16 && !dialog.querySelector('.studio-ambient');
           presets[6].click();
           var previewCanvas=dialog.querySelector('.studio-new .magic-shader-canvas');
           presets[7].click(); presets[8].click(); presets[9].click();
@@ -438,6 +442,96 @@ test("button studio previews locally, saves one user's design and cancels withou
   assert.equal(data.bounded,true);
   assert.equal(data.cancelSilent,true);
   assert.equal(data.noFinancialCommands,true);
+});
+
+test('Matrix, Cyber and name cases preview, save and preserve original account commands', (t)=>{
+  const command=chromiumCommand();
+  if(!command) { t.skip('Chromium is not available'); return; }
+  const fixture=writeKassaFixture(`
+    window.addEventListener('DOMContentLoaded',function() { setTimeout(async function() {
+      var result={};
+      try {
+        function send(topic,value) { window.__eventSource.onmessage({data:JSON.stringify(['hack42bar/output/session/main/'+topic,JSON.stringify(value)])}); }
+        function wait(ms) { return new Promise(function(resolve) { setTimeout(resolve,ms); }); }
+        var saved=null, writes=[];
+        window.fetch=function(url,options) {
+          var params=new URLSearchParams(options.body);
+          writes.push({topic:params.get('topic'),message:params.get('msg')});
+          if(params.get('topic').endsWith('/button_studio')) {
+            var request=JSON.parse(params.get('msg'));
+            if(request.theme) saved=request.theme;
+            setTimeout(function() { send('button_studio',{request:request.request,ok:true,user:request.user,theme:saved}); },10);
+          }
+          return Promise.resolve({ok:true,json:function() { return Promise.resolve({done:1}); }});
+        };
+        send('accounts/BugBlue',{amount:-20}); send('accounts/stitch',{amount:10});
+        send('members',['BugBlue','stitch']); send('buttons',{});
+        var other=document.querySelector('#stitch').innerHTML;
+        function openStudio() {
+          send('infobox/account',{user:'BugBlue',amount:-20,purchases:[],history_available:true,undo_transaction:null});
+          send('buttons',{special:'infobox'}); document.querySelector('.studio-launch').click();
+        }
+        openStudio(); await wait(30);
+        var dialog=document.querySelector('.button-studio');
+        var current=dialog.querySelector('.studio-current').innerHTML;
+        function choose(title,value) {
+          var select=Array.from(dialog.querySelectorAll('select')).find(function(input) { return input.labels[0].textContent===title; });
+          select.value=value; select.dispatchEvent(new Event('change'));
+        }
+        function lettering() { return dialog.querySelector('.studio-new .Buttontext'); }
+        function matrix() { Array.from(dialog.querySelectorAll('.studio-preset')).find(function(tile) { return tile.textContent==='Matrix'; }).click(); }
+        matrix(); document.querySelector('#Studio-tab-Lettering').click();
+        choose('Font','cyber');
+        result.caseOptions=Array.from(dialog.querySelectorAll('select')).find(function(input) { return input.labels[0].textContent==='Name case'; }).options.length===8;
+        choose('Name case','uppercase'); result.uppercase=lettering().textContent==='BUGBLUE';
+        choose('Name case','snake'); result.wordDetection=lettering().textContent==='bug_blue';
+        choose('Name case','original'); result.original=lettering().textContent==='BugBlue';
+        choose('Name case','camel');
+        document.querySelector('#Studio-tab-Background').click(); matrix();
+        result.presetPreservesLettering=lettering().textContent==='bugBlue' && getComputedStyle(lettering()).fontFamily.includes('HackBank Cyber');
+        result.matrixPreview=!!dialog.querySelector('.studio-new .magic-shader-matrix');
+        result.currentUnchanged=current===dialog.querySelector('.studio-current').innerHTML;
+        var faces=await document.fonts.load('17px "HackBank Cyber"','BugBlue');
+        result.cyberLoaded=faces.length===1 && faces[0].status==='loaded';
+        dialog.querySelector('.studio-save').click(); await wait(900);
+        result.saved=saved.background.kind==='shader-matrix' && saved.text.font==='cyber' && saved.text.case==='camel';
+        document.querySelector('#members').click();
+        var account=document.querySelector('#BugBlue'), canvas=account.querySelector('canvas');
+        result.account=account.querySelector('.Buttontext').textContent==='bugBlue' && account.getAttribute('data-button-user')==='BugBlue';
+        HackBankButtonStyles.apply(account,'BugBlue',saved); HackBankButtonStyles.apply(account,'BugBlue',saved);
+        result.repeatedApply=account.querySelector('.Buttontext').textContent==='bugBlue' && account.querySelector('canvas')===canvas;
+        var toggle=document.querySelector('.button-styles-toggle'); toggle.click();
+        result.quietName=account.querySelector('.Buttontext').textContent==='BugBlue';
+        var preview=HackBankButtonStyles.preview('BugBlue',-20,saved); document.body.appendChild(preview);
+        result.quietPreview=preview.querySelector('.Buttontext').textContent==='bugBlue'; preview.remove();
+        toggle.click(); result.restoredName=account.querySelector('.Buttontext').textContent==='bugBlue';
+        result.otherUnchanged=document.querySelector('#stitch').innerHTML===other;
+        openStudio(); await wait(30); dialog=document.querySelector('.button-studio');
+        document.querySelector('#Studio-tab-Lettering').click();
+        result.reopened=lettering().textContent==='bugBlue';
+        choose('Name case','uppercase');
+        var posts=writes.length; dialog.querySelector('.studio-cancel').click();
+        document.querySelector('#members').click();
+        result.cancelled=writes.length===posts && document.querySelector('#BugBlue .Buttontext').textContent==='bugBlue';
+        var input=document.querySelector('#Zoek'); input.value='bugb'; input.dispatchEvent(new Event('input')); await wait(250);
+        result.filtered=!!document.querySelector('#AccountList #BugBlue');
+        input.dispatchEvent(new KeyboardEvent('keydown',{key:'Tab',keyCode:9,which:9,bubbles:true}));
+        result.completion=input.value==='BugBlue ';
+        result.editingSendsNoCommands=writes.every(function(write) { return write.topic.endsWith('/button_studio'); });
+        input.value=''; document.querySelector('#AccountList #BugBlue').click();
+        result.command=writes.at(-1).topic.endsWith('/input') && writes.at(-1).message==='BugBlue';
+      } catch(error) { result.error=String(error.stack); }
+      var output=document.createElement('pre'); output.id='smoke-result'; output.textContent=JSON.stringify(result); document.body.appendChild(output);
+    },0); });
+  `);
+  const result=runChromium(command,'file://'+fixture);
+  fs.unlinkSync(fixture);
+  if(skipIfChromiumSandboxed(t,result)) return;
+  assert.ifError(result.error); assert.equal(result.status,0,result.stderr);
+  const match=result.stdout.match(/<pre id="smoke-result">([^<]+)<\/pre>/); assert(match,result.stdout);
+  const data=JSON.parse(match[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));
+  assert.equal(data.error,undefined,JSON.stringify(data));
+  Object.keys(data).forEach(key=>assert.equal(data[key],true,key+': '+JSON.stringify(data)));
 });
 
 test("a completed deposit displays a native payment dialog and dismisses through OK", (t) => {

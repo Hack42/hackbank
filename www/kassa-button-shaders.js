@@ -18,6 +18,33 @@
     float hash(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
   `;
   var SCENES={
+    'shader-matrix':`
+      // Original texture-free code rain. Each small glyph is a grid of strokes.
+      float glyph(vec2 cell,vec2 point) {
+        vec2 pixel=floor(point*vec2(5.,7.));
+        float code=hash(cell+floor(time*2.));
+        float vertical=step(.52,hash(vec2(pixel.x,code*71.)));
+        float horizontal=step(.63,hash(vec2(pixel.y,code*113.)));
+        float stroke=max(vertical*step(1.,pixel.y)*step(pixel.y,5.),
+          horizontal*step(1.,pixel.x)*step(pixel.x,3.));
+        vec2 inset=fract(point*vec2(5.,7.));
+        return stroke*step(.12,inset.x)*step(inset.x,.88)*step(.12,inset.y)*step(inset.y,.88);
+      }
+      vec3 scene() {
+        vec2 grid=vec2(resolution.x/resolution.y*9.,9.);
+        vec2 p=vec2(uv.x,1.-uv.y)*grid;
+        vec2 cell=floor(p), point=fract(p);
+        float column=hash(vec2(cell.x,17.));
+        float period=15.+floor(column*12.);
+        float head=time*(2.2+column*2.8)+column*period;
+        float behind=mod(head-cell.y,period);
+        float trail=pow(max(0.,1.-behind/11.),1.6);
+        float tip=1.-smoothstep(0.,1.2,behind);
+        float ink=glyph(cell,point)*trail;
+        vec3 rain=mix(color1,color2,tip)*ink;
+        return color0*.4+rain+color1*trail*.045;
+      }
+    `,
     'shader-lights':`
       vec3 scene() {
         vec2 p=(uv-.5)*vec2(resolution.x/resolution.y,1.);

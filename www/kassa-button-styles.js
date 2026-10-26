@@ -8,7 +8,10 @@
   }
   function updateAppearance() {
     if(document.body) document.body.classList.toggle('button-styles-off',!enabled);
-    if(document.querySelectorAll) document.querySelectorAll('.button-styles-toggle').forEach(updateToggle);
+    if(document.querySelectorAll) {
+      document.querySelectorAll('.button-styles-toggle').forEach(updateToggle);
+      document.querySelectorAll('.magic-button').forEach(updateName);
+    }
   }
   function announceAppearance() {
     updateAppearance();
@@ -33,15 +36,40 @@
   });
   var FONTS={system:'system-ui, sans-serif',rounded:'"Arial Rounded MT Bold", "Trebuchet MS", sans-serif',
     comic:'"Comic Sans MS", "Comic Sans", cursive',mono:'ui-monospace, "Courier New", monospace',
-    serif:'Georgia, "Times New Roman", serif',condensed:'Impact, "Arial Narrow", sans-serif'};
+    serif:'Georgia, "Times New Roman", serif',condensed:'Impact, "Arial Narrow", sans-serif',
+    cyber:'"HackBank Cyber", ui-monospace, "Courier New", monospace'};
+  var CASES={original:'Original',uppercase:'UPPERCASE',lowercase:'lowercase',capitalize:'Capitalized Words',
+    camel:'camelCase',pascal:'PascalCase',snake:'snake_case',kebab:'kebab-case'};
   var SYMBOLS={key:'🔑',star:'★',bolt:'ϟ',heart:'♥',smile:'☺'};
+  function formatName(user,mode) {
+    if(mode === 'uppercase') return user.toUpperCase();
+    if(mode === 'lowercase') return user.toLowerCase();
+    if(!['capitalize','camel','pascal','snake','kebab'].includes(mode)) return user;
+    var words=user.replace(/(\p{Lu})(\p{Lu}\p{Ll})/gu,'$1 $2')
+      .replace(/(\p{Ll}\p{M}*|\p{Nd})(\p{Lu})/gu,'$1 $2').split(/[\s_-]+/u).filter(Boolean);
+    if(!words.length) return user;
+    words=words.map(function(word) { return word.toLowerCase(); });
+    if(mode === 'snake') return words.join('_');
+    if(mode === 'kebab') return words.join('-');
+    return words.map(function(word,index) {
+      if(mode === 'camel' && index === 0) return word;
+      var characters=Array.from(word);
+      return characters.shift().toUpperCase()+characters.join('');
+    }).join(mode === 'capitalize' ? ' ' : '');
+  }
+  function updateName(button) {
+    var label=button.querySelector('.Buttontext');
+    if(!label) return;
+    var mode=enabled || button.classList.contains('magic-preview') ? button.getAttribute('data-button-case') : 'original';
+    label.textContent=formatName(button.getAttribute('data-button-user'),mode);
+  }
   function copy(value) { return JSON.parse(JSON.stringify(value)); }
   function gradient(colors,angle) {
     return {angle:angle,stops:colors.map(function(color,index) { return {color:color,position:index*100/(colors.length-1)}; })};
   }
   function base() {
     return {version:1,background:{kind:'solid',color:'#e7edf3',gradient:gradient(['#7760db','#f080b5'],135),speed:24,intensity:65},
-      text:{color:'#263e52',gradient:null,size:17,font:'system',weight:700,angle:0,rotation:0,backdrop:null},
+      text:{color:'#263e52',gradient:null,size:17,font:'system',weight:700,angle:0,rotation:0,backdrop:null,case:'original'},
       icon:{kind:'none',image:'',size:36,rotation:0}};
   }
   var PRESETS=[
@@ -60,6 +88,7 @@
     {name:'Star Nest',emoji:'🌌',kind:'shader-star-nest',colors:['#ff0000','#00ff00','#0000ff'],text:'#ffffff',speed:40},
     {name:'2D Clouds',emoji:'☁️',kind:'shader-clouds',colors:['#336699','#66b3ff','#ffffe6'],text:'#ffffff',speed:36},
     {name:'Universe Within',emoji:'🌠',kind:'shader-universe',colors:['#552d91','#6ccdee','#dfbdf2'],text:'#ffffff',speed:48},
+    {name:'Matrix',emoji:'💻',kind:'shader-matrix',colors:['#000804','#008f3b','#b6ffd1'],text:'#ffffff',speed:24},
   ];
   function preset(index) {
     var definition=PRESETS[index];
@@ -70,7 +99,7 @@
     theme.text.color=definition.text;
     if(definition.kind.startsWith('shader-')) {
       theme.background.speed=definition.speed; theme.background.intensity=90;
-      theme.text.backdrop={color:'#100c26',opacity:65,padding:5,radius:5};
+      theme.text.backdrop={color:definition.kind === 'shader-matrix' ? '#001208' : '#100c26',opacity:65,padding:5,radius:5};
     }
     if(index === 1) theme.text.backdrop={color:'#100c3d',opacity:80,padding:5,radius:5};
     if(index === 4) {
@@ -116,6 +145,8 @@
     button.classList.add('magic-button');
     button.classList.toggle('magic-neutral',!design && !['stitch','bugblue','anus','nino','jos'].includes(user.toLowerCase()));
     button.setAttribute('data-button-user',user);
+    button.setAttribute('data-button-case',theme.text.case || 'original');
+    updateName(button);
     var background=theme.background;
     var layer=button.querySelector('.magic-layer') || node('span','magic-layer');
     layer.className='magic-layer magic-'+background.kind;
@@ -129,6 +160,7 @@
     if(window.HackBankButtonShaders) window.HackBankButtonShaders.attach(layer,background,user);
     button.style.setProperty('--magic-ink',theme.text.color);
     button.style.setProperty('--magic-font',FONTS[theme.text.font] || FONTS.system);
+    button.style.setProperty('--magic-synthesis',theme.text.font === 'cyber' ? 'weight' : 'none');
     button.style.setProperty('--magic-size',theme.text.size+'px');
     button.style.setProperty('--magic-weight',theme.text.weight);
     if(theme.icon.kind !== 'none') {
@@ -183,6 +215,6 @@
     apply(button,user,theme);
     return button;
   }
-  window.HackBankButtonStyles={apply:apply,preview:preview,defaults:defaults,copy:copy,gradient:gradient,cssGradient:cssGradient,preset:preset,presets:PRESETS,fonts:FONTS,
+  window.HackBankButtonStyles={apply:apply,preview:preview,defaults:defaults,copy:copy,gradient:gradient,cssGradient:cssGradient,preset:preset,presets:PRESETS,fonts:FONTS,cases:CASES,formatName:formatName,
     enabled:function() { return enabled; },setEnabled:setEnabled,toggleButton:toggleButton};
 })(window, document);

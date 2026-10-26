@@ -173,9 +173,10 @@
     function textPanel() {
       editor.appendChild(el('h2','','Give your name some personality'));
       var row=el('div','studio-field-grid');
-      select(row,'Font',draft.text.font,{system:'Clean & friendly',rounded:'Round & bouncy',comic:'Comic time',mono:'Terminal hacker',serif:'Storybook',condensed:'Big & bold'},function(value) { draft.text.font=value; });
+      select(row,'Font',draft.text.font,{system:'Clean & friendly',rounded:'Round & bouncy',comic:'Comic time',mono:'Terminal hacker',serif:'Storybook',condensed:'Big & bold',cyber:'Cyber'},function(value) { draft.text.font=value; });
       select(row,'Weight',String(draft.text.weight),{'400':'Regular','600':'Semibold','700':'Bold','900':'Extra bold'},function(value) { draft.text.weight=Number(value); });
       editor.appendChild(row);
+      select(editor,'Name case',draft.text.case || 'original',styles.cases,function(value) { draft.text.case=value; });
       range(editor,'Font size',draft.text.size,10,48,'px',function(value) { draft.text.size=value; });
       range(editor,'Text angle',draft.text.angle,0,360,'°',function(value) { draft.text.angle=value; });
       range(editor,'Text rotation',draft.text.rotation,0,60,'sec',function(value) { draft.text.rotation=value; });

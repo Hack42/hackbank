@@ -82,6 +82,7 @@ def test_designs_are_shared_survive_restart_and_keep_other_users(tmp_path, theme
         "shader-star-nest",
         "shader-clouds",
         "shader-universe",
+        "shader-matrix",
     ],
 )
 def test_ambient_shaders_survive_restart_without_changing_other_settings(
@@ -161,10 +162,47 @@ def test_older_saved_designs_load_without_rewriting_or_losing_their_settings(
     before = store.path.read_bytes()
     loaded = store.all()["stitch"]
     assert loaded["text"]["backdrop"] is None
+    assert loaded["text"]["case"] == "original"
     assert {
-        key: value for key, value in loaded["text"].items() if key != "backdrop"
+        key: value
+        for key, value in loaded["text"].items()
+        if key not in {"backdrop", "case"}
     } == theme["text"]
     assert store.path.read_bytes() == before
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "original",
+        "uppercase",
+        "lowercase",
+        "capitalize",
+        "camel",
+        "pascal",
+        "snake",
+        "kebab",
+    ],
+)
+def test_cyber_and_name_case_survive_restart_without_changing_the_username(
+    tmp_path, theme, case
+):
+    theme["background"]["kind"] = "shader-matrix"
+    theme["text"].update(font="cyber", case=case)
+    before = deepcopy(theme)
+    store = ButtonThemes(tmp_path / "buttons.json")
+    saved = store.save("BugBlue", theme)
+    assert ButtonThemes(store.path).all() == {"BugBlue": saved}
+    assert saved["text"]["font"] == "cyber"
+    assert saved["text"]["case"] == case
+    assert theme == before
+
+
+@pytest.mark.parametrize("case", ["title", "UPPERCASE", "", None, 42, {}, []])
+def test_unknown_name_cases_are_rejected(theme, case):
+    theme["text"]["case"] = case
+    with pytest.raises(ValueError):
+        validate_theme(theme)
 
 
 def test_backdrops_save_and_reload_with_gradient_and_rotating_text(tmp_path, theme):

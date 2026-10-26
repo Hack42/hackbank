@@ -12,7 +12,17 @@ import threading
 
 MAX_REQUEST = 160 * 1024
 MAX_ICON_BYTES = 96 * 1024
-FONTS = {"system", "rounded", "comic", "mono", "serif", "condensed"}
+FONTS = {"system", "rounded", "comic", "mono", "serif", "condensed", "cyber"}
+TEXT_CASES = {
+    "original",
+    "uppercase",
+    "lowercase",
+    "capitalize",
+    "camel",
+    "pascal",
+    "snake",
+    "kebab",
+}
 ICONS = {"none", "image", "key", "star", "bolt", "heart", "smile"}
 
 
@@ -104,11 +114,11 @@ def validate_theme(value):
     ):
         raise ValueError("Unknown button design version.")
     background = fields(value["background"], "kind color gradient speed intensity")
-    # Existing version-1 designs predate configurable label backdrops.
+    # Existing version-1 designs predate configurable label backdrops and casing.
     text = value["text"]
     if isinstance(text, dict):
-        text = {"backdrop": None, **text}
-    text = fields(text, "color gradient size font weight angle rotation backdrop")
+        text = {"backdrop": None, "case": "original", **text}
+    text = fields(text, "color gradient size font weight angle rotation backdrop case")
     icon = fields(value["icon"], "kind image size rotation")
     image = icon_image(icon["image"])
     kind = choice(icon["kind"], ICONS)
@@ -133,6 +143,7 @@ def validate_theme(value):
                     "shader-star-nest",
                     "shader-clouds",
                     "shader-universe",
+                    "shader-matrix",
                 },
             ),
             "color": color(background["color"]),
@@ -147,6 +158,7 @@ def validate_theme(value):
             ),
             "size": number(text["size"], 10, 48),
             "font": choice(text["font"], FONTS),
+            "case": choice(text["case"], TEXT_CASES),
             "weight": number(text["weight"], 400, 900),
             "angle": number(text["angle"], 0, 360),
             "rotation": number(text["rotation"], 0, 60),

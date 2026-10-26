@@ -1,0 +1,67 @@
+%
+% OCR A for MetaType1
+% Translated by Matthew Skala from METAFONT code, starting March 2011
+%
+% I, Matthew Skala, release my work on this to the public domain.  However,
+% the copyright notice below, from the METAFONT code I used as a source,
+% may be applicable.
+%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% METAFONT-84 Definition for OCR-A Optical Character Recognition Font
+% (C) Copyright 1988, 1989 Richard B. Wales.  All Rights Reserved.
+%
+% Coded by:
+%
+%	Richard B. Wales
+%	Computer Science Department
+%	University of California, Los Angeles (UCLA)
+%	Los Angeles, California 90024-1596 (USA)
+%	+1 (213) 825-5683
+%	wales@CS.UCLA.EDU
+%
+% Source of information:
+%
+%	ANSI Standard X3.17-1977 (approved January 20, 1977, by the
+%	American National Standards Institute, Inc.)
+%
+% Based on an earlier version by:
+%
+%	Tor Lillqvist
+%	Computing Services
+%	Technical Research Centre of Finland
+%	TML@FINGATE.BITNET; mcvax!santra!tml
+%
+% Terms of copyright:
+%
+%	You may do anything you wish with this font definition, as
+%	long as you retain the original copyright notice and credit
+%	information intact in the source, and do not charge any fee
+%	for distribution of either the source or any fonts derived
+%	from it beyond a reasonable copying or communications charge.
+%
+% Disclaimer:
+%
+%	While I have made every reasonable effort to make this font
+%	definition correspond to the specifications in ANSI Standard
+%	X3.17-1977, I do not guarantee that it conforms fully to all
+%	official requirements for the OCR-A font, nor that the char-
+%	acters produced from this definition will be usable by any
+%	particular OCR hardware and/or software.  It is the respon-
+%	sibility of the user to determine the usability of this font
+%	definition for his application.  Use of this font definition
+%	is totally at the user's own risk and without any warranty
+%	whatsoever, express or implied.  Neither the author nor his
+%	employer will be responsible for any damages, including
+%	secondary or consequential damages, arising out of the use of
+%	this font definition.
+%
+%	The four ASCII characters "Tilde", "Underline", "Grave Accent",
+%	and "Vertical Bar" do not appear as part of ANSI X3.17-1977.
+%	In order to make a complete ASCII character set, I supplemented
+%	the standard with my own designs for these four characters.
+%	Since these characters are not part of any standard, they will
+%	presumably *NOT* be readable by any existing OCR-A equipment.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

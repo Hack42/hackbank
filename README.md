@@ -96,7 +96,8 @@ in project-specific containers. The UI assets are mounted from `www`, so edits a
 Sample members, balances, products, and stock are seeded once in the ignored
 `dev/data` directory. This setup does not use production data or hardware;
 the door command targets the development broker and no printer is connected.
-All CSS, icons, and JavaScript are served locally, with no CDN or web fonts.
+All CSS, icons, fonts, and JavaScript are served locally, with no CDN or external
+font service.
 
 Member and user accounts use 84px-tall buttons, 50% taller than the original
 compact rows, with page tabs when needed. At 1920×1080 a page holds 42 accounts
@@ -228,17 +229,29 @@ Studio (tm)”. Current and draft buttons remain visible beside the editing
 tools. Backgrounds support solid paint, 2–6 gradient stops with percentages
 and a full 360° angle, glitter, and plasma. Effect speed and intensity are
 adjustable. Lettering has colour or a separate gradient, six system font
-stacks, size, weight, a fixed angle and optional continuous rotation. Icons
-can be built-in symbols or a personal image, with size and rotation controls.
+stacks and the bundled OCR-A font **Cyber**, size, weight, a fixed angle and
+optional continuous rotation. Icons can be built-in symbols or a personal image,
+with size and rotation controls.
 Lettering also has an optional label backdrop with its own colour, opacity,
 padding and corner rounding. It follows text rotation and supports gradient
-letters. Older saved designs continue to load with the backdrop off.
+letters. **Name case** offers Original, UPPERCASE, lowercase, Capitalized Words,
+camelCase, PascalCase, snake_case and kebab-case. Word-based styles recognise
+spaces, underscores, hyphens, camel-case and acronym boundaries: `BugBlue`
+becomes `bugBlue`, and `HTTPServer` becomes `httpServer` in camelCase.
+These change only the button's visible name; account IDs, search and commands
+keep the original username. Turning personal styles off restores original
+spelling; Studio previews still show the selected design. Older saved designs
+continue to load with the backdrop off and Original casing.
+Cyber's font source and notices are in [`www/fonts/README.md`](www/fonts/README.md).
 The native colour picker and six-digit hex fields work together.
 Large scroll buttons also work on the bar's touch screen without swipe gestures.
 
-**Pick your kind of magic** includes nine animated shader presets alongside
+**Pick your kind of magic** includes ten animated shader presets alongside
 the other backgrounds: Five lights, Snow, Cubes, Synthwave, Wonderful,
-Heartfelt, Star Nest, 2D Clouds and Universe Within.
+Heartfelt, Star Nest, 2D Clouds, Universe Within and Matrix.
+Matrix has falling green code on black, with bright heads and fading trails;
+its procedural glyphs need no textures. Its colours, speed and intensity are
+editable, and it can be combined with any font or name case.
 Cubes rotate in a wave from bottom left to top right; Synthwave drives through
 a landscape of wireframe hills. Tap a sample or choose it under Background style, then
 adjust its scene colours, effect cycle (longer is slower) and intensity.
@@ -247,7 +260,7 @@ The first four are original, texture-free shaders inspired by the supplied
 [snow](https://glslsandbox.com/e#109692.0),
 [cubes](https://www.shadertoy.com/view/MdVXzw) and
 [synthwave](https://www.shadertoy.com/view/tsScRK) references.
-The other five adapt the GLSL supplied by the user; their source credits,
+Five presets adapt the GLSL supplied by the user; their source credits,
 individual licence notices and adaptation details are in
 [`www/shaders/README.md`](www/shaders/README.md).
 Heartfelt uses a procedural palette backdrop instead of a missing image;
@@ -349,7 +362,7 @@ The profile response fix in `kassa.py` and sale display events in
 `plugins/historie.py` require the same backend restart.
 Button studio deployments must also include `button_themes.py`,
 `plugins/buttonstudio.py`, the JS/CSS files (including
-`www/kassa-button-shaders.js`) and the updated PHP routes,
+`www/kassa-button-shaders.js`), the `www/fonts` directory and the updated PHP routes,
 and restart the POS backend. Existing private button data must be preserved.
 The sound-folder update also requires a backend restart and an audio-controller
 restart; include `pos_sound_settings.py` and the entire `www/sounds` tree when
