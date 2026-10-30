@@ -4,7 +4,7 @@
 #
 #    pip-compile requirements-dev.in
 #
-astroid==3.0.1
+astroid==4.0.4
     # via pylint
 black==26.3.1
     # via -r requirements-dev.in
@@ -32,6 +32,7 @@ packaging==26.2
     #   black
     #   build
     #   pytest
+    #   wheel
 pathspec==1.1.1
     # via black
 pip-tools==7.3.0
@@ -44,7 +45,7 @@ pluggy==1.6.0
     # via pytest
 pygments==2.20.0
     # via pytest
-pylint==3.0.2
+pylint==4.0.9
     # via -r requirements-dev.in
 pyproject-hooks==1.0.0
     # via build
@@ -52,10 +53,10 @@ pytest==9.0.3
     # via
     #   -r requirements-dev.in
     #   pytest-cov
-pytokens==0.4.1
-    # via black
 pytest-cov==4.1.0
     # via -r requirements-dev.in
+pytokens==0.4.1
+    # via black
 tomlkit==0.12.3
     # via pylint
 wheel==0.46.2
