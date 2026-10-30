@@ -44,6 +44,8 @@ class party:
         self.started_amount = 0.0
         self.credited_amount = 0.0
         self.started_at = ""
+        self.last_settlement = None
+        self.settlements = []
 
     def help(self):
         return {
@@ -61,10 +63,18 @@ class party:
         self.started_amount = 0.0
         self.credited_amount = 0.0
         self.started_at = ""
+        self.last_settlement = None
+        self.settlements = []
         try:
             with open(STATE_FILE, encoding="utf-8") as f:
                 data = json.load(f)
             self.active = bool(data.get("active", False))
+            self.last_settlement = data.get("last_settlement")
+            self.settlements = data.get("settlements", [])
+            if not isinstance(self.settlements, list):
+                self.settlements = []
+            if not self.settlements and isinstance(self.last_settlement, dict):
+                self.settlements.append(self.last_settlement)
             self.started_amount = float(data.get("started_amount", 0.0))
             self.started_at = str(data.get("started_at", ""))
             if "credited_amount" in data:
@@ -77,14 +87,24 @@ class party:
             logger.warning("party_state_load_failed sid=%s error=%s", self.SID, exc)
 
     def writestate(self):
+        state = {
+            "active": self.active,
+            "started_amount": self.started_amount,
+            "credited_amount": self.credited_amount,
+            "started_at": self.started_at,
+        }
+        if self.last_settlement is not None:
+            state["last_settlement"] = self.last_settlement
+        if self.settlements:
+            state["settlements"] = self.settlements
         _atomic_write(
             STATE_FILE,
-            {
-                "active": self.active,
-                "started_amount": self.started_amount,
-                "credited_amount": self.credited_amount,
-                "started_at": self.started_at,
-            },
+            state,
+        )
+
+    def publish_state(self):
+        self.master.send_message(
+            True, "settings/party", json.dumps({"enabled": self.active})
         )
 
     def _credited_amount_from_log(self):
@@ -122,6 +142,7 @@ class party:
 
     def _publish_members(self):
         self.master.accounts.publish_members()
+        self.publish_state()
 
     def _enable(self):
         self.loadstate()
@@ -147,6 +168,7 @@ class party:
     def _disable(self):
         self.loadstate()
         if not self.active:
+            self.publish_state()
             self.master.send_message(True, "message", "Party mode is not on")
             return True
         self.master.accounts.readaccounts()
@@ -161,6 +183,13 @@ class party:
             "settled_amount": settled_amount,
             "started_at": self.started_at,
         }
+        # A disconnected printer must never trap the register in party mode.
+        # Keep the settlement on disk so the totals survive a failed print.
+        self.last_settlement = settlement
+        self.settlements.append(settlement)
+        self.active = False
+        self.writestate()
+        self._publish_members()
         try:
             self.master.POS.printparty(settlement)
         except Exception as exc:  # pylint: disable=broad-exception-caught
@@ -168,13 +197,10 @@ class party:
             self.master.send_message(
                 True,
                 "message",
-                "Party mode receipt print failed: %s" % exc,
+                "Party mode off; settlement saved, receipt print failed: %s" % exc,
             )
             return True
 
-        self.active = False
-        self.writestate()
-        self._publish_members()
         self.master.send_message(
             True,
             "message",
@@ -205,6 +231,7 @@ class party:
 
     def startup(self):
         self.loadstate()
+        self.publish_state()
         if self.active:
             self.master.accounts.readaccounts()
             self._ensure_party_account()

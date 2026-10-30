@@ -11,6 +11,9 @@ function fakeElement(tag) {
     id: "",
     tag,
     textContent: "",
+    setAttribute(name, value) {
+      this[name] = value;
+    },
     appendChild(child) {
       this.children.push(child);
       return child;
@@ -112,7 +115,10 @@ test("button helpers build native elements and fill visible text", () => {
   helpers.fillVisibleText(".Buttontext:visible");
   assert.equal(textfillCalls.length, 1);
   assert.equal(textfillCalls[0].element, label);
-  assert.equal(textfillCalls[0].options.maxFontPixels, 5);
+  assert.equal(textfillCalls[0].options.maxFontPixels, 22);
+  assert.equal(textfillCalls[0].options.minFontPixels, 12);
+  assert.equal(button.role, "button");
+  assert.equal(button.tabindex, "0");
 });
 
 test("allElements supports legacy visible selectors", () => {

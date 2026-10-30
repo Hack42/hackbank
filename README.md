@@ -3,6 +3,24 @@
 The hackbank consist of a php front-end that communicates with a python
 back-end over mqtt.
 
+## Deposit bank transfers
+
+After checking out a deposit to an account, the screen displays a large EPC QR
+code with the deposited amount and the account's username as the transfer
+description. The recipient defaults to Hack42, IBAN `NL43ABNA0136777643`;
+override `deposit.epc.name` and `deposit.epc.iban` in `config.yaml` if needed.
+The payment details are also displayed as text. QR images are generated locally.
+
+The dialog is a payment request, not a bank confirmation. Deposits are credited
+using the existing checkout flow; bank payments are not automatically verified.
+Closing the dialog or entering the next command clears the request. Startup
+also clears retained requests. Cash checkouts do not produce a transfer code.
+Multiple deposit lines for the same user are combined; purchases do not reduce
+the requested deposit amount. Amounts must be whole cents.
+
+The payload follows [EPC069-12](https://www.europeanpaymentscouncil.eu/document-library/guidance-documents/quick-response-code-guidelines-enable-data-capture-initiation).
+Support for scanning EPC codes depends on the banking app.
+
 ## Development set-up
 
 You need python, paho-mqtt-client and apache+php. 
@@ -67,9 +85,287 @@ To get started, copy the files from `fakedata`.
 
 ### docker-compose
 
+For the self-contained UI development setup at **http://localhost:4123**:
+
+```sh
+docker compose -f compose.dev.yaml up -d --build
+```
+
+This runs PHP, MQTT, the unchanged Python backend, and a demo audio controller
+in project-specific containers. The UI assets are mounted from `www`, so edits appear on refresh.
+Sample members, balances, products, and stock are seeded once in the ignored
+`dev/data` directory. This setup does not use production data or hardware;
+the door command targets the development broker and no printer is connected.
+All CSS, icons, fonts, and JavaScript are served locally, with no CDN or external
+font service.
+
+Member and user accounts use 84px-tall buttons, 50% taller than the original
+compact rows, with page tabs when needed. At 1920×1080 a page holds 42 accounts
+(six columns and seven rows); smaller windows calculate their capacity from
+the available space. Cash and amount
+controls remain above the grid, and the receipt and command bar stay visible.
+Filtering keeps the same button sizes, expands results on backspace, and
+restores the previous selection and page when cleared. Typing and pasting
+both update the filter; Tab still completes a unique match.
+Products and commands retain pages of up to 56 buttons (8×7) at 1920×1080,
+or 25 buttons on smaller screens. The command bar's Enter button submits the
+same command as pressing Enter on the keyboard.
+After one minute without keyboard, pointer, touch, wheel or form activity, the
+command line regains focus if it has lost it. This preserves unsubmitted text,
+the current screen and receipt, and sends no command. Music, Home Assistant
+and open dialogs keep their focus; hidden or unfocused browser windows are
+left alone. Activity inside the cross-origin embedded pages cannot be observed
+by the bar, so their selected views are excluded until the user leaves them.
+
+The header identifies the venue as Lovelace Bar, with Drinks @ Hack42 below it.
+The log strip is labelled HISTORY and the receipt footer reads
+Eat. Drink. Hack. Repeat.
+The larger Members/Guests buttons and page tabs support touch selection.
+Commands are grouped into Products, Users, Sales, Wholesale, Market and Misc,
+with an Abort action and a Settings section. Category tabs and headings have
+emoji icons. All commands stacks the groups vertically, with four buttons per
+row on the bar display; category tabs show
+each group separately. Manage members contains member administration;
+all underlying commands remain available. Remove item edits the current
+unbilled sale; transaction undo is a separate action. Door open retains the
+existing configured door command.
+
+Settings offers 🎉 Party mode, Dark, Banana, Dank Hit and Confetti modes.
+Party mode reflects backend state and can be disabled even while another question is pending.
+A missing printer no longer prevents exit: settlement totals and their history
+are saved in the party state before attempting to print. No sale or account
+balance is cleared by changing this setting.
+
+Appearance settings apply to this browser and survive reloads. The command bar
+also accepts `darkmodeon` / `darkmodeoff`, `bananamodeon` / `bananamodeoff`,
+`dankmodeon` / `dankmodeoff`, and `confettimodeon` / `confettimodeoff`.
+While Banana mode is enabled, each click or tap adds another 40px-wide dancing
+banana at a random screen location. Bananas let clicks
+through, fade during their final two seconds, and disappear individually after
+one minute; refreshing preserves their deadlines. Switching the mode off
+clears all bananas. Dank Hit mode plays the supplied hitmarker sample through
+the POS browser audio and displays a click-through marker for 100ms at each click or tap.
+Confetti mode drops a small shower from the top for every submitted command,
+and a larger shower after a completed sale. Particles fall off the bottom and
+let clicks through. The local canvas renderer stops when no particles remain;
+switching the setting off clears them immediately. Refunds, deposits, transfers
+and undo do not trigger the larger sale shower, and reconnecting does not replay it.
+
+Members and Guests lists keep their Archive tab at the far right, after the
+page buttons, including when there are multiple pages.
+Archives list accounts whose last purchase is older than a year, in alphabetical order.
+New accounts with no purchase record use their last account update as a conservative fallback.
+A read-only index of
+the existing checkout log is shared between sessions, reuses unchanged results,
+and reads only appended data after the first scan. Initial reads are capped
+at 8MiB. If that window cannot establish a full year's coverage, archives stay
+unavailable and accounts remain in the normal lists. Deposits, transfers,
+refunds and undo lines are excluded from purchase history.
+
+Clicking a user with an empty sale shows the balance and up to ten recent
+purchase line items, alongside OK, undo, restore, receipt and cash drawer controls.
+Every visit receives a fresh profile response, even when its data is unchanged.
+The user page also offers Promote to guest or Promote to Member, using
+the existing `delmember <user>` / `addmember <user>` commands. The action uses
+actual membership, including while party mode changes the visible member list.
+After checkout, the same view combines the transaction summary with the updated
+profile and purchase history. Add again uses the current product price and only
+adds to the sale, leaving the normal account selection and checkout flow intact.
+Reordering is offered only when a historical description identifies one
+current product. Older or ambiguous products remain visible as history.
+Undo latest transaction appears only for an eligible latest transaction;
+the backend rechecks its ID and owner before using the existing undo flow.
+The local seed adds stitch, BugBlue, Jos, nino and Anus, two archive examples,
+and sample purchase history without resetting existing development balances.
+Clicking anywhere in the Hack42 logo, title, and subtitle area sends Abort and
+clears the command input.
+The Sounds page starts with the soundboard buttons, followed by the two volume
+sliders, then the POS sound settings. The Sounds menu and command search omit
+Deur off/on, Groove Salad, Jazz Radio
+Blues, Kill Music, Louder, Quieter and Kassa off/on. The Sounds page also omits
+Abort and Christmas; the header reset remains available. Ding Dong, Vergaderen,
+Vergaderen Extreme, Throw and Yeet remain on that page after playback, without
+the usual command confirmation beep. These sounds also work as typed commands.
+Sounds provides two large
+volume sliders for HackBank POS effects and Space audio. Each reads the current
+output volume, applies changes, and refreshes every two seconds while open.
+Opening Sounds is silent. Releasing a slider plays a short preview beep on
+that output after saving its volume; dragging and automatic refreshes are
+silent. At zero volume the output remains muted and no preview plays.
+The development audio controller uses in-memory demo levels and never connects
+to a sound device; it also simulates preview requests.
+
+Soundboard samples live in `www/sounds/soundboard/`. POS effects live in
+`www/sounds/POS/<feature>/`, with a separate choice for each feature:
+
+| Feature | Default sound |
+| --- | --- |
+| Command | `KDE_Beep_ClassicBeep.wav` |
+| Deposit | `itsgone.wav` |
+| Insufficient funds | `sinterklaas.wav` |
+| Sale | `katsjing.wav` |
+| Error | `KDE_Beep_Beep.wav` |
+
+Each dropdown lists audio files from its own feature folder. Changing a choice
+immediately saves it in `data/revbank.sounds.json`, shares it with the other
+browser sessions, then previews the selected sample. The Preview button plays
+the current choice without changing it. Reset restores one feature's default;
+Reset all to defaults restores all five and previews the command default.
+Opening the page or receiving settings from another browser stays silent.
+Settings requests use a separate route so they cannot answer a pending POS
+question. The error alert retains its two repetitions for unrecognised input.
+
+The **😎 / 🙂** button sits immediately to the right of Members Archive or Guests
+Archive. It toggles personal button styling for this browser: off gives user
+buttons standard colours and lettering, hides custom icons and backdrops,
+and pauses their shader rendering. Names, balances and button actions still
+work normally. The preference survives reloads and follows other tabs in the
+same browser; saved user designs stay intact. Studio previews continue to
+show the designs while editing.
+Sunglasses mean styles are on; a normal smile means styles are off.
+
+The **Button studio** action on each user profile opens “Hack42 Magic Button
+Studio (tm)”. Current and draft buttons remain visible beside the editing
+tools. Backgrounds support solid paint, 2–6 gradient stops with percentages
+and a full 360° angle, glitter, and plasma. Effect speed and intensity are
+adjustable. Lettering has colour or a separate gradient, six system font
+stacks and the bundled OCR-A font **Cyber**, size, weight, a fixed angle and
+optional continuous rotation. Icons can be built-in symbols or a personal image,
+with size and rotation controls.
+Lettering also has an optional label backdrop with its own colour, opacity,
+padding and corner rounding. It follows text rotation and supports gradient
+letters. **Name case** offers Original, UPPERCASE, lowercase, Capitalized Words,
+camelCase, PascalCase, snake_case and kebab-case. Word-based styles recognise
+spaces, underscores, hyphens, camel-case and acronym boundaries: `BugBlue`
+becomes `bugBlue`, and `HTTPServer` becomes `httpServer` in camelCase.
+These change only the button's visible name; account IDs, search and commands
+keep the original username. Turning personal styles off restores original
+spelling; Studio previews still show the selected design. Older saved designs
+continue to load with the backdrop off and Original casing.
+Cyber's font source and notices are in [`www/fonts/README.md`](www/fonts/README.md).
+The native colour picker and six-digit hex fields work together.
+Large scroll buttons also work on the bar's touch screen without swipe gestures.
+
+**Pick your kind of magic** includes ten animated shader presets alongside
+the other backgrounds: Five lights, Snow, Cubes, Synthwave, Wonderful,
+Heartfelt, Star Nest, 2D Clouds, Universe Within and Matrix.
+Matrix has falling green code on black, with bright heads and fading trails;
+its procedural glyphs need no textures. Its colours, speed and intensity are
+editable, and it can be combined with any font or name case.
+Cubes rotate in a wave from bottom left to top right; Synthwave drives through
+a landscape of wireframe hills. Tap a sample or choose it under Background style, then
+adjust its scene colours, effect cycle (longer is slower) and intensity.
+The first four are original, texture-free shaders inspired by the supplied
+[lights](https://glslsandbox.com/e#109700.0),
+[snow](https://glslsandbox.com/e#109692.0),
+[cubes](https://www.shadertoy.com/view/MdVXzw) and
+[synthwave](https://www.shadertoy.com/view/tsScRK) references.
+Five presets adapt the GLSL supplied by the user; their source credits,
+individual licence notices and adaptation details are in
+[`www/shaders/README.md`](www/shaders/README.md).
+Heartfelt uses a procedural palette backdrop instead of a missing image;
+Heartfelt and Universe Within run silently without audio inputs or long
+intro/outro blackouts. No remote assets or third-party runtime libraries load.
+
+The local WebGL 1 renderer shares one context across every button and preview,
+batches identical scenes for the same user, caps its internal image at 320 × 128 pixels and
+runs at up to 24 frames per second. Hidden/off-screen buttons pause; opening
+the studio pauses buttons behind the dialog. Reduced-motion mode uses a
+still scene. If WebGL is unavailable or its context is lost, the saved colour
+gradient stays visible and names, balances and button actions keep working.
+Shader choices use the existing private button design storage, with the same
+version-1 schema and a fixed allowlist of scene names.
+Animation phases include a stable hash of the username, so people sharing a
+preset move differently. Studio samples and the draft use the current user's
+seed. Selecting another preset keeps the gallery canvases and draft canvas
+alive; the small shared render buffer is preserved between copies to avoid
+empty frames on Firefox graphics backends.
+Repeated scan/selection updates retain an unchanged account grid and its page.
+Balances and debt colours update directly, preserving shader canvases, glitter,
+plasma, and text/icon rotations. Changed account sets or grid capacities still
+rebuild the list; contextual command controls update on every response.
+
+Upload a PNG, JPEG, WebP or GIF (up to 8 MB), drag it into the icon area, or
+paste an image with Ctrl+V / ⌘V while the dialog is focused. The browser crops
+it to a square and resizes it to a 144 × 144 PNG; GIFs become still icons.
+The original upload is not stored. Images use `object-fit: cover`.
+
+**Use my new button** saves to `data/revbank.buttons.json`, using an atomic
+write. Designs and their embedded icons survive backend/browser restarts and
+are shared across the bar's terminals through retained MQTT messages. This
+file belongs to the installation's private runtime data and is ignored by
+the public application repository. Include it in private data backups.
+Cancel or Escape discards the draft; Revert changes restores the saved design,
+and Start fresh restores the account's initial design as an unsaved draft.
+
+Initial designs keep stitch’s blue and bold white text (without a bundled
+character image), BugBlue’s glitter, Jos’s key, nino’s blue/yellow flag and
+Anus’s plasma. Personal icons must be supplied locally through the studio.
+All effects are clipped inside their own button; balance badges keep their
+debt colours. Animation respects reduced-motion settings. Saving a design
+uses its own `button_studio` route, so it cannot answer a pending sale prompt
+or change receipts, account names or balances. Only validated presentation
+settings and small PNG data URLs are accepted; no arbitrary CSS or remote
+image/font URLs are stored. No new external runtime dependencies are needed.
+
+Home Assistant and Music open directly in the left-hand iframe with rounded
+top corners, square bottom corners and no extra toolbar. Music uses the LAN
+sound-system interface at
+`http://192.168.142.157:3000/`.
+The selected Music tab matches Trollibox orange, while Home Assistant uses
+its [primary blue](https://contributors.home-assistant.io/design/foundations/color/).
+Both use dark text and icons for contrast.
+The [supplied Hack42 logo](https://johnkr.com/wp-content/uploads/sites/2/2015/12/Hack42.png)
+is already included as `www/images/Hack42.png` and is now displayed in the header.
+
+To stop this setup, run `docker compose -f compose.dev.yaml down`. To reset
+the sample data, stop the containers, remove `dev/data`, and start them again.
+
+The original development setup remains available:
+
 If you don't want to install apache and an mqtt server yourself you can use
 docker-compose for local development. Simply running `docker-compose up` will
 start an mqtt server on port 1883, an apache+php server serving the files in
 'www' on port 4242, and hook
 them up to each other. All that's left is to run `kassa.py` and point your
 browser at http://localhost:4242
+
+### Production audio controls
+
+`audio_control.py` uses the system's existing `pactl` command to read and adjust
+only `hackbank_pos` (POS effects) and `snapcast` (Space audio). Previews use
+the existing `paplay` command and the local
+`www/sounds/POS/command/KDE_Beep_ClassicBeep.wav` file,
+explicitly selecting the adjusted output at full stream gain so its sink
+volume determines the preview level. It does not change
+the existing audio routing. `www/audio.php` connects to the controller through
+`/run/hackbank-audio/control.sock`; the controller does not open a network port.
+Volumes range from 0 to 100 percent; zero also mutes, and a nonzero setting
+unmutes that output. Missing devices or an unavailable controller disable the
+affected sliders. Financial commands continue through the existing backend.
+
+The supplied systemd unit targets the bar installation at `/home/barapp/kassa`,
+runs as kiosk user `bar`, and gives Apache's `www` group access to the socket.
+After deploying the UI branch, register and start it as root:
+
+```sh
+systemctl enable --now /home/barapp/kassa/deploy/hackbank-audio-control.service
+systemctl status hackbank-audio-control.service
+```
+
+The unit depends on the existing kiosk PulseAudio/PipeWire socket and named
+outputs. The page title remains `Hack42 - HackBank`, the identifier used by the
+existing POS audio router. Restart `hackbank-audio-control.service` after
+updating its Python controller. Changes to `plugins/sounds.py`, including the
+silent Sounds navigation, also require restarting the existing POS backend.
+The profile response fix in `kassa.py` and sale display events in
+`plugins/historie.py` require the same backend restart.
+Button studio deployments must also include `button_themes.py`,
+`plugins/buttonstudio.py`, the JS/CSS files (including
+`www/kassa-button-shaders.js`), the `www/fonts` directory and the updated PHP routes,
+and restart the POS backend. Existing private button data must be preserved.
+The sound-folder update also requires a backend restart and an audio-controller
+restart; include `pos_sound_settings.py` and the entire `www/sounds` tree when
+deploying. Preserve the saved choices in the existing data directory.
+For a different installation, adapt the unit's application path, kiosk user,
+web-server group, and runtime audio socket before enabling it.

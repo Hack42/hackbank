@@ -1,30 +1,24 @@
-var cachepixels = {};
-var cachetop = {};
-
 (function(window) {
     function textfillElement(element, options) {
-        var fontSize = options.maxFontPixels;
+        if(element.closest && element.closest('.magic-button')) return element;
         var parent = element.parentElement;
-        var maxHeight = parent ? parent.offsetHeight : 0;
-        var maxWidth = parent ? parent.offsetWidth : 0;
-        var text = element.textContent;
-        var textHeight;
-        var textWidth;
-        if(cachepixels[text] > 0) {
-            element.style.fontSize = cachepixels[text] + 'vh';
-            element.style.top = cachetop[text];
-            return element;
+        if(!parent || !parent.clientWidth || !parent.clientHeight) return element;
+
+        // Labels can appear in different sized tiles. Measure their current
+        // space each time instead of caching one size for every repeated name.
+        element.style.fontSize = '';
+        var labelStyle = window.getComputedStyle(element);
+        var parentStyle = window.getComputedStyle(parent);
+        var fontSize = Math.min(parseFloat(labelStyle.fontSize), options.maxFontPixels);
+        var minFontSize = options.minFontPixels || 12;
+        var maxWidth = element.clientWidth;
+        var maxHeight = parent.clientHeight - parseFloat(parentStyle.paddingTop) - parseFloat(parentStyle.paddingBottom);
+
+        element.style.fontSize = fontSize + 'px';
+        while(fontSize > minFontSize && (element.scrollWidth > maxWidth || element.scrollHeight > maxHeight)) {
+            fontSize = Math.max(minFontSize, fontSize - 0.5);
+            element.style.fontSize = fontSize + 'px';
         }
-        do {
-            element.style.fontSize = fontSize + 'vh';
-            textHeight = element.offsetHeight;
-            textWidth = element.offsetWidth;
-            cachepixels[text] = fontSize;
-            fontSize = fontSize - 0.9;
-        } while ((textHeight > maxHeight || textWidth > maxWidth) && fontSize > 0.5);
-        textHeight = element.offsetHeight;
-        cachetop[text] = ((maxHeight - textHeight) / 2) + 'px';
-        element.style.top = cachetop[text];
         return element;
     }
 

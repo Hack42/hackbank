@@ -62,7 +62,7 @@
 
   function fillVisibleText(selector) {
     allElements(selector).forEach(function(element) {
-      window.HackBankTextfill.fillElement(element, {maxFontPixels: 5});
+      window.HackBankTextfill.fillElement(element, {maxFontPixels: 22, minFontPixels: 12});
     });
   }
 
@@ -80,6 +80,8 @@
 
     element.className = className;
     element.id = id;
+    element.setAttribute('role', 'button');
+    element.setAttribute('tabindex', '0');
     label.className = textClassName;
     label.textContent = text;
     element.appendChild(label);

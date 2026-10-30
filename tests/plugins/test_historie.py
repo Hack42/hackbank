@@ -1,4 +1,5 @@
 from unittest.mock import Mock, patch, mock_open, MagicMock
+import json
 import plugins.historie as historie_module
 
 
@@ -73,6 +74,72 @@ class TestHistorie:
 
     def test_input_other(self):
         assert not self.historie.input("other")
+
+    def test_profile_reports_actual_membership_independently_of_party_visibility(self):
+        self.master_mock.products.products = {}
+        self.master_mock.plugins = {}
+        self.master_mock.accounts.members = ["Jos"]
+        self.master_mock.accounts.visible_members.return_value = ["party"]
+        index = Mock(available=True, complete=True)
+        index.recent.return_value = []
+        with patch.object(historie_module, "purchase_index", index):
+            assert self.historie.account_details("Jos")["is_member"] is True
+            assert self.historie.account_details("guest")["is_member"] is False
+        assert self.master_mock.accounts.members == ["Jos"]
+
+    def test_checkout_refreshes_profile_and_celebrates_once_after_session_ends(self):
+        self.master_mock.receipt.receipt = [
+            {"Lose": True, "count": 1, "value": 2, "product": "cola"}
+        ]
+        self.master_mock.accounts.accounts = {"Jos": {"amount": 20}}
+        self.historie.hook_post_checkout("Jos")
+        self.master_mock.send_message.assert_not_called()
+        self.master_mock.accounts.accounts["Jos"]["amount"] = 18
+        with patch.object(
+            self.historie,
+            "account_details",
+            return_value={"user": "Jos", "purchases": [{"description": "Cola"}]},
+        ):
+            self.historie.hook_post_endsession("Jos")
+        messages = self.master_mock.send_message.call_args_list
+        profile = json.loads(messages[0].args[2])
+        assert profile == {
+            "user": "Jos",
+            "amount": 18,
+            "purchases": [{"description": "Cola"}],
+            "checkout": True,
+        }
+        assert messages[0].args[:2] == (False, "infobox/account")
+        assert messages[1].args[:2] == (True, "buttons")
+        assert messages[2].args == (False, "effects", '{"type": "sale"}')
+        self.historie.hook_post_endsession("Jos")
+        assert self.master_mock.send_message.call_count == 3
+
+    def test_cash_sale_celebrates_without_an_account_profile(self):
+        self.master_mock.receipt.receipt = [
+            {"Lose": True, "count": 1, "value": 2, "product": "cola"}
+        ]
+        self.master_mock.accounts.accounts = {}
+        self.historie.hook_post_checkout("cash")
+        self.historie.hook_post_endsession("cash")
+        self.master_mock.send_message.assert_called_once_with(
+            False, "effects", '{"type": "sale"}'
+        )
+
+    def test_refunds_transfers_and_undo_do_not_celebrate_as_sales(self):
+        self.master_mock.accounts.accounts = {}
+        for product in ("undo", "give", "take", "declaratie", "pfand_cola"):
+            self.master_mock.receipt.receipt = [
+                {"Lose": True, "count": 1, "value": 2, "product": product}
+            ]
+            self.historie.hook_post_checkout("cash")
+            self.historie.hook_post_endsession("cash")
+        self.master_mock.receipt.receipt = [
+            {"Lose": False, "count": 1, "value": 20, "product": "deposit"}
+        ]
+        self.historie.hook_post_checkout("cash")
+        self.historie.hook_post_endsession("cash")
+        self.master_mock.send_message.assert_not_called()
 
     def test_history_unknown_user(self):
         self.master_mock.accounts.accounts = {}

@@ -5,7 +5,11 @@ const test = require("node:test");
 const vm = require("node:vm");
 
 function loadTextfill() {
-  const sandbox = {window: {}};
+  const sandbox = {window: {
+    getComputedStyle() {
+      return {fontSize: "22px", paddingTop: "10px", paddingBottom: "10px"};
+    },
+  }};
   const script = fs.readFileSync(
     path.join(__dirname, "../../www/kassa-textfill.js"),
     "utf8",
@@ -18,20 +22,23 @@ function loadTextfill() {
   };
 }
 
-function createElement(text) {
+function createElement(text, width = 50) {
   const element = {
     currentFontSize: 0,
     parentElement: {
-      offsetHeight: 50,
-      offsetWidth: 50,
+      clientHeight: 50,
+      clientWidth: width,
     },
     style: {},
     textContent: text,
-    get offsetHeight() {
-      return this.currentFontSize > 2 ? 120 : 10;
+    get clientWidth() {
+      return this.parentElement.clientWidth;
     },
-    get offsetWidth() {
-      return this.currentFontSize > 2 ? 120 : 10;
+    get scrollHeight() {
+      return this.currentFontSize * 1.2;
+    },
+    get scrollWidth() {
+      return this.currentFontSize * text.length / 2;
     },
   };
   Object.defineProperty(element.style, "fontSize", {
@@ -47,25 +54,53 @@ function createElement(text) {
   return element;
 }
 
-test("textfill lowers font size until text fits and vertically centers it", () => {
+test("textfill fits text into the current tile using readable pixel sizes", () => {
   const {fillElement} = loadTextfill();
   const element = createElement("hello");
 
-  const result = fillElement(element, {maxFontPixels: 5});
+  const result = fillElement(element, {maxFontPixels: 22, minFontPixels: 12});
 
   assert.equal(result, element);
-  assert.equal(element.style.fontSize, "1.4vh");
-  assert.equal(element.style.top, "20px");
+  assert.equal(element.style.fontSize, "20px");
+  assert(element.scrollWidth <= element.clientWidth);
+  assert(element.scrollHeight <= 30);
 });
 
-test("textfill reuses cached size for repeated text", () => {
+test("repeated labels are sized independently for differently sized tiles", () => {
   const {fillElement} = loadTextfill();
   const first = createElement("cached");
-  const second = createElement("cached");
+  const second = createElement("cached", 100);
 
-  fillElement(first, {maxFontPixels: 5});
-  fillElement(second, {maxFontPixels: 5});
+  fillElement(first, {maxFontPixels: 22});
+  fillElement(second, {maxFontPixels: 22});
 
-  assert.equal(second.style.fontSize, "1.4vh");
-  assert.equal(second.style.top, "20px");
+  assert.equal(first.style.fontSize, "16.5px");
+  assert.equal(second.style.fontSize, "22px");
+});
+
+test("textfill grows labels again after resizing and respects the minimum", () => {
+  const {fillElement} = loadTextfill();
+  const element = createElement("hello", 20);
+  fillElement(element, {maxFontPixels: 22, minFontPixels: 12});
+  assert.equal(element.style.fontSize, "12px");
+  element.parentElement.clientWidth = 100;
+  fillElement(element, {maxFontPixels: 22, minFontPixels: 12});
+  assert.equal(element.style.fontSize, "22px");
+});
+
+test("textfill leaves hidden labels untouched until their tile is visible", () => {
+  const {fillElement} = loadTextfill();
+  const element = createElement("hidden", 0);
+  element.style.fontSize = "18px";
+  fillElement(element, {maxFontPixels: 22});
+  assert.equal(element.style.fontSize, "18px");
+});
+
+test("button studio font sizes survive the standard label-fitting pass", () => {
+  const {fillElement}=loadTextfill();
+  const element=createElement("custom",20);
+  element.style.fontSize="38px";
+  element.closest=(selector)=>selector === ".magic-button" ? element.parentElement : null;
+  fillElement(element,{maxFontPixels:22,minFontPixels:12});
+  assert.equal(element.style.fontSize,"38px");
 });

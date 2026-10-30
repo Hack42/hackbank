@@ -1,6 +1,11 @@
 # Copy this file to config.yaml and adjust local values.
 # config.yaml is intentionally git-ignored so local secrets/device settings are not overwritten.
 
+deposit:
+  epc:
+    name: Hack42
+    iban: NL43ABNA0136777643
+
 mqtt:
   host: localhost
   port: 1883

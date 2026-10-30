@@ -1,0 +1,25 @@
+[Unit]
+Description=HackBank POS and Space audio volume controls
+After=hackbank-audio-route.service snapserver-desktop-capture.service
+
+[Service]
+Type=simple
+User=bar
+Group=www
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=PULSE_SERVER=unix:/run/user/1000/pulse/native
+ExecStart=/usr/bin/python3 -B /home/barapp/kassa/audio_control.py
+Restart=on-failure
+RestartSec=3
+RuntimeDirectory=hackbank-audio
+RuntimeDirectoryMode=0750
+UMask=0007
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+RestrictAddressFamilies=AF_UNIX
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

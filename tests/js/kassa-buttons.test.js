@@ -146,3 +146,63 @@ test("product button helpers include prices, stock and aliases for app pages", (
     "123",
   ]);
 });
+
+test("retired sound controls are absent from command menus and search candidates", () => {
+  const helpers = loadButtonHelpers();
+  const commands = {
+    deuroff: "Deur off", deuron: "Deur on", groovesalad: "Groove Salad",
+    blues: "Jazz Radio Blues", killsounds: "Kill Music", louder: "Louder", quieter: "Quieter",
+    sounds: "All sound commands", ns: "Ding Dong", kassaon: "Kassa on", kassaoff: "Kassa off",
+    christmas: "christmas", vergaderen: "Vergaderen!",
+  };
+  const visible = helpers.commandsToButtons(commands);
+  assert.deepEqual(plain(visible.map((button) => button.text)), [
+    "christmas", "ns", "sounds", "vergaderen",
+  ]);
+  const matches = [];
+  helpers.addMatchingButtons(matches, visible, "loud");
+  assert.deepEqual(matches, []);
+  assert.equal(commands.louder, "Louder");
+  assert.equal(helpers.productGroupToButtons({
+    blues: {description: "Blues beer", price: 2.5, group: "drinks"},
+  }, {}, "drinks")[0].text, "blues");
+});
+
+test("account buttons keep their commands and debt badges independently of styling", () => {
+  const helpers = loadButtonHelpers();
+  const accounts = {Jos: {amount: -20}, nino: {amount: 1}, Anus: {amount: 2}, Anux: {amount: 3}};
+  const buttons = plain(helpers.accountsToButtons(accounts, Object.keys(accounts), [], "m"));
+  const byName = Object.fromEntries(buttons.map((button) => [button.text, button]));
+  assert.equal(byName.Jos.class, "account account-Jos");
+  assert.equal(byName.nino.class, "account account-nino");
+  assert.equal(byName.Anus.class, "account account-Anus");
+  assert.doesNotMatch(byName.Anux.class, /account-theme/);
+  assert.equal(byName.Jos.right, "-20.00");
+  assert.equal(byName.Jos.rightclass, "Jos rood");
+  assert.deepEqual(Object.keys(byName).sort(), ["Anus", "Anux", "Jos", "nino"]);
+});
+
+test("command sections preserve action ids, ordering and access through Manage members", () => {
+  const helpers=loadButtonHelpers();
+  const commands={abort:'Abort everything',addproduct:'Add new product',setprice:'Change the price of a product',
+    addmember:'Add user to members',members:'Manage members',partymodeon:'Enable party mode',partymodeoff:'Disable party mode',
+    market:'Market: Products',changemarket:'Market: Change Price',addmarket:'Market: Add alias'};
+  const sections=plain(helpers.commandSections(commands));
+  assert.deepEqual(sections.map((section)=>section.name),['Products','Users','Sales','Wholesale','Market','Misc']);
+  assert.deepEqual(sections[0].buttons.map((button)=>[button.text,button.display]),[['addproduct','Add new'],['setprice','Change price']]);
+  assert.deepEqual(sections[1].buttons.map((button)=>button.text),['members']);
+  assert.deepEqual(sections[4].buttons.map((button)=>button.display),['Products','Pricing','Aliases']);
+  assert.equal(commands.addmember,'Add user to members');
+});
+
+test("archives use purchase dates, keep unknown activity visible, and preserve selection commands", () => {
+  const helpers=loadButtonHelpers();
+  const accounts={Jos:{amount:10,lastupdate:'2026-10-16'},old:{amount:-2,lastupdate:'2020-01-01'},newuser:{amount:0,lastupdate:'2026-10-16'}};
+  const candidates=helpers.accountsToButtons(accounts,Object.keys(accounts),[],'m');
+  const activity={available:true,cutoff:'2025-10-17',last_purchase:{Jos:'2024-01-01'}};
+  const split=plain(helpers.splitAccounts(candidates,accounts,activity));
+  assert.deepEqual(split.active.map((button)=>button.text),['newuser']);
+  assert.deepEqual(split.archive.map((button)=>button.text),['Jos','old']);
+  assert(split.archive.every((button)=>button.class.includes('archived-account')));
+  assert.equal(helpers.splitAccounts(candidates,accounts,{available:false}).active.length,3);
+});

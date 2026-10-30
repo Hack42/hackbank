@@ -15,6 +15,33 @@ document.addEventListener("DOMContentLoaded", function() {
   var tabenable=0;
   var question="";
   var locked=0;
+  var pagedButtons=null;
+  var filterRestore=null;
+  var filtering=false;
+  var audioControl=null;
+  var soundSettingsControl=null;
+  var soundSettings=null;
+  var buttonThemes=Object.create(null);
+  var buttonStudio=window.HackBankButtonStudio ? window.HackBankButtonStudio.create({
+    session:session,
+    getTheme:function(user) { return buttonThemes[user] || null; },
+    onSaved:updateButtonTheme,
+  }) : null;
+  var currentView='accounts';
+  var commandCategory='All commands';
+  var soundButtons=[];
+  var activity=null;
+  var accountProfile=null;
+  var accountType='m';
+  var archivedAccounts=false;
+  var accountSections=null;
+  var filterReturnView=null;
+  var preferences=window.HackBankPreferences ? window.HackBankPreferences.create({
+    sendCommand: function(command) {
+      postmsg('input',command);
+    },
+    playSound: playsound,
+  }) : null;
   var buttons=window.HackBankButtons;
   var dom=window.HackBankDom;
   var allElements=dom.allElements;
@@ -32,6 +59,16 @@ document.addEventListener("DOMContentLoaded", function() {
   var topButton=dom.topButton;
 
   function postmsg(topic,msg) {
+    if(topic === 'input') removeElement('#DepositPayment');
+    if(topic === 'input' && preferences && preferences.handleCommand(msg)) {
+      preferences.command();
+      if(currentView === 'commands') locked=1;
+      if(filterReturnView === 'commands') { filterReturnView=null; makeCommandScreen(commandCategory); }
+      else if(filterRestore) { restoreSelection(filterRestore); filterRestore=null; }
+      return;
+    }
+    if(topic === 'input') filterReturnView=null;
+    if(topic === 'input' && msg.trim() && preferences) preferences.command();
     fetch("post.php", {
       method: "POST",
       headers: {
@@ -120,6 +157,7 @@ document.addEventListener("DOMContentLoaded", function() {
     if(label) label.innerHTML=label.innerHTML + html;
   }
   function removeActiveTopButtons() {
+    stopAudio();
     allElements('.topknop').forEach(function(button) {
       button.classList.remove('activetop');
     });
@@ -130,19 +168,55 @@ document.addEventListener("DOMContentLoaded", function() {
     fillVisibleText(".Paginatext:visible");
   }
   function activateTopButton(id) {
+    stopAudio();
     allElements('.topknop').forEach(function(button) {
       button.classList.remove('activetop');
     });
     var button=document.getElementById(id);
     if(button) button.classList.add('activetop');
   }
+  function stopAudio() {
+    if(audioControl) audioControl.stop();
+    audioControl=null;
+    if(soundSettingsControl) soundSettingsControl.stop();
+    soundSettingsControl=null;
+  }
   function showAccountButtons(activeButtonId, accountType, tabMode) {
     activateTopButton(activeButtonId);
     showElement('#Secondscreen');
-    makepages('normal',buttons.accountsToButtons(accounts,members,nonmembers,accountType));
+    currentView='accounts';
+    makeAccountSections(accountType,false);
     prependCashButton();
     focus();
     tabenable=tabMode;
+  }
+  function makeAccountSections(type, archive) {
+    accountType=type;
+    archivedAccounts=archive;
+    var candidates=buttons.accountsToButtons(accounts,members,nonmembers,type);
+    if(type === 'o') candidates=candidates.concat(buttons.accountsToButtons(accounts,members,nonmembers,'x')).sort(function(a,b) { return a.display.toLowerCase().localeCompare(b.display.toLowerCase()); });
+    accountSections=buttons.splitAccounts(candidates,accounts,activity);
+    makeAccountList(archive ? accountSections.archive : accountSections.active);
+    addArchiveTabs();
+  }
+  function addArchiveTabs() {
+    if(!accountSections) return;
+    var top=document.getElementById('TopButtons');
+    var name=accountType === 'm' ? 'Members' : 'Guests';
+    var tools=createElement('div',{class:'account-display-tools'});
+    [[false,name],[true,name+' Archive']].forEach(function(item) {
+      var tab=createElement('button',{type:'button',class:'archive-tab'+(item[0] ? ' archive' : '')+(archivedAccounts === item[0] ? ' selected' : ''),text:item[1]+' ('+accountSections[item[0] ? 'archive' : 'active'].length+')', 'aria-pressed':String(archivedAccounts === item[0])});
+      if(item[0] && (!activity || !activity.available)) { tab.disabled=true; tab.title='Archive unavailable until purchase history can be checked'; }
+      tab.addEventListener('click',function() { makeAccountSections(accountType,item[0]); prependCashButton(); focus(); });
+      if(item[0]) tools.appendChild(tab);
+      else top.prepend(tab);
+    });
+    if(window.HackBankButtonStyles) {
+      var appearance=window.HackBankButtonStyles.toggleButton();
+      appearance.addEventListener('click',focus);
+      tools.appendChild(appearance);
+    }
+    top.appendChild(tools);
   }
   function build_receipt(msg) {
     var parts=JSON.parse(msg);
@@ -162,13 +236,17 @@ document.addEventListener("DOMContentLoaded", function() {
     });
     scrollToBottom('#Receipt');
     if(counter === 0) {
-      appendToElement(receipt, createElement('div',{class: 'welcome', text: "Welcome to Hack42 Bank HTML5 Interface"}));
+      appendToElement(receipt, createElement('div',{class: 'welcome', text: "Your next round starts here. Scan a product or choose a button."}));
     }
     clearElement('#Receipt2');
     cloneElementsTo('.Itemline', '#Receipt2');
     scrollToBottom('#Receipt2');
     if (receipt2 && receipt2.childElementCount === 0){
-      appendToElement(receipt2, createElement('img',{src: 'images/Hack42.png', width: '100%', style: {top: '12vh', position: 'absolute'}}));
+      appendToElement(receipt2, appendChildren(createElement('div',{class: 'receipt-empty'}), [
+        createElement('span',{class: 'empty-symbol', text: '+', 'aria-hidden': 'true'}),
+        createElement('strong',{text: 'Nothing on the tab yet'}),
+        createElement('span',{text: 'Scan a product to get started.'}),
+      ]));
     }
   }
   function build_totals(msg) {
@@ -192,6 +270,10 @@ document.addEventListener("DOMContentLoaded", function() {
   }
   function run_infobox(name,msg) {
     var json=JSON.parse(msg);
+    if(json.user) {
+      accountProfile=json;
+      return;
+    }
     var newsaldo=json.amount;
     var infobox=first('.infoboxes .Total_'+name);
     appendToElement(infobox, createElement('span',{class: 'NowHas',text: "Now Has"}));
@@ -204,8 +286,16 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     accounts[name]=JSON.parse(msg);
   }
+  function updateButtonTheme(user,theme) {
+    buttonThemes[user]=theme;
+    if(!window.HackBankButtonStyles) return;
+    allElements('#MainButtons .account').forEach(function(button) {
+      if(button.getAttribute('data-button-user') === user) window.HackBankButtonStyles.apply(button,user,theme);
+    });
+  }
   function setupcommands(msg) {
     commands=JSON.parse(msg);
+    if(preferences) Object.assign(commands,preferences.commands);
   }
   function setupstock(name,msg) {
     stock[name]=msg;
@@ -215,17 +305,113 @@ document.addEventListener("DOMContentLoaded", function() {
     buttons.rebuildProductIndexes(prods, groups, nobcgroup);
   }
 
+  function showDepositPayment(state) {
+    removeElement('#DepositPayment');
+    if(!state.payments || !state.payments.length) return;
+    var dialog=createElement('dialog',{id:'DepositPayment',class:'deposit-payment','aria-labelledby':'DepositPaymentTitle'});
+    dialog.appendChild(createElement('h2',{id:'DepositPaymentTitle',text:'Bankoverschrijving'}));
+    state.payments.forEach(function(payment) {
+      var entry=createElement('section',{class:'deposit-payment-entry'});
+      entry.appendChild(createElement('img',{
+        class:'deposit-payment-qr',src:payment.qr,
+        alt:'EPC-betaalcode voor '+payment.reference+' - EUR '+payment.amount,
+        width:400,height:400,
+      }));
+      var details=createElement('dl',{class:'deposit-payment-details'});
+      [['Bedrag','EUR '+payment.amount],['Ontvanger',payment.name],['IBAN',payment.iban],['Omschrijving',payment.reference]].forEach(function(field) {
+        details.appendChild(createElement('dt',{text:field[0]}));
+        details.appendChild(createElement('dd',{text:field[1]}));
+      });
+      entry.appendChild(details);
+      dialog.appendChild(entry);
+    });
+    var close=createElement('button',{type:'button',class:'deposit-payment-close',text:'Sluiten'});
+    function dismiss() {
+      postmsg('input','ok');
+      focus();
+    }
+    close.addEventListener('click',dismiss);
+    dialog.addEventListener('cancel',function(event) {
+      event.preventDefault();
+      dismiss();
+    });
+    dialog.appendChild(close);
+    document.body.appendChild(dialog);
+    dialog.showModal();
+    close.focus();
+  }
+
   function makepage_infobox() {
     clearElement('#MainButtons');
     clearElement('#TopButtons');
-    appendTo('#MainButtons', createElement('div',{class: "infoboxes", id: "infoboxes"}));
-    cloneElementsTo('.Userline', '#infoboxes');
+    if(!accountProfile || accountProfile.checkout) {
+      appendTo('#MainButtons', createElement('div',{class: "infoboxes", id: "infoboxes"}));
+      cloneElementsTo('#Totals .Userline', '#infoboxes');
+    }
+    if(accountProfile) {
+      makeUserProfile(accountProfile);
+    }
     appendTo('#TopButtons', buttonElement("Knopje Button normal ok",'ok',"OK"));
-    appendTo('#TopButtons', buttonElement("Knopje Button normal undo",'undo',"Undo"));
+    appendTo('#TopButtons', buttonElement("Knopje Button normal undo",'undo',"Undo last transaction"));
     appendTo('#TopButtons', buttonElement("Knopje Button normal restore",'restore',"Undo + Restore"));
-    appendTo('#TopButtons', buttonElement("Knopje Button normal bon",'bon',"Bon"));
-    appendTo('#TopButtons', buttonElement("Knopje Button normal kassala",'kassala',"Kassala"));
+    appendTo('#TopButtons', buttonElement("Knopje Button normal bon",'bon',"Print receipt"));
+    appendTo('#TopButtons', buttonElement("Knopje Button normal kassala",'kassala',"Open cash drawer"));
     fillVisibleText("#TopButtons .Knopjetext:visible");
+  }
+  function actionButton(label, command, className) {
+    var button=createElement('button',{type:'button',class:className || 'profile-action',text:label});
+    button.addEventListener('click',function() {
+      locked=0;
+      currentView='action';
+      postmsg('input',command);
+      setSearchValue(''); focus();
+    });
+    return button;
+  }
+  function makeUserProfile(profile) {
+    currentView='profile';
+    var screen=createElement('section',{class:'user-profile'});
+    var heading=createElement('div',{class:'profile-heading'});
+    heading.appendChild(createElement('h1',{text:profile.user}));
+    var balanceClass=profile.amount < -13.37 ? ' rood' : (profile.amount < 0 ? ' orange' : '');
+    heading.appendChild(createElement('span',{class:'profile-balance'+balanceClass,text:'Balance €'+profile.amount.toFixed(2)}));
+    screen.appendChild(heading);
+    var actions=createElement('div',{class:'profile-actions'});
+    actions.appendChild(actionButton('Full user history','history '+profile.user));
+    if(buttonStudio) {
+      var studioButton=createElement('button',{type:'button',class:'profile-action studio-launch',text:'✨ Button studio'});
+      studioButton.addEventListener('click',function() { buttonStudio.open(profile); });
+      actions.appendChild(studioButton);
+    }
+    if(profile.undo_transaction !== null && profile.undo_transaction !== undefined) {
+      actions.appendChild(actionButton('Undo latest transaction','undouserlatest '+profile.undo_transaction+':'+profile.user,'profile-action undo-user-transaction'));
+    }
+    if(profile.user !== 'cash') {
+      var isMember=typeof profile.is_member === 'boolean' ? profile.is_member : members.includes(profile.user);
+      actions.appendChild(actionButton(isMember ? 'Promote to guest' : 'Promote to Member',
+        (isMember ? 'delmember ' : 'addmember ')+profile.user,'profile-action membership-action'));
+    }
+    screen.appendChild(actions);
+    screen.appendChild(createElement('h2',{text:'Last 10 purchases'}));
+    screen.appendChild(createElement('p',{class:'profile-hint',text:'Add again uses the current price and adds to the current sale.'}));
+    if(profile.history_available && profile.history_complete === false) screen.appendChild(createElement('p',{class:'profile-hint',text:'Recent history is limited; open full user history for older purchases.'}));
+    var rows=createElement('div',{class:'purchase-list'});
+    (profile.purchases || []).forEach(function(purchase) {
+      var row=createElement('div',{class:'purchase-row'});
+      var details=createElement('div');
+      details.appendChild(createElement('strong',{text:purchase.count+' × '+purchase.description}));
+      details.appendChild(createElement('span',{class:'purchase-date',text:purchase.date.replace('_',' ')+' · paid €'+purchase.total.toFixed(2)}));
+      row.appendChild(details);
+      if(purchase.product && prods[purchase.product] && purchase.count > 0 && purchase.count < 100) {
+        var command=purchase.count === 1 ? purchase.product : purchase.count+'* '+purchase.product;
+        row.appendChild(actionButton('Add again · €'+(prods[purchase.product].price*purchase.count).toFixed(2),command,'profile-action reorder-purchase'));
+      }
+      rows.appendChild(row);
+    });
+    if(!rows.childElementCount) rows.appendChild(createElement('p',{class:'profile-hint',text:profile.history_available ? 'No purchases found.' : 'Purchase history is unavailable.'}));
+    screen.appendChild(rows);
+    appendTo('#MainButtons',screen);
+    appendTo('#TopButtons',actionButton('Back to members','abort','profile-action'));
   }
   function dokeys(keys) {
     var keysElement=document.getElementById('keys');
@@ -285,7 +471,7 @@ document.addEventListener("DOMContentLoaded", function() {
       appendToElement(mylines, document.createTextNode(val));
       appendBreak(mylines);
     });
-    setElementStyle('#mylines', {position: 'relative', top: '-12vh', left: '0px', zIndex: '100', background: 'lightgray', height: '76vh', overflowWrap: 'break-word', overflowY: 'scroll', width: '96vw'});
+    setElementStyle('#mylines', {overflowWrap: 'break-word', overflowY: 'auto'});
     scrollToBottom('#mylines');
     showquestion();
   }
@@ -303,49 +489,152 @@ document.addEventListener("DOMContentLoaded", function() {
     });
     showquestion();
   }
-  function makepages(extraclass,buttons) {
+  function buttonsPerPage(accountList) {
+    var mainButtons=first('#MainButtons');
+    if(!mainButtons || !window.getComputedStyle) return 25;
+    var style=window.getComputedStyle(mainButtons);
+    if(accountList) {
+      var width=mainButtons.clientWidth-(parseFloat(style.paddingLeft) || 0)-(parseFloat(style.paddingRight) || 0);
+      var height=mainButtons.clientHeight-(parseFloat(style.paddingTop) || 0)-(parseFloat(style.paddingBottom) || 0);
+      var rowHeight=parseFloat(style.getPropertyValue('--account-row-height')) || 84;
+      if(width > 0 && height > 0) {
+        var columns=Math.max(1,Math.floor((width+8)/(240+8)));
+        var rows=Math.max(1,Math.floor((height+8)/(rowHeight+8)));
+        mainButtons.style.setProperty('--account-columns',columns);
+        mainButtons.style.setProperty('--account-rows',rows);
+        return columns*rows;
+      }
+      return parseInt(style.getPropertyValue('--accounts-per-page'), 10) || 42;
+    }
+    return parseInt(style.getPropertyValue('--buttons-per-page'), 10) || 25;
+  }
+  function selectButtonPage(id) {
+    allElements('#TopButtons .page').forEach(function(button) {
+      button.classList.remove('currentpage');
+      if(button.id === String(id)) button.classList.add('currentpage');
+    });
+    hideElements('.Pagina');
+    showElement('#Page'+id);
+    first('#MainButtons').scrollTop=0;
+    fillVisibleText('.Buttontext:visible');
+  }
+  function selectionSnapshot() {
+    if(!pagedButtons || !allElements('#MainButtons .Pagina').length) return null;
+    var activePage=allElements('#TopButtons .currentpage')[0];
+    return {
+      view: pagedButtons,
+      firstIndex: (activePage ? Number(activePage.id)-1 : 0)*pagedButtons.capacity,
+      extras: allElements('#TopButtons .Knopje').filter(function(button) {
+        return !button.classList.contains('page');
+      }),
+    };
+  }
+  function restoreExtraButtons(snapshot) {
+    snapshot.extras.slice().reverse().forEach(function(button) {
+      first('#TopButtons').prepend(button);
+    });
+  }
+  function restoreSelection(snapshot) {
+    if(!snapshot) return;
+    makepages(snapshot.view.className,snapshot.view.buttons,snapshot.view.accountList);
+    selectButtonPage(Math.floor(snapshot.firstIndex/pagedButtons.capacity)+1);
+    restoreExtraButtons(snapshot);
+    if(currentView === 'accounts') addArchiveTabs();
+  }
+  function reflowButtonPages() {
+    if(!pagedButtons || !allElements('#MainButtons .Pagina').length) return;
+    var capacity=buttonsPerPage(pagedButtons.accountList);
+    if(capacity === pagedButtons.capacity) return;
+    var previousFilter=filterRestore;
+    restoreSelection(selectionSnapshot());
+    filterRestore=previousFilter;
+  }
+  function commandButton(extraclass,stuff) {
+    var knopje=appendChildren(createElement('div',{class: "Knopje Knop "+stuff.text+" "+extraclass + " " + stuff.class,id: stuff.text, role: 'button', tabindex: '0', title: stuff.display }), [
+      createElement('span',{class: "Buttontext ",text: stuff.display}),
+    ]);
+    if(stuff.hint) knopje.appendChild(createElement('small',{class:'command-hint',text:stuff.hint}));
+    if(stuff.right) {
+      var fullwidth='';
+      if(!stuff.left && stuff.fill) fullwidth=' fullwidthButton ';
+      appendToElement(knopje, createElement('span',{class: "right extra "+fullwidth+stuff.rightclass,text: stuff.right}));
+    }
+    if(stuff.left) {
+      appendToElement(knopje, createElement('span',{class: "left extra "+stuff.leftclass,text: stuff.left}));
+    }
+    if(window.HackBankButtonStyles && stuff.class && stuff.class.indexOf('account ') === 0) {
+      window.HackBankButtonStyles.apply(knopje,stuff.text,buttonThemes[stuff.text]);
+    }
+    return knopje;
+  }
+  function makeAccountList(accountButtons) {
+    makepages('normal',accountButtons,true);
+  }
+  function reuseAccountGrid(extraclass,buttons,capacity) {
+    if(!pagedButtons || !pagedButtons.accountList || pagedButtons.className !== extraclass || pagedButtons.capacity !== capacity) return null;
+    if(!allElements('#MainButtons #AccountList').length || buttons.length !== pagedButtons.buttons.length) return null;
+    var nodes=allElements('#MainButtons .account');
+    if(nodes.length !== buttons.length) return null;
+    var fields=['text','display','class','left','leftclass','hint','fill'];
+    if(!buttons.every(function(button,index) {
+      return fields.every(function(field) { return button[field] === pagedButtons.buttons[index][field]; });
+    })) return null;
+    return nodes;
+  }
+  function makepages(extraclass,buttons,accountList) {
+    stopAudio();
+    if(!filtering) filterRestore=null;
+    var capacity=buttonsPerPage(accountList);
+    var reused=accountList ? reuseAccountGrid(extraclass,buttons,capacity) : null;
+    var currentPage=allElements('#TopButtons .currentpage')[0];
+    var selectedPage=reused && currentPage ? currentPage.id : '1';
+    var previous=pagedButtons;
+    pagedButtons={className: extraclass, buttons: buttons, capacity: capacity, accountList: !!accountList};
     var pagecount=1;
-    clearElement('#MainButtons');
+    if(!reused) {
+      clearElement('#MainButtons');
+      first('#MainButtons').scrollTop=0;
+    }
     clearElement('#TopButtons');
-    appendTo('#MainButtons', createElement('div',{id: 'Page'+pagecount, class: 'Pagina'}));
-    appendTo('#TopButtons', topButton("page",'1',"Page 1"));
+    var container='#MainButtons';
+    var pageClass='Pagina';
+    if(accountList) {
+      if(!reused) appendTo(container,createElement('div',{id: 'AccountList', role: 'group', 'aria-label': 'Accounts'}));
+      container='#AccountList';
+      pageClass+=' account-list';
+    }
+    if(!reused) appendTo(container, createElement('div',{id: 'Page'+pagecount, class: pageClass}));
+    appendTo('#TopButtons', topButton('page'+(selectedPage === '1' ? ' currentpage' : ''),'1',"Page 1"));
     var counter=0;
     var donewpage=0;
-    var first=1;
+    var firstOnPage=1;
     var lastchar="";
-    buttons.forEach(function(stuff) {
+    buttons.forEach(function(stuff,index) {
       if(donewpage === 1) {
         appendToPageLabel(pagecount, ' - '+lastchar);
         pagecount++;
-        appendTo('#MainButtons', createElement('div',{id: 'Page'+pagecount, class: 'Pagina', style: {display: 'none'}}));
-        appendTo('#TopButtons', topButton("page",String(pagecount),"Page "+pagecount));
+        if(!reused) appendTo(container, createElement('div',{id: 'Page'+pagecount, class: pageClass, style: {display: 'none'}}));
+        appendTo('#TopButtons', topButton('page'+(selectedPage === String(pagecount) ? ' currentpage' : ''),String(pagecount),"Page "+pagecount));
         counter=0;
         donewpage=0;
-        first=1;
+        firstOnPage=1;
       }
-      if(first === 1) {
+      if(firstOnPage === 1) {
         appendToPageLabel(pagecount, '<br>'+stuff.display.charAt(0).toUpperCase());
-        first=0;
-      }
-      var knopje=appendChildren(createElement('div',{class: "Knopje Knop "+stuff.text+" "+extraclass + " " + stuff.class,id: stuff.text }), [
-        createElement('span',{class: "Buttontext ",text: stuff.display}),
-      ]);
-      if(stuff.right) {
-        var fullwidth='';
-        if(!stuff.left && stuff.fill) {
-          fullwidth=' fullwidthButton ';
-        }
-        appendToElement(knopje, createElement('span',{class: "right extra "+fullwidth+stuff.rightclass,text: stuff.right}));
-      }
-      if(stuff.left) {
-        appendToElement(knopje, createElement('span',{class: "left extra "+stuff.leftclass,text: stuff.left}));
+        firstOnPage=0;
       }
       lastchar=stuff.display.charAt(0).toUpperCase();
-      appendTo('#Page'+pagecount, knopje);
+      if(reused) {
+        if(stuff.right !== previous.buttons[index].right || stuff.rightclass !== previous.buttons[index].rightclass) {
+          var balance=reused[index].querySelector('.right');
+          if(balance) {
+            balance.textContent=stuff.right;
+            balance.className='right extra '+(!stuff.left && stuff.fill ? ' fullwidthButton ' : '')+stuff.rightclass;
+          }
+        }
+      } else appendTo('#Page'+pagecount, commandButton(extraclass,stuff));
       counter++;
-      var w=5;
-      var h=5;
-      if(counter>=w*h) {
+      if(counter>=capacity) {
         donewpage=1;
       }
     });
@@ -356,7 +645,7 @@ document.addEventListener("DOMContentLoaded", function() {
     } else {
       appendToPageLabel(pagecount, ' - '+lastchar);
       fillVisibleText(".Paginatext:visible");
-      allElements(".Pagina").forEach(function(page) {
+      if(!reused) allElements(".Pagina").forEach(function(page) {
         hideElements('.Pagina');
         page.style.display='';
         fillVisibleText(".Buttontext:visible");
@@ -365,19 +654,90 @@ document.addEventListener("DOMContentLoaded", function() {
       });
     }
   }
+  function makeSoundScreen(soundButtons) {
+    activateTopButton('sounds');
+    currentView='sounds';
+    pagedButtons=null;
+    filterRestore=null;
+    clearElement('#MainButtons');
+    clearElement('#TopButtons');
+    showElement('#Secondscreen');
+    var screen=createElement('div',{class: 'sound-screen'});
+    screen.appendChild(createElement('h1',{class: 'section-title', text: 'Sounds'}));
+    appendTo('#MainButtons',screen);
+    var actions=createElement('div',{class: 'sound-actions', 'aria-label': 'Sound commands'});
+    soundButtons.forEach(function(button) { actions.appendChild(commandButton('normal',button)); });
+    screen.appendChild(actions);
+    audioControl=window.HackBankAudio.mount(screen);
+    if(window.HackBankSoundSettings) soundSettingsControl=window.HackBankSoundSettings.mount(screen,{session:session,initialState:soundSettings});
+    showquestion();
+    fillVisibleText('.Buttontext:visible');
+  }
+  function makeCommandScreen(category) {
+    commandCategory=category || 'All commands';
+    locked=1;
+    activateTopButton('commands');
+    currentView='commands';
+    pagedButtons=null; filterRestore=null;
+    clearElement('#MainButtons'); clearElement('#TopButtons');
+    showElement('#Secondscreen');
+    appendTo('#TopButtons',actionButton('Abort everything','abort','profile-action abort-all'));
+    var sections=buttons.commandSections(commands);
+    var icons={'All commands':'📋',Products:'📦',Users:'👥',Sales:'🧾',Wholesale:'🏬',Market:'🏷️',Misc:'🛠️',Settings:'⚙️'};
+    function categoryIcon(element,name) {
+      element.prepend(createElement('span',{class:'category-icon','aria-hidden':'true',text:icons[name]}));
+      return element;
+    }
+    ['All commands'].concat(sections.map(function(section) { return section.name; }),['Settings']).forEach(function(name) {
+      var tab=categoryIcon(createElement('button',{type:'button',class:'command-tab'+((category || 'All commands') === name ? ' selected' : ''),text:name,'aria-label':name}),name);
+      tab.addEventListener('click',function() { makeCommandScreen(name); focus(); });
+      appendTo('#TopButtons',tab);
+    });
+    var grid=createElement('div',{class:'command-sections'+(category && category !== 'All commands' ? ' single-section' : '')});
+    sections.forEach(function(section) {
+      if(category && category !== 'All commands' && category !== section.name) return;
+      if(!section.buttons.length) return;
+      var card=createElement('section',{class:'command-section section-'+section.name.toLowerCase()});
+      card.appendChild(categoryIcon(createElement('h2',{text:section.name}),section.name));
+      var commandsGrid=createElement('div',{class:'command-group-buttons'});
+      section.buttons.forEach(function(button) { commandsGrid.appendChild(commandButton('normal',button)); });
+      card.appendChild(commandsGrid); grid.appendChild(card);
+    });
+    if(preferences && (!category || category === 'All commands' || category === 'Settings')) {
+      var settings=createElement('section',{class:'command-section section-settings'});
+      settings.appendChild(categoryIcon(createElement('h2',{text:'Settings'}),'Settings'));
+      var settingsGrid=createElement('div',{class:'settings-grid'});
+      ['party','dark','banana','dank','confetti'].forEach(function(key) { settingsGrid.appendChild(preferences.toggle(key)); });
+      settings.appendChild(settingsGrid); grid.appendChild(settings);
+    }
+    appendTo('#MainButtons',grid);
+    focus(); tabenable=1;
+  }
   function dobuttons(msg) {
+    if(currentView === 'commands' && locked === 1) return;
     var buttons=JSON.parse(msg);
     if(msg === '{}' && locked === 0) {
+      if(currentView === 'sounds') return;
       showAccountButtons('members','m',1);
     } else if (buttons['special'] === 'custom') {
-      activateTopButton('commands');
       showElement('#Secondscreen');
+      var customButtons=window.HackBankButtons.visibleCommandButtons(buttons['custom']);
       if(buttons['sort'] === "text") {
-        buttons['custom'].sort(window.HackBankButtons.compareTextReverse);
+        customButtons.sort(window.HackBankButtons.compareTextReverse);
       } else {
-        buttons['custom'].sort(window.HackBankButtons.compareDisplay);
+        customButtons.sort(window.HackBankButtons.compareDisplay);
       }
-      makepages('normal',buttons['custom']);
+      var soundMenu=buttons['custom'].some(function(button) { return button.text === 'ns'; })
+        && buttons['custom'].some(function(button) { return button.text === 'vergaderen'; });
+      if(soundMenu) {
+        soundButtons=window.HackBankButtons.visibleSoundButtons(customButtons);
+        makeSoundScreen(soundButtons);
+      }
+      else {
+        currentView='action';
+        activateTopButton('commands');
+        makepages('normal',customButtons);
+      }
       focus();
       tabenable=0;
     } else if (buttons['special'] === 'accounts') {
@@ -385,7 +745,7 @@ document.addEventListener("DOMContentLoaded", function() {
     } else if (buttons['special'] === 'accountsamount') {
       activateTopButton('members');
       showElement('#Secondscreen');
-      makepages('normal',window.HackBankButtons.accountsToButtons(accounts,members,nonmembers,'m'));
+      makeAccountList(window.HackBankButtons.accountsToButtons(accounts,members,nonmembers,'m'));
       document.getElementById('TopButtons').prepend(topButton("shownumbers",'shownumbers',"Enter amount"));
       prependCashButton();
       focus();
@@ -425,12 +785,9 @@ document.addEventListener("DOMContentLoaded", function() {
   }
   function playsound(sound) {
     var audioElement = document.createElement('audio');
-    audioElement.setAttribute('src', 'sounds/'+sound);
-    audioElement.setAttribute('autoplay', 'autoplay');
-    audioElement.load();
-    audioElement.addEventListener("load", function() {
-    audioElement.play();
-    },true);
+    audioElement.setAttribute('src', 'sounds/'+sound.split('/').map(encodeURIComponent).join('/'));
+    var playback=audioElement.play();
+    if(playback && playback.catch) playback.catch(function(error) { console.log('Audio playback unavailable',error); });
   }
 
   function showquestion() {
@@ -452,6 +809,7 @@ document.addEventListener("DOMContentLoaded", function() {
             scrollToBottom('#Log');
             break;
          case 'receipt':
+            accountProfile=null;
             build_receipt(msg);
             break;
          case 'totals':
@@ -464,7 +822,7 @@ document.addEventListener("DOMContentLoaded", function() {
             break;
          case 'infobox':
             run_infobox(pathParts[6],msg);
-            setMainButtonsBackground("#d7ffd7");
+            setMainButtonsBackground("#e8f3ec");
             break;
          case 'accounts':
             setupaccounts(pathParts[5],msg);
@@ -485,6 +843,18 @@ document.addEventListener("DOMContentLoaded", function() {
          case 'sound':
             playsound(msg);
             break;
+         case 'deposit_payment':
+            showDepositPayment(JSON.parse(msg));
+            break;
+         case 'sound_settings':
+            if(soundSettingsControl) soundSettingsControl.receive(JSON.parse(msg));
+            break;
+         case 'button_studio':
+            if(buttonStudio) buttonStudio.receive(JSON.parse(msg));
+            break;
+         case 'effects':
+            if(preferences && JSON.parse(msg).type === 'sale') preferences.sale();
+            break;
          case 'members':
             members=JSON.parse(msg);
             break;
@@ -494,6 +864,19 @@ document.addEventListener("DOMContentLoaded", function() {
          case 'commands':
             setupcommands(msg);
             break;
+         case 'activity':
+            activity=JSON.parse(msg);
+            if(currentView === 'accounts' && !searchValue()) {
+              makeAccountSections(accountType,archivedAccounts); prependCashButton();
+            }
+            if(currentView === 'profile') {
+              // A fresh backend check still guards the actual undo command.
+              allElements('.undo-user-transaction').forEach(function(button) { button.remove(); });
+            }
+            break;
+         case 'settings':
+            if(preferences && pathParts[5] === 'party') preferences.setParty(JSON.parse(msg));
+            break;
      }
   }
   function runmsg(path,msg) {
@@ -501,6 +884,16 @@ document.addEventListener("DOMContentLoaded", function() {
     //console.log(elms);
     if(elms.length < 3) return;
     switch(elms[2]) {
+      case 'settings':
+         if(elms[3] === 'sounds') {
+           soundSettings=JSON.parse(msg);
+           if(soundSettingsControl) soundSettingsControl.update(soundSettings);
+         }
+         if(elms[3] === 'buttons') {
+           var design=JSON.parse(msg);
+           if(design && typeof design.user === 'string') updateButtonTheme(design.user,design.theme);
+         }
+         break;
       case 'session':
          if(elms.length < 5) return;
          var sessionID=elms[3];
@@ -518,9 +911,14 @@ document.addEventListener("DOMContentLoaded", function() {
     if(!tabenable) return;
     var dingen=searchValue().split(" ");
     var zoek=dingen[dingen.length-1].toLowerCase();
-    if(zoek.length<2) {
-        return;
+    if(!zoek.length) {
+      if(filterReturnView === 'commands') { filterReturnView=null; makeCommandScreen(commandCategory); return; }
+      restoreSelection(filterRestore);
+      return;
     }
+    if(fill && zoek.length<2) return;
+    if(!filterReturnView && currentView === 'commands') filterReturnView='commands';
+    if(!filterRestore) filterRestore=selectionSnapshot();
     var buttons=[];
     window.HackBankButtons.addMatchingButtons(buttons, window.HackBankButtons.accountsToButtons(accounts,members,nonmembers,'m'), zoek);
     window.HackBankButtons.addMatchingButtons(buttons, window.HackBankButtons.accountsToButtons(accounts,members,nonmembers,'o'), zoek);
@@ -541,7 +939,16 @@ document.addEventListener("DOMContentLoaded", function() {
          }
       });
     }
-    makepages('normal',buttons);
+    filtering=true;
+    try {
+      var accountList=filterRestore ? filterRestore.view.accountList : (tabenable === 2 || (buttons.length > 0 && buttons.every(function(button) {
+        return button.class && button.class.indexOf('account ') === 0;
+      })));
+      makepages('normal',buttons,accountList);
+      if(filterRestore) restoreExtraButtons(filterRestore);
+    } finally {
+      filtering=false;
+    }
     if(buttons.length === 1 && fill) {
         dingen[dingen.length-1]=buttons[0].text+" ";
         setSearchValue(dingen.join(" "));
@@ -556,6 +963,13 @@ document.addEventListener("DOMContentLoaded", function() {
   function verwerkinput() {
     postmsg('input',searchValue());
     setSearchValue("");
+  }
+  function submitCommand() {
+    var command=searchValue().trim();
+    if(currentView === 'sounds' && !['ns','vergaderen','vergaderenextreme','vergaderen_extreme','throw','yeet','sounds'].includes(command) && !/^(dark|banana|dank|confetti)mode(on|off)$/.test(command)) currentView='action';
+    locked=0;
+    verwerkinput();
+    focus();
   }
   var delay = (function(){
     var timer = 0;
@@ -574,6 +988,8 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   function handleNormalClick() {
+    if(currentView === 'commands') locked=0;
+    if(currentView !== 'sounds' || !['ns','vergaderen','vergaderenextreme','throw','yeet'].includes(String(this.id))) currentView='action';
     var dingen=searchValue().split(" ");
     dingen[dingen.length-1]=this.id;
     postmsg('input',dingen.join(" "));
@@ -599,9 +1015,7 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   function handlePageClick() {
-    hideElements('.Pagina');
-    showElement('#Page'+this.id);
-    fillVisibleText(".Buttontext:visible");
+    selectButtonPage(this.id);
     focus();
   }
 
@@ -610,15 +1024,26 @@ document.addEventListener("DOMContentLoaded", function() {
      focus();
   }
 
+  function showEmbeddedScreen(selector,title,url) {
+    hideElement('#IRCwindow');
+    hideElement('#spacewindow');
+    showElement(selector);
+    var screen=first(selector);
+    if(screen.childElementCount !== 0) return;
+    screen.appendChild(createElement('iframe',{src: url, title: title, allow: 'autoplay; encrypted-media; picture-in-picture; fullscreen', allowfullscreen: ''}));
+  }
+
   function handleMainButtonClick() {
+    filterReturnView=null;
+    if(this.id !== 'sounds') currentView='action';
     switch(this.id) {
       case 'members':
          locked=0;
-         showAccountButtons(this.id,'m',tabenable);
+         showAccountButtons(this.id,'m',tabenable || 1);
          break;
       case 'otherusers':
          locked=0;
-         showAccountButtons(this.id,'o',tabenable);
+         showAccountButtons(this.id,'o',tabenable || 1);
          break;
       case 'products':
          activateTopButton(this.id);
@@ -627,32 +1052,33 @@ document.addEventListener("DOMContentLoaded", function() {
          focus();
          break;
       case 'commands':
-         activateTopButton(this.id);
          locked=0;
-         makepages('normal',window.HackBankButtons.commandsToButtons(commands).sort(window.HackBankButtons.compareDisplay));
+         makeCommandScreen();
+         break;
+      case 'sounds':
+         locked=0;
+         postmsg('input','sounds');
+         setSearchValue('');
          focus();
          break;
       case 'back':
+         currentView='overview';
          activateTopButton(this.id);
          locked=0;
          hideElement('#Secondscreen');
          focus();
          break;
       case 'irc':
+         currentView='embedded';
          activateTopButton(this.id);
          locked=0;
-         showElement('#IRCwindow');
-         if(document.getElementById('IRCwindow').childElementCount === 0) {
-           appendTo('#IRCwindow', createElement('iframe',{src: 'http://kleintje:4200/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
-         }
+         showEmbeddedScreen('#IRCwindow','Music','http://192.168.142.157:3000/');
          break;
       case 'spacecon':
+         currentView='embedded';
          activateTopButton(this.id);
          locked=0;
-         showElement('#spacewindow');
-         if(document.getElementById('spacewindow').childElementCount === 0) {
-           appendTo('#spacewindow', createElement('iframe',{src: '/spaceconsole/',frameborder: 0, scrolling: 'no', width: '100%', height: '100%'}));
-         }
+         showEmbeddedScreen('#spacewindow','Home Assistant','http://hass.space.hack42.nl:8123/home/overview');
          break;
       case 'knopjes':
          activateTopButton(this.id);
@@ -707,39 +1133,104 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   function buildLayout() {
-    appendTo('#body', createElement('div',{id: 'Firstscreen'}));
-    appendTo('#body', createElement('div',{id: 'Secondscreen'}));
-    appendTo('#body', createElement('div',{id: 'IRCwindow'}));
-    appendTo('#body', createElement('div',{id: 'spacewindow'}));
+    var header=createElement('header',{class: 'app-header row'});
+    var logoAbort=createElement('button',{id: 'LogoAbort', class: 'brand brand-abort col-auto', type: 'button', title: 'Reset current sale', 'aria-label': 'Lovelace Bar — Reset current sale'});
+    appendChildren(logoAbort,[
+      createElement('img',{class: 'brand-logo', src: 'images/Hack42.png', alt: 'Hack42 · Hackerspace Arnhem', width: '84', height: '56'}),
+      appendChildren(createElement('span'), [
+        createElement('span',{class: 'brand-name', text: 'Lovelace Bar'}),
+        createElement('span',{class: 'brand-caption', text: 'Drinks @ Hack42'}),
+      ]),
+    ]);
+    logoAbort.addEventListener('click',function() {
+      currentView='action';
+      stopAudio();
+      setSearchValue('abort');
+      submitCommand();
+    });
+    header.appendChild(logoAbort);
+    header.appendChild(createElement('nav',{id: 'LeftButtons', class: 'LeftButtons col', 'aria-label': 'Register sections'}));
+    appendTo('#body', header);
 
-    appendTo('#Firstscreen', createElement('div',{id: 'Receipt', class: 'Receipt'}));
-    appendTo('#Firstscreen', createElement('div',{id: 'Totals', class: 'Totals'}));
-    appendTo('#Firstscreen', createElement('div',{id: 'Buttons', class: 'Buttons'}));
-    appendTo('#Firstscreen', createElement('div',{id: 'Log'}));
+    var workspace=createElement('main',{class: 'workspace row'});
+    var leftColumn=createElement('section',{class: 'workspace-main col', 'aria-label': 'Register'});
+    var screens=createElement('div',{class: 'screens'});
+    var overview=createElement('div',{id: 'Firstscreen', class: 'overview-screen'});
+    overview.appendChild(createElement('h1',{class: 'section-title', text: 'Current sale'}));
+    overview.appendChild(createElement('div',{id: 'Receipt', class: 'Receipt'}));
+    overview.appendChild(createElement('div',{id: 'Buttons', class: 'Buttons'}));
+    screens.appendChild(overview);
 
-    var inputWrapper=createElement('div',{id: 'Invoer'});
-    inputWrapper.appendChild(createElement('input',{id: 'Zoek', placeholder: "Starting network communication", autocomplete: 'off'}));
-    appendTo('#Firstscreen', inputWrapper);
+    var selection=createElement('div',{id: 'Secondscreen', class: 'selection-screen'});
+    selection.appendChild(createElement('div',{id: 'TopButtons', class: 'RightButtons', 'aria-label': 'Current options'}));
+    selection.appendChild(createElement('div',{id: 'MainButtons', class: 'MainButtons'}));
+    screens.appendChild(selection);
+    screens.appendChild(createElement('div',{id: 'IRCwindow', class: 'embedded-screen'}));
+    screens.appendChild(createElement('div',{id: 'spacewindow', class: 'embedded-screen'}));
+    leftColumn.appendChild(screens);
+    leftColumn.appendChild(appendChildren(createElement('section',{class: 'activity', 'aria-label': 'Register history'}), [
+      createElement('span',{class: 'activity-label', text: 'HISTORY'}),
+      createElement('div',{id: 'Log', role: 'log', 'aria-live': 'polite'}),
+    ]));
+    workspace.appendChild(leftColumn);
 
-    appendTo('#Secondscreen', createElement('div',{id: 'LeftButtons', class: 'LeftButtons'}));
-    appendTo('#Secondscreen', createElement('div',{id: 'MainButtons', class: 'MainButtons'}));
-    appendTo('#Secondscreen', createElement('div',{id: 'TopButtons', class: 'RightButtons'}));
-    appendTo('#Secondscreen', createElement('div',{id: 'Receipt2'}));
+    var receiptPanel=createElement('aside',{class: 'receipt-panel col-auto', 'aria-label': 'Sale receipt'});
+    receiptPanel.appendChild(appendChildren(createElement('div',{class: 'receipt-heading'}), [
+      createElement('h2',{text: 'On the tab'}),
+      createElement('span',{class: 'receipt-currency', text: 'EUR'}),
+    ]));
+    receiptPanel.appendChild(appendChildren(createElement('div',{class: 'receipt-columns', 'aria-hidden': 'true'}), [
+      createElement('span',{text: 'ITEM'}),
+      createElement('span',{text: 'QTY'}),
+      createElement('span',{text: 'AMOUNT'}),
+    ]));
+    receiptPanel.appendChild(createElement('div',{id: 'Receipt2'}));
+    receiptPanel.appendChild(createElement('div',{id: 'Totals', class: 'Totals', 'aria-label': 'Account totals', 'aria-live': 'polite'}));
+    receiptPanel.appendChild(appendChildren(createElement('div',{class: 'receipt-footer'}), [
+      createElement('span',{class: 'receipt-barcode', 'aria-hidden': 'true'}),
+      createElement('span',{text: 'Eat. Drink. Hack. Repeat.'}),
+    ]));
+    workspace.appendChild(receiptPanel);
+    appendTo('#body', workspace);
+
+    var inputWrapper=createElement('footer',{id: 'Invoer'});
+    inputWrapper.appendChild(appendChildren(createElement('div',{class: 'command-caption'}), [
+      createElement('label',{'for': 'Zoek', text: 'COMMAND LINE'}),
+      createElement('span',{class: 'command-help', text: 'Scan a barcode · Type a command · Tab to complete'}),
+    ]));
+    inputWrapper.appendChild(appendChildren(createElement('div',{class: 'command-input'}), [
+      createElement('span',{class: 'command-prompt', text: '›_', 'aria-hidden': 'true'}),
+      createElement('input',{id: 'Zoek', placeholder: "Starting network communication", autocomplete: 'off', spellcheck: 'false', autocapitalize: 'off', 'aria-label': 'Product, command or username'}),
+      createElement('button',{id: 'CommandEnter', type: 'button', class: 'enter-hint', text: 'ENTER ↵', 'aria-label': 'Submit command'}),
+    ]));
+    appendTo('#body', inputWrapper);
   }
 
   function buildLeftButtons() {
+    var icons={
+      abort: '<path d="m8 8 8 8M16 8l-8 8"/><circle cx="12" cy="12" r="9"/>',
+      members: '<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 5"/>',
+      otherusers: '<circle cx="12" cy="8" r="3"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>',
+      products: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+      commands: '<path d="m4 6 6 6-6 6M13 18h7"/>',
+      sounds: '<path d="m11 4-6 5H2v6h3l6 5zM16 8a6 6 0 0 1 0 8M19 5a10 10 0 0 1 0 14"/>',
+      irc: '<path d="M9 18V5l12-2v13M9 8l12-2"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="18" cy="16" rx="3" ry="2"/>',
+      spacecon: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/><path d="M9 21v-9h6v9"/>',
+    };
     var buttons=[
-      ["Knopje Button topknop normal abort",'abort',"Abort"],
+      ["Knopje Button topknop normal abort",'abort',"Cancel"],
       ["Knopje Button topknop special",'members',"Members"],
-      ["Knopje Button topknop special",'otherusers',"Other Users"],
+      ["Knopje Button topknop special",'otherusers',"Guests"],
       ["Knopje Button topknop special",'products',"Products"],
       ["Knopje Button topknop special",'commands',"Commands"],
       ["Knopje Button topknop sounds",'sounds',"Sounds"],
-      ["Knopje Button topknop irc",'irc',"IRC"],
-      ["Knopje Button topknop spacecon",'spacecon',"Lights"],
+      ["Knopje Button topknop irc",'irc',"Music"],
+      ["Knopje Button topknop spacecon",'spacecon',"Home Assistant"],
     ];
     buttons.forEach(function(button) {
-      appendTo('#LeftButtons', buttonElement(button[0],button[1],button[2]));
+      var element=buttonElement(button[0],button[1],button[2]);
+      element.appendChild(createElement('span',{class: 'nav-icon', 'aria-hidden': 'true', html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+icons[button[1]]+'</svg>'}));
+      appendTo('#LeftButtons', element);
     });
   }
 
@@ -759,19 +1250,19 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   function bindSearchInput() {
+    document.getElementById('CommandEnter').addEventListener('click',submitCommand);
     searchInput().addEventListener("keydown", function(data) {
       if(data.which === 9) {
         dotabfill(1);
         data.preventDefault();
       } else if(data.which === 13) {
-        locked=0;
-        postmsg('input',this.value);
-        this.value="";
-      } else {
-        delay(function(){
-          dotabfill(0);
-        }, 200 );
+        submitCommand();
       }
+    });
+    searchInput().addEventListener('input',function() {
+      delay(function() {
+        dotabfill(0);
+      },200);
     });
   }
 
@@ -788,6 +1279,28 @@ document.addEventListener("DOMContentLoaded", function() {
   fillVisibleText(".Knopjetext:visible");
   bindButtonEvents();
   bindSearchInput();
+  if(window.HackBankIdleFocus) window.HackBankIdleFocus.watch({
+    getInput:searchInput,
+    isPaused:function() { return currentView === 'embedded'; },
+  });
+  document.body.addEventListener('keydown', function(event) {
+    if(event.target.id === 'Zoek' || (event.key !== 'Enter' && event.key !== ' ')) return;
+    var button=event.target.closest && event.target.closest('.Knopje');
+    if(button) {
+      event.preventDefault();
+      button.click();
+    }
+  });
+  if(window.ResizeObserver) {
+    var textObserver=new window.ResizeObserver(function() {
+      reflowButtonPages();
+      fillVisibleText('.Buttontext:visible');
+      fillVisibleText('.Knopjetext:visible');
+      fillVisibleText('.Paginatext:visible');
+    });
+    textObserver.observe(document.getElementById('MainButtons'));
+    textObserver.observe(document.getElementById('LeftButtons'));
+  }
   focus();
   postmsg('input','');
 });
